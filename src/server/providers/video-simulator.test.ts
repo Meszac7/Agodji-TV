@@ -6,8 +6,9 @@ describe("simulateur vidéo (liens signés)", () => {
   const now = new Date("2026-11-19T10:00:00Z");
 
   function parse(url: string) {
-    const u = new URL(url, "http://localhost");
-    return { token: u.searchParams.get("token")!, expires: Number(u.searchParams.get("expires")) };
+    const [, base, token, expires, videoId, file] = new URL(url, "http://localhost").pathname.split("/");
+    expect({ base, videoId, file }).toMatchObject({ base: "sim-video", file: "playlist.m3u8" });
+    return { token: token!, expires: Number(expires) };
   }
 
   it("un lien valide est accepté avant expiration", async () => {

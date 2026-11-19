@@ -35,3 +35,9 @@ INSERT INTO app.series_prices (series_id, price_list_id, episode_price, pass_pri
 SELECT sr.id, pl.id, 499, 1500
 FROM app.series sr CROSS JOIN app.price_lists pl
 WHERE sr.slug = 'sang-royal' AND pl.code = 'XOF';
+
+-- Images de démonstration (servies par le site en local/préproduction ; en production : Supabase Storage).
+UPDATE app.series SET poster_path = '/maquettes/videos/affiche-' || slug || '.jpg' WHERE slug <> 'sang-royal';
+UPDATE app.series SET poster_path = '/maquettes/videos/poster-1.jpg' WHERE slug = 'sang-royal';
+UPDATE app.episodes e SET thumbnail_path = '/maquettes/videos/poster-' || LEAST(e.number, 6) || '.jpg'
+FROM app.series sr WHERE sr.id = e.series_id AND sr.slug = 'sang-royal';

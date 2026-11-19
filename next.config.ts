@@ -17,6 +17,8 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Flux HLS de démonstration lus par la route du simulateur vidéo (préproduction uniquement).
+  outputFileTracingIncludes: { "/sim-video/[token]/[expires]/[videoId]/[file]": ["./demo-media/hls/**/*"] },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
