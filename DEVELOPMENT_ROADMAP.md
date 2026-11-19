@@ -75,14 +75,14 @@ Chaque étape indique : **livrables**, **tests automatisés**, **validation par 
 
 **Livrables**
 - **Maquettes du parcours utilisateur complet**, validées par le fondateur **avant** l'intégration (DESIGN_GUIDELINES §10) : découverte (accueil, catalogue) → fiche série → épisode gratuit dans le lecteur → épisode payant → écran d'achat (choix épisode/pass, confirmation du pays de paiement, moyen de paiement) → paiement **simulé** → vérification → confirmation → lecture du contenu débloqué → bibliothèque. Inclut connexion/inscription, états d'erreur et thèmes sombre/clair. Les maquettes sont **cliquables** (prototype navigable sur mobile), les paiements restent simulés.
-- **Lecteur vertical en défilement continu** selon PRODUCT_REQUIREMENTS §5 (FR-30 à FR-44), conforme à la maquette validée : glisser haut/bas, enchaînement automatique, reprise (sur l'appareil pour les visiteurs), formats vertical et horizontal sans déformation, plein écran, qualité adaptative et économie de données, diapositives « verrouillé » / « bientôt » / fin de saison, gestion des erreurs — sur vidéos de démonstration HLS. Les cinq couches (interface, moteur, droits, progression, séquenceur) sont séparées (TECHNICAL_ARCHITECTURE §6.4).
-- Accueil (bannière, rangées « Disponible » / « Bientôt »), catalogue, fiche série, saisons, liste d'épisodes avec badges d'accès et prix.
+- **Lecteur vertical en défilement continu** selon PRODUCT_REQUIREMENTS §5 (FR-30 à FR-44), conforme à la maquette validée : glisser haut/bas, enchaînement automatique, reprise (sur l'appareil pour les visiteurs), formats vertical et horizontal sans déformation, plein écran, qualité adaptative et économie de données, diapositives « verrouillé » / « bientôt » / fin de série, reprise automatique après paiement, gestion des erreurs — sur vidéos de démonstration HLS. Les six couches (interface, moteur, droits, progression, ordre des épisodes, achats et pass série) sont séparées (TECHNICAL_ARCHITECTURE §6.4).
+- Accueil (bannière, rangées « Disponible » / « Bientôt »), catalogue, fiche série (nombre d'épisodes, durée totale), liste ordonnée des épisodes avec badges d'accès et prix.
 - Prix affichés pour le pays d'affichage : estimé par IP, **Bénin par défaut** avec la mention « Prix indicatifs — modifiables selon votre pays » (D-21), sélecteur de pays.
 - Format d'affichage selon le réglage de la série (vertical ou horizontal).
 - Lecture des épisodes gratuits via `/api/playback` (simulateur vidéo : vidéo de démonstration).
 - Navigation mobile (barre inférieure), images optimisées.
 
-**Tests automatisés** : lecteur et défilement (glisser haut/bas, enchaînement automatique, arrêt devant un épisode verrouillé, reprise à la bonne position, vidéo horizontale non déformée, plein écran, erreurs simulées : réseau coupé, lien expiré renouvelé, accès refusé) ; séquenceur (ordre, états, fin de saison, épisodes programmés) ; règles de visibilité (brouillon, programmé, publié, dépublié, série « bientôt ») ; `video_id` absent de toutes les données envoyées au navigateur ; prix affichés = grille du pays sélectionné ; parcours Playwright sur mobile (Android et iPhone émulés) et ordinateur ; budget de poids de page ; contrastes d'accessibilité.
+**Tests automatisés** : lecteur et défilement (glisser haut/bas, enchaînement automatique, arrêt devant un épisode verrouillé, reprise à la bonne position, vidéo horizontale non déformée, plein écran, erreurs simulées : réseau coupé, lien expiré renouvelé, accès refusé) ; séquenceur (ordre, états, fin de série, épisodes programmés) ; règles de visibilité (brouillon, programmé, publié, dépublié, série « bientôt ») ; `video_id` absent de toutes les données envoyées au navigateur ; prix affichés = grille du pays sélectionné ; parcours Playwright sur mobile (Android et iPhone émulés) et ordinateur ; budget de poids de page ; contrastes d'accessibilité.
 
 **Validation fondateur** : 1) valider la maquette du lecteur vertical puis les maquettes du parcours complet ; 2) puis, sur le site, enchaîner les épisodes en faisant défiler sur votre téléphone (plein écran, reprise, connexion lente), changer le pays d'affichage, vérifier les textes.
 
@@ -102,11 +102,11 @@ Chaque étape indique : **livrables**, **tests automatisés**, **validation par 
 
 ### Étape 4 — Administration du contenu
 
-**Livrables** : connexion admin (e-mail + mot de passe + TOTP, D-06) ; rôles `admin` / `editor` ; séries, saisons, épisodes, affiches et vignettes ; prix par grille tarifaire (XOF pré-rempli, autres grilles vides et indépendantes) ; gratuit/payant ; publication, dépublication, programmation ; association d'une vidéo ; garde-fous de publication ; journal d'audit.
+**Livrables** : connexion admin (e-mail + mot de passe + TOTP, D-06) ; rôles `admin` / `editor` ; séries et épisodes (ajout, modification, suppression, **réorganisation**), affiches et vignettes, **durées et durée totale calculée**, avertissements de format (10 épisodes, 1 min 50, 15 min — D-28) ; prix du pass série et des épisodes par grille tarifaire (XOF pré-rempli, autres grilles vides et indépendantes) ; gratuit/payant ; publication, dépublication, programmation ; association d'une vidéo ; garde-fous de publication ; journal d'audit.
 
 **Tests automatisés** : chaque action admin refusée sans session, sans TOTP (`aal2`) ou sans le bon rôle ; éditeur sans accès aux utilisateurs ni aux transactions ; garde-fous FR-55 (pas de publication payante sans prix dans les grilles des pays ouverts, prix contraires aux contraintes refusés) ; publication programmée effective à la bonne heure ; journalisation des actions sensibles.
 
-**Validation fondateur** : créer seul une série complète (saison, épisodes, prix, publication programmée) sans aide technique.
+**Validation fondateur** : créer seul une série complète (épisodes, ordre, durées, prix du pass et des épisodes, publication programmée) sans aide technique.
 
 **Sortie** : le fondateur gère le catalogue en autonomie.
 
@@ -123,12 +123,12 @@ Le simulateur reproduit les scénarios réels : succès, échec, annulation, not
 - montant / devise / compte différents → `needs_review` + alerte ;
 - retour navigateur « succès » sans paiement → aucun droit ;
 - notification perdue → récupérée par la réconciliation ; commande `failed`/`expired` finalement payée → créditée ;
-- épisode et pass de la même saison payés en même temps → doublon signalé ; remboursement d'un doublon → droit d'origine conservé ;
+- épisode et pass de la même série payés en même temps → doublon signalé ; remboursement d'un doublon → droit d'origine conservé ;
 - achat d'un contenu déjà possédé ou non publié → refusé ;
 - pays `unavailable` → achat refusé, consultation et gratuits toujours accessibles ; pays `pilot` → achat réservé aux testeurs ;
 - pays de paiement différent de l'indicatif → accepté s'il est ouvert ; pays modifié dans la requête vers un pays fermé → refusé ;
 - route principale désactivée → bascule sur le secours ; aucune route → moyen masqué ; compte désactivé → commandes en cours toujours vérifiées ;
-- pass saison → nouvel épisode ajouté visible automatiquement dans la bibliothèque ;
+- pass série → nouvel épisode publié visible automatiquement dans la bibliothèque et le défilement ; plus aucune demande de paiement pour cette série ;
 - reprise de lecture enregistrée côté serveur pour un client connecté ; achat depuis le lecteur puis lecture immédiate.
 
 **Validation fondateur** : acheter un épisode puis un pass avec le paiement simulé, depuis deux « pays » différents ; voir la transaction dans l'admin ; provoquer un échec et un succès tardif.

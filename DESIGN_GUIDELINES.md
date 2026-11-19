@@ -97,7 +97,7 @@ Toutes les couleurs sont des **jetons** (variables CSS). Le code n'utilise jamai
 ### 5.2 Hero (accueil et fiche série)
 - La bannière reste **sombre dans les deux thèmes** (effet « écran de cinéma ») ; en thème clair, elle se détache du reste de la page claire.
 - Image de bannière plein écran (mobile : ~70 % de la hauteur), dégradé vers `--bg` en bas pour la lisibilité.
-- Titre (Figtree 800), accroche, métadonnées (saisons, genre, mention IA **[D-10]**).
+- Titre (Figtree 800), accroche, métadonnées (nombre d'épisodes, durée totale, genre, mention IA **[D-10]**).
 - Un bouton jaune principal (« Regarder l'épisode 1 — Gratuit » ou « Reprendre ») + un bouton secondaire (« Plus d'infos » / « Ajouter… » P2).
 
 ### 5.3 Carte d'épisode
@@ -106,7 +106,7 @@ Toutes les couleurs sont des **jetons** (variables CSS). Le code n'utilise jamai
 - Icône lecture si accessible ; cadenas discret si payant non possédé.
 
 ### 5.4 Écran d'achat (feuille modale sur mobile)
-- Deux options côte à côte ou empilées : **Épisode — 300 FCFA** / **Pass saison — 1 500 FCFA (n épisodes)**. Le pass est mis en avant (« Meilleure offre », économie calculée à partir des prix réels).
+- Deux options côte à côte ou empilées : **Épisode — 300 FCFA** / **Pass série — 1 500 FCFA (n épisodes, y compris les prochains)**. Le pass est mis en avant (« Meilleure offre », économie calculée à partir des prix réels).
 - **Pays de paiement** : au premier achat, une question claire « Dans quel pays se trouve votre compte Mobile Money ou votre carte ? » avec une suggestion présélectionnée (drapeau + nom) à confirmer d'un geste ; ensuite rappel compact « Payer depuis : Côte d'Ivoire · Changer ». Pays non disponibles visibles mais grisés « bientôt ». Changer de pays met à jour prix et moyens immédiatement.
 - **Pays d'affichage des prix** (navigation) : mention discrète « Prix pour : Bénin ▾ » près des prix, modifiable.
 - **Moyens disponibles** sous forme de tuiles (« Mobile Money » avec logos des opérateurs du pays, « Carte bancaire » avec Visa/Mastercard), une seule sélection ; jamais le nom du prestataire technique (CinetPay/FedaPay).
@@ -127,7 +127,7 @@ Toutes les couleurs sont des **jetons** (variables CSS). Le code n'utilise jamai
 
 - **Plein écran mobile** : une diapositive = un épisode = toute la hauteur de l'écran (`100dvh`), fond noir.
 - **Image entière** (`contain`) : jamais de déformation ni de recadrage ; les zones vides sont comblées par un **fond flou** de l'image.
-- **Haut, discret** : retour (flèche) · « **Sang Royal** · S1 · Épisode 3 » en petit texte blanc avec ombre légère.
+- **Haut, discret** : retour (flèche) · « **Sang Royal** · Épisode 3 / 8 » en petit texte blanc avec ombre légère.
 - **Côté droit** (colonne verticale d'icônes, comme les formats verticaux) : son, épisodes (liste), plein écran, qualité.
 - **Bas** : barre de progression fine (2 px) qui s'épaissit au toucher (6 px) avec curseur **jaune royal** ; temps écoulé / durée en chiffres tabulaires.
 - **Toucher au centre** : pause / lecture (icône brève au centre, 600 ms).
@@ -136,7 +136,7 @@ Toutes les couleurs sont des **jetons** (variables CSS). Le code n'utilise jamai
 - **Vidéo horizontale** : image entière au centre, fond flou au-dessus et au-dessous ; bouton plein écran = passage en paysage.
 - **Diapositive de déblocage** : image floutée et assombrie, cadenas, titre de l'épisode, deux options (pass mis en avant en jaune, épisode seul en secondaire), mention « Achat définitif · sans expiration ».
 - **Diapositive « bientôt »** : image floutée, « Épisode 7 — disponible le 26 novembre », mention « inclus dans votre pass » si c'est le cas.
-- **Fin de saison** : carte plein écran « Saison 1 terminée » ; saison suivante avec son affiche ; si non débloquée : bouton jaune « Débloquer la saison 2 — 1 500 FCFA » et mention explicite « Votre pass Saison 1 ne couvre pas la saison 2 ».
+- **Fin de série** : carte plein écran « Fin de la série » ; rangée d'affiches « D'autres séries à découvrir » (un toucher ouvre la série) ; bouton jaune « Retour au catalogue » ; mention « Prochain épisode le … » s'il en reste d'annoncés. **Jamais** de « saison suivante ».
 - **Panneau « Épisodes »** : feuille qui monte du bas, liste compacte (numéro, titre, durée, état : vu ✓, en cours, gratuit, débloqué, cadenas, bientôt), épisode courant surligné.
 - **Chargement** : anneau discret ; **erreurs** : panneau sombre centré, message clair et une seule action jaune.
 - **Reprise** : démarrage directement à la position mémorisée, avec un court rappel « Reprise à 6:12 · Recommencer ».

@@ -24,6 +24,7 @@ Si le code et ces documents divergent, **signaler l'écart** et mettre à jour l
 - Décisions techniques de l'étape 1 et reports assumés : `docs/decisions/2026-11-19-etape-1-socle.md`.
 - **Étape 1 validée** par le fondateur (2026-11-20).
 - Décisions du 2026-11-20 (`docs/decisions/2026-11-20-comptes-google-email-lecteur-vertical.md`) : connexion **Google + e-mail/mot de passe** (pas de PIN, **aucun SMS**) ; numéro facultatif non vérifié ; liaison des comptes sans perte d'achats ; **lecteur vertical 9:16 sur mesure en défilement continu** (style vidéos courtes, adapté aux séries). La **maquette du lecteur** doit être validée avant de le coder.
+- Décisions du 2026-11-21 (`docs/decisions/2026-11-21-series-sans-saisons-pass-serie.md`) : **pas de saisons** (série = histoire complète, 10 épisodes max, ~1 min 30, 1 min 50 max, 15 min max au total, calculé) ; **Pass série** (épisodes présents et futurs, sans expiration) + épisode à l'unité ; fin de série = autres séries + retour au catalogue. Principe de la maquette du lecteur validé ; **nouvelle maquette (sans saisons, pass série) à valider** avant de construire le lecteur complet.
 - Étape 2 : maquettes du parcours complet (paiements simulés), puis site public et lecteur. Présenter chaque phase et attendre la validation.
 - Les services externes non disponibles sont remplacés par des simulateurs (TECHNICAL_ARCHITECTURE §12), jamais activables en production.
 - Ne jamais présenter une décision en attente comme validée.
@@ -45,7 +46,7 @@ Next.js (App Router) + TypeScript · Tailwind · Supabase (Postgres, Storage, RL
 9. **Webhooks de paiement** : 200 seulement après traitement ; 500 en cas d'erreur temporaire ; notifications répétées retraitées sans effet de bord.
 10. Ne pas inventer de capacités, tarifs ou formats d'API des prestataires. **Aucune capacité ni restriction n'est « confirmée » sans source officielle explicite ou réponse écrite du prestataire** ; utiliser les niveaux de preuve de TECHNICAL_ARCHITECTURE §5.1 et toujours citer la source.
 11. **La consultation et les épisodes gratuits ne sont jamais bloqués** par l'état des paiements d'un pays. Le pays de paiement est confirmé par l'utilisateur, jamais déduit silencieusement du numéro ou de l'IP.
-12. **Lecteur** : l'enchaînement automatique ne lance jamais un épisode payant non débloqué ni un paiement ; un pass ne couvre que sa saison ; vidéo jamais déformée ni recadrée abusivement.
+12. **Lecteur** : l'enchaînement automatique ne lance jamais un épisode payant non débloqué ni un paiement ; un **pass série** ne couvre que sa série (il n'existe pas de saisons) ; un client qui a le pass ne voit plus jamais de demande de paiement pour cette série ; vidéo jamais déformée ni recadrée abusivement.
 
 ## Méthode de travail
 

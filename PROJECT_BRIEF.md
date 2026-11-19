@@ -43,25 +43,28 @@ Le détail par pays, opérateur et niveau de preuve est dans TECHNICAL_ARCHITECT
 - Pas d'abonnement mensuel au lancement.
 - L'utilisateur achète :
   - **un épisode** — prix indicatif **300 FCFA** ;
-  - **un pass saison** — prix indicatif **1 500 FCFA**.
+  - **un pass série** — prix indicatif **1 500 FCFA**.
 - Les prix sont **configurables par un administrateur** (jamais codés en dur).
-- Un pass saison débloque **tous les épisodes publiés de la saison, y compris ceux ajoutés plus tard**.
+- **Pas de saisons** : une série est une histoire complète de **10 épisodes au maximum** (≈ 1 min 30 chacun, 1 min 50 maximum, **15 minutes au total au maximum**).
+- Un **pass série** débloque **tous les épisodes publiés de la série, y compris ceux ajoutés plus tard** ; il ne couvre jamais une autre série.
+- Les prix sont définis **par série** (pass et épisode), dans chaque grille tarifaire.
 - Les achats **n'expirent pas**.
 - Les achats sont regroupés dans une **bibliothèque personnelle**.
 - Certains épisodes sont **gratuits** (visionnables sans compte).
 
 ### Lecture critique du modèle
 
-1. **Micro-paiements et friction** : un paiement Mobile Money de 300 FCFA demande à l'utilisateur de valider une transaction sur son téléphone (USSD/OTP). Répéter cette étape à chaque épisode est pénible. Le pass saison est donc le produit à mettre en avant. Un système de **crédits / portefeuille prépayé** pourrait réduire la friction, mais il ajoute de la complexité (comptabilité, réglementation sur la monnaie électronique) : **reporté après la V1**.
+1. **Micro-paiements et friction** : un paiement Mobile Money de 300 FCFA demande à l'utilisateur de valider une transaction sur son téléphone (USSD/OTP). Répéter cette étape à chaque épisode est pénible. Le pass série est donc le produit à mettre en avant. Un système de **crédits / portefeuille prépayé** pourrait réduire la friction, mais il ajoute de la complexité (comptabilité, réglementation sur la monnaie électronique) : **reporté après la V1**.
 2. **Frais des prestataires** : les commissions Mobile Money observées publiquement varient d'environ **1,8 % à 4 %** selon le pays et l'opérateur (à confirmer, voir TECHNICAL_ARCHITECTURE §5). Sur 300 FCFA, cela reste acceptable, mais il faut vérifier l'absence de **frais fixes** par transaction, qui rendraient les petits montants non rentables.
-3. **Pass saison et épisodes futurs** : la promesse est forte. Il faut définir clairement ce qu'est une « saison » (nombre d'épisodes prévu) pour éviter qu'une saison s'allonge indéfiniment. Voir [DÉCISION D-08].
+3. **Pass série et épisodes futurs** : la promesse est bornée par les règles de format (10 épisodes, 15 minutes au maximum), ce qui évite qu'une série s'allonge indéfiniment.
 4. **Achat d'un pass après des épisodes à l'unité** : faut-il déduire les épisodes déjà achetés ? Recommandation V1 : **non** (simple), mais avertir l'utilisateur avant l'achat. Voir [DÉCISION D-08].
+5. **Rapport prix / durée** : 10 épisodes × 300 FCFA = 3 000 FCFA contre 1 500 FCFA pour le pass : le pass est nettement avantageux, ce qui encourage un seul paiement par série (moins de friction Mobile Money).
 
 ## 4. Catalogue de lancement
 
 - **6 séries** : **1 disponible**, **5 « bientôt disponibles »**.
 - Les séries « bientôt disponibles » ont une fiche (affiche, synopsis) mais aucun épisode jouable.
-- **[HYPOTHÈSE H-01]** : format vidéo et durée des épisodes inconnus. Si les séries sont des **micro-dramas verticaux (9:16)** de 1 à 3 minutes, cela change fortement le lecteur, la mise en page et le coût par épisode. Voir [DÉCISION D-07].
+- Format confirmé : **micro-dramas verticaux (9:16)**, épisodes d'environ **1 min 30** (1 min 50 maximum), séries de **15 minutes au maximum**, **sans saisons** (décision `docs/decisions/2026-11-21-series-sans-saisons-pass-serie.md`).
 
 ## 5. Utilisateurs
 
@@ -99,11 +102,11 @@ Colonne « Nécessaire avant » : moment où la décision devient réellement n�
 |---|---|---|---|---|
 | D-01 | Prestataires de paiement | **CinetPay + FedaPay**, intégrations **modulaires** (un adaptateur par prestataire derrière une interface commune, activable/désactivable). Les réponses commerciales n'empêchent pas de construire le reste : un **simulateur de paiement** sert au développement et aux tests | **Validé** | — |
 | D-02 | Pays | **Panafricain**, activation progressive : consultation partout, achat pays par pays et moyen par moyen dès confirmation A/B/C | **Validé** | — |
-| D-03 | Grilles tarifaires | **XOF : 300 FCFA / épisode, 1 500 FCFA / saison** (prix indicatifs validés, modifiables dans l'admin). Autres monnaies (XAF, GNF, CDF/USD) : **grilles indépendantes**, montants à saisir le moment venu ; **aucune conversion automatique** | **Validé** pour XOF ; autres montants en attente | Ouverture d'un pays hors XOF |
+| D-03 | Grilles tarifaires | **XOF : 300 FCFA / épisode, 1 500 FCFA / pass série** (valeurs par défaut, réglables par série) (prix indicatifs validés, modifiables dans l'admin). Autres monnaies (XAF, GNF, CDF/USD) : **grilles indépendantes**, montants à saisir le moment venu ; **aucune conversion automatique** | **Validé** pour XOF ; autres montants en attente | Ouverture d'un pays hors XOF |
 | D-04 | Longueur du PIN | **Sans objet** : la connexion par numéro + PIN n'est pas développée (décision du fondateur, 2026-11-20) | Clos | — |
 | D-05 | Vérification du numéro par SMS | **Sans objet** : aucun SMS ; le numéro est facultatif et non vérifié | Clos | — |
 | D-06 | Authentification des administrateurs | E-mail + mot de passe fort + double authentification (TOTP) obligatoire | À confirmer | **Étape 4** |
-| D-07 | Format vidéo | **Vertical 9:16 privilégié**, horizontal 16:9 accepté, réglé **par série** ; jamais de déformation ni de recadrage abusif. Durée moyenne des épisodes : information attendue (coûts de diffusion) | **Validé** (format) ; durée attendue | Étape 2 |
+| D-07 | Format vidéo et durées | **Vertical 9:16 privilégié**, horizontal accepté (par série), jamais déformé ni recadré. **Durées : 1 min 30 visé, 1 min 50 maximum par épisode, 15 min maximum par série, 10 épisodes maximum** | **Validé** (2026-11-21) | — |
 | D-08 | Politiques commerciales et éditoriales | Comportements techniques par défaut déjà définis (RM-06 à RM-10) ; textes définitifs (remboursement, retrait de contenu, classification d'âge) à valider | En attente | Pilote |
 | D-09 | Stratégie d'encaissement par zone monétaire | Société **béninoise**. Hors zone XOF : selon les réponses des prestataires et d'un juriste | En attente des réponses écrites | Ouverture à l'achat des pays concernés |
 | D-10 | Mention « contenu créé avec l'IA » | Mention discrète sur la fiche série (champ déjà prévu) | En attente | Pilote |
@@ -123,7 +126,9 @@ Colonne « Nécessaire avant » : moment où la décision devient réellement n�
 | D-24 | Service d'envoi d'e-mails (confirmation, réinitialisation) | Service SMTP avec offre gratuite (volumes limités) branché sur Supabase, domaine authentifié (SPF/DKIM) ; l'envoi intégré de Supabase est réservé aux tests et limité **[à vérifier : destinataires autorisés]** | En attente | **Recette de l'étape 3** dès que des personnes extérieures à l'équipe testent l'inscription ; pilote au plus tard |
 | D-25 | Connexion Google | Projet Google Cloud du fondateur (gratuit) : identifiant OAuth + écran de consentement au nom d'Agodjié TV ; création guidée | Action du fondateur | Étape 3 (préproduction) |
 | D-26 | Liaison des comptes | Un compte = un identifiant stable ; liaison automatique entre identités à e-mail vérifié, liaison manuelle depuis « Mon compte », transfert d'achats par un admin en dernier recours | **Principe validé** (exigence du fondateur) ; détails techniques testés à l'étape 3 | Étape 3 |
-| D-27 | Visionnage en défilement continu | Défilement vertical entre épisodes, enchaînement automatique (jamais vers un contenu payant), reprise exacte, déblocage dans le lecteur, fin de saison explicite | **Principe validé** ; maquette `/maquettes/lecteur` à valider | Étape 2 |
+| D-27 | Visionnage en défilement continu | Défilement vertical entre épisodes, enchaînement automatique (jamais vers un contenu payant), reprise exacte (y compris après paiement), déblocage dans le lecteur, fin de série avec autres séries et retour au catalogue | **Principe validé** ; maquette `/maquettes/lecteur` à valider | Étape 2 |
+| D-28 | Dépassement des limites de format (10 épisodes, 1 min 50, 15 min) | **Avertissement avec confirmation explicite et journalisée** (comme demandé) ; blocage strict possible par simple réglage | Recommandation par défaut, à confirmer | Étape 4 (admin) |
+| D-29 | Structure du contenu et modèle commercial | **Pas de saisons** : série = histoire complète ; **Pass série** (épisodes présents et futurs, sans expiration) + épisode à l'unité ; fin de série = autres séries + retour au catalogue | **Validé** (2026-11-21) ; nouvelle maquette à valider | Étape 2 |
 
 ## 9. Index des documents
 

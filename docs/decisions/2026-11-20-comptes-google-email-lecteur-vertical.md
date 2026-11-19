@@ -1,5 +1,7 @@
 # Décision — Comptes Google + e-mail, lecteur vertical, visionnage en défilement continu
 
+> **Note (2026-11-21)** : les mentions de « saison » et de « pass saison » ci-dessous sont **remplacées** par la décision `2026-11-21-series-sans-saisons-pass-serie.md` (pas de saisons, Pass série, fin de série). Le reste de cette décision reste valable.
+
 Date : 2026-11-20 · Origine : exigences du fondateur après validation de l'étape 1 · Statut : **principes validés par le fondateur** ; interface du lecteur **en attente de validation** de la maquette.
 
 ## 1. Authentification : Google et e-mail/mot de passe, sans SMS

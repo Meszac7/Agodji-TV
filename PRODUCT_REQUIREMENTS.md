@@ -13,11 +13,11 @@
 | 1 | Page d'accueil | P0 |
 | 2 | Catalogue des séries | P0 |
 | 3 | Fiche série | P0 |
-| 4 | Saisons et liste d'épisodes | P0 |
+| 4 | Liste ordonnée des épisodes d'une série | P0 |
 | 5 | Lecteur vertical en défilement continu + lecture des épisodes gratuits | P0 |
 | 6 | Inscription et connexion (Google, e-mail + mot de passe) | P0 |
 | 7 | Achat d'un épisode | P0 |
-| 8 | Achat d'un pass saison | P0 |
+| 8 | Achat d'un pass série | P0 |
 | 9 | Vérification des paiements côté serveur | P0 |
 | 10 | Lecture protégée des épisodes payants | P0 |
 | 11 | Bibliothèque personnelle | P0 |
@@ -37,14 +37,14 @@
 
 **FR-03 — Catalogue.** Grille de toutes les séries publiées, avec statut visible : *Disponible* / *Bientôt*. Pas de recherche ni de filtres en V1 (6 séries seulement) — P2.
 
-**FR-04 — Fiche série.** Affiche, bannière, titre, synopsis, genre(s), classification d'âge **[D-08]**, mention IA **[D-10]**, saisons, liste d'épisodes. Pour une série « bientôt » : date ou mention « prochainement », pas d'épisodes jouables.
+**FR-04 — Fiche série.** Affiche, bannière, titre, synopsis, genre(s), classification d'âge **[D-08]**, mention IA **[D-10]**, nombre d'épisodes et **durée totale** (calculée), liste ordonnée des épisodes. Pour une série « bientôt » : date ou mention « prochainement », pas d'épisodes jouables.
 
 **FR-05 — Liste d'épisodes.** Pour chaque épisode : numéro, titre, vignette, durée, résumé court, et un **badge d'accès** clair :
 - `Gratuit`
 - `300 FCFA` (prix de la grille du pays de l'utilisateur ; pour un visiteur, pays estimé par géolocalisation, modifiable via un sélecteur de pays)
 - `Acheté` / `Inclus dans votre pass` (si connecté et propriétaire)
 
-Le bouton « Acheter le pass saison — 1 500 FCFA » est visible en haut de la liste de la saison, avec le nombre d'épisodes inclus.
+Le bouton « Débloquer toute la série — 1 500 FCFA » (pass série) est visible en haut de la liste des épisodes, avec le nombre d'épisodes et la mention « y compris les prochains ». Il disparaît si l'utilisateur possède déjà le pass.
 
 **FR-06 — Épisode gratuit.** Lecture immédiate sans compte, dans le lecteur vertical (§5). Le défilement continue vers l'épisode suivant (gratuit → lecture ; payant → diapositive de déblocage, FR-38).
 
@@ -84,7 +84,7 @@ Voir SECURITY_REQUIREMENTS §3 et la décision `docs/decisions/2026-11-20-compte
 
 ## 4. Achat et paiement
 
-**FR-20 — Écran d'achat.** Récapitulatif : ce qui est acheté, prix, devise, pays de paiement, moyen de paiement. Si l'utilisateur possède déjà certains épisodes de la saison, un avertissement l'indique avant l'achat du pass **[D-08]**.
+**FR-20 — Écran d'achat.** Récapitulatif : ce qui est acheté, prix, devise, pays de paiement, moyen de paiement. Si l'utilisateur possède déjà certains épisodes de la série, un avertissement l'indique avant l'achat du pass **[D-08]**.
 
 **FR-27 — Pays de paiement (choisi par l'utilisateur).** **[D-17]** Le pays du numéro n'est jamais considéré comme pays de résidence ou de facturation.
 - Premier achat : question unique « Dans quel pays se trouve votre compte Mobile Money ou votre carte ? », avec une suggestion présélectionnée (pays d'affichage choisi → pays estimé par IP → indicatif du numéro) que l'utilisateur **confirme d'un geste** ou change.
@@ -123,7 +123,7 @@ L'expérience de visionnage s'inspire de la **navigation verticale** des platefo
 
 ### 5.1 Entrée dans le lecteur
 
-**FR-30 — Lancer une série.** Depuis la fiche série (résumé, saisons), le bouton principal lance :
+**FR-30 — Lancer une série.** Depuis la fiche série (résumé, liste des épisodes), le bouton principal lance :
 - le **premier épisode** si l'utilisateur n'a rien regardé ;
 - sinon « **Reprendre — Épisode 4 à 6:12** » (position exacte).
 Dès l'entrée, l'expérience devient **immersive** : la vidéo occupe presque tout l'écran du téléphone, l'interface du site disparaît.
@@ -144,7 +144,7 @@ Dès l'entrée, l'expérience devient **immersive** : la vidéo occupe presque t
 
 **FR-33 — Enchaînement automatique.** À la fin d'un épisode, passage automatique au suivant **s'il est accessible**. Si le suivant est payant et non débloqué, le défilement s'arrête sur sa diapositive de déblocage (FR-38) : **jamais de lecture ni de paiement automatique** vers un contenu payant.
 
-**FR-34 — Liste des épisodes à la demande.** Un bouton discret « Épisodes » ouvre un panneau listant les épisodes de la saison (état : vu, en cours, gratuit, débloqué, verrouillé, bientôt) pour sauter directement à l'un d'eux, puis refermer et continuer à défiler. L'utilisateur n'a **jamais besoin** de ce panneau pour enchaîner.
+**FR-34 — Liste des épisodes à la demande.** Un bouton discret « Épisodes » ouvre un panneau listant les épisodes de la série dans l'ordre (état : vu, en cours, gratuit, débloqué, verrouillé, bientôt) pour sauter directement à l'un d'eux, puis refermer et continuer à défiler. L'utilisateur n'a **jamais besoin** de ce panneau pour enchaîner.
 
 ### 5.4 Commandes (discrètes)
 
@@ -154,7 +154,7 @@ Dès l'entrée, l'expérience devient **immersive** : la vidéo occupe presque t
 - **barre de progression** fine, élargie au toucher pour se déplacer dans l'épisode ;
 - **plein écran** ;
 - **épisode précédent / suivant** (en plus du glissement) ;
-- en haut, discret : « **Sang Royal · S1 · Épisode 3** » et bouton retour vers la fiche série ;
+- en haut, discret : « **Sang Royal · Épisode 3 / 8** » et bouton retour vers la fiche série ;
 - bouton « Épisodes » (FR-34) et qualité (Auto / Économie de données / Haute qualité, FR-36).
 Contrôles accessibles au clavier sur ordinateur (espace, flèches, M pour le son, F pour plein écran).
 
@@ -171,22 +171,25 @@ Contrôles accessibles au clavier sur ordinateur (espace, flèches, M pour le so
 ### 5.6 Droits d'accès dans le défilement
 
 **FR-38 — Diapositive de déblocage.** Pour un épisode payant non débloqué, la diapositive montre l'image floutée de l'épisode, son titre et deux options claires :
-- « **Débloquer la saison — 1 500 FCFA** · tous les épisodes, y compris les prochains » (mis en avant) ;
+- « **Débloquer toute la série — 1 500 FCFA** · tous les épisodes, y compris les prochains » (pass série, mis en avant) ;
 - « Seulement cet épisode — 300 FCFA ».
 L'achat se fait **sans quitter le lecteur** (connexion si nécessaire, puis paiement — simulé jusqu'à l'étape 7). Après confirmation, la diapositive se déverrouille et la lecture démarre ; tous les épisodes couverts deviennent lisibles dans le défilement **sans rechargement**.
 
-**FR-39 — Pass saison dans le défilement.** Avec un pass : aucun écran de paiement entre les épisodes de la saison ; les nouveaux épisodes publiés apparaissent dans le défilement et sont lisibles immédiatement ; le pass n'expire pas.
+**FR-39 — Pass série dans le défilement.** Avec le pass d'une série : **plus aucune demande de paiement** pour cette série (ni diapositive de déblocage, ni bouton d'achat) ; les nouveaux épisodes publiés apparaissent dans le défilement et sont lisibles immédiatement ; le pass n'expire pas. Le serveur vérifie quand même le droit avant chaque lecture.
+
+**FR-39b — Reprise automatique après paiement.** Après un achat réussi depuis le lecteur, la lecture démarre automatiquement sur l'épisode débloqué, au début (ou à la position mémorisée), sans action supplémentaire.
 
 **FR-40 — Épisode acheté à l'unité.** Seul cet épisode est débloqué ; les autres gardent leurs conditions d'accès (gratuit, payant).
 
 **FR-41 — Épisode programmé.** Un épisode annoncé mais non encore publié apparaît comme diapositive « **Épisode 7 — disponible le 26 novembre** » (avec « inclus dans votre pass » si c'est le cas). Il n'est jamais lisible avant sa date.
 
-### 5.7 Fin de saison et saisons suivantes
+### 5.7 Fin de série
 
-**FR-42 — Fin de saison.** Après le dernier épisode publié, une diapositive de fin :
-- s'il existe une **saison suivante** : « Découvrir la saison 2 ». Si elle est accessible (épisode gratuit ou saison débloquée), la lecture continue ; sinon, offre de déblocage claire **avec la mention explicite** « Votre pass Saison 1 ne couvre pas la saison 2 » ;
-- s'il n'y a pas de saison suivante : « Vous êtes à jour », date du prochain épisode si connue, suggestions d'autres séries.
-L'interface ne laisse **jamais** croire qu'un achat couvre une autre saison.
+**FR-42 — Fin de série.** Après le dernier épisode publié, une diapositive de fin « **Fin de la série** » :
+- propose **d'autres séries** disponibles sur Agodjié TV (affiches ; un toucher ouvre la série) ;
+- bouton **« Retour au catalogue »** ;
+- si des épisodes sont encore annoncés (programmés) : « Prochain épisode le … » ;
+- **jamais** de proposition de « saison suivante » : une nouvelle histoire est une nouvelle série, avec son propre pass.
 
 ### 5.8 Erreurs
 
@@ -206,11 +209,11 @@ L'interface ne laisse **jamais** croire qu'un achat couvre une autre saison.
 ## 6. Bibliothèque personnelle
 
 **FR-45 —** Page « Ma bibliothèque » listant :
-- les passes saison possédés (avec tous les épisodes publiés de la saison, y compris les nouveaux) ;
+- les **pass série** possédés (avec tous les épisodes publiés de la série, y compris les nouveaux) ;
 - les épisodes achetés à l'unité ;
 - un accès direct à la lecture.
 
-**FR-46 —** Un nouvel épisode ajouté à une saison dont l'utilisateur a le pass apparaît automatiquement, sans action de sa part — dans la bibliothèque **et** dans le défilement du lecteur.
+**FR-46 —** Un nouvel épisode publié dans une série dont l'utilisateur a le pass apparaît automatiquement, sans action de sa part — dans la bibliothèque **et** dans le défilement du lecteur.
 
 **FR-47 —** « Continuer à regarder » : séries en cours avec reprise directe dans le lecteur à la bonne position (FR-37).
 
@@ -218,13 +221,19 @@ L'interface ne laisse **jamais** croire qu'un achat couvre une autre saison.
 
 Interface web réservée aux administrateurs, accessible sous `/admin`, sur le même site. Simple, en français, utilisable sur ordinateur (le mobile est secondaire pour l'admin).
 
-### 7.1 Contenu
-- **FR-50** Créer / modifier une série : titre, slug, synopsis, genres, affiche, bannière, format vidéo (vertical ou horizontal **[D-07]**), statut (`brouillon`, `bientôt`, `publiée`, `dépubliée`), mise en avant, ordre d'affichage.
-- **FR-51** Créer / modifier une saison : numéro, titre, description, prix de l'épisode et du pass **par grille tarifaire**, nombre d'épisodes prévu.
-- **FR-52** Créer / modifier un épisode : numéro, titre, résumé, vignette, durée, gratuit/payant, prix (par défaut celui de la saison, modifiable par épisode), statut, date de publication programmée.
+### 7.1 Contenu (séries et épisodes — pas de saisons)
+- **FR-50** Créer / modifier une série : titre, slug, synopsis, genres, affiche, bannière, format vidéo (vertical ou horizontal **[D-07]**), statut (`brouillon`, `bientôt`, `publiée`, `dépubliée`), mise en avant, ordre d'affichage, **prix du pass série et prix par défaut d'un épisode, par grille tarifaire**.
+- **FR-51** Épisodes d'une série : **ajouter, modifier, supprimer** (un épisode déjà acheté ou déjà publié n'est jamais supprimé physiquement : il est dépublié), **réorganiser** par glisser-déposer (ordre 1 → N, sans trou ni doublon).
+- **FR-52** Fiche épisode : titre, résumé, vignette, **durée** (renseignée automatiquement depuis la vidéo encodée quand c'est possible, sinon saisie), gratuit / payant, prix (par défaut celui de la série, modifiable par épisode), statut, publication immédiate ou programmée.
 - **FR-53** Vidéo : téléversement direct vers l'hébergeur vidéo depuis l'admin, **ou** association d'une vidéo déjà présente (identifiant). Affichage de l'état d'encodage.
-- **FR-54** Publication programmée : un épisode « programmé » devient visible automatiquement à la date choisie.
-- **FR-55** Garde-fous : impossible de publier un épisode payant (ou une saison) sans prix dans **chaque grille tarifaire utilisée par un pays en statut `pilote` ou `ouvert`**, sans vidéo encodée ou sans vignette. Impossible de passer un pays en `pilote` ou `ouvert` tant que des contenus payants publiés n'ont pas de prix dans sa grille ou qu'aucune route de paiement n'est active. Les prix sont validés contre les contraintes des prestataires (ex. multiple de 5). Avertissement avant de dépublier un contenu déjà acheté.
+- **FR-54** Publication immédiate ou programmée : un épisode « programmé » devient visible automatiquement à la date choisie.
+- **FR-54b** **Durée totale calculée automatiquement** et affichée en permanence (ex. « 8 épisodes · 12 min 40 / 15 min »). **Avertissements** (avec confirmation explicite, journalisée **[D-28]**) si :
+  - un épisode dépasse **1 min 50** (repère : 1 min 30) ;
+  - la série dépasse **10 épisodes** ;
+  - la durée totale dépasse **15 minutes** (en comptant les épisodes publiés et programmés).
+  Les limites sont des réglages modifiables.
+- **FR-55** Garde-fous : impossible de publier un épisode payant sans prix (épisode et pass série) dans **chaque grille tarifaire utilisée par un pays en statut `pilote` ou `ouvert`**, sans vidéo encodée, sans durée ou sans vignette. Impossible de passer un pays en `pilote` ou `ouvert` tant que des contenus payants publiés n'ont pas de prix dans sa grille ou qu'aucune route de paiement n'est active. Les prix sont validés contre les contraintes des prestataires (ex. multiple de 5). Avertissement avant de dépublier un contenu déjà acheté.
+- **FR-55b** Achats et droits : pour une série, voir le nombre de pass vendus et d'épisodes vendus ; pour un client, voir ses pass série et épisodes débloqués (§7.2, §7.3).
 
 ### 7.1 bis Marchés et paiements (réservé au rôle `admin`)
 - **FR-56** Pays : statut de paiement (`indisponible`, `pilote` — achats réservés aux testeurs —, `ouvert`), grille tarifaire, état des confirmations écrites A/B/C par prestataire (avec lien vers la réponse).
@@ -260,19 +269,20 @@ Interface web réservée aux administrateurs, accessible sous `/admin`, sur le m
 
 | Règle | Énoncé | Statut |
 |---|---|---|
-| RM-01 | Un utilisateur a accès à un épisode si : l'épisode est gratuit **ou** il possède l'épisode **ou** il possède le pass de la saison de l'épisode. | Validé |
-| RM-02 | Un pass saison couvre tous les épisodes publiés de la saison, présents et futurs. | Validé |
+| RM-01 | Un utilisateur a accès à un épisode si : l'épisode est gratuit **ou** il possède l'épisode **ou** il possède le **pass de la série** de l'épisode. Vérifié par le serveur avant **chaque** lecture. | Validé |
+| RM-02 | Un pass série couvre tous les épisodes publiés de la série, présents et futurs. | Validé |
 | RM-03 | Les achats n'expirent pas. | Validé |
 | RM-04 | Le prix appliqué est celui en vigueur au moment de la création de la commande ; il est figé dans la commande. | Recommandé |
 | RM-05 | Un changement de prix n'affecte jamais les achats passés. | Recommandé |
 | RM-06 | Pass après achats à l'unité : prix plein, avec avertissement (pas de déduction en V1). | **[D-08]** |
 | RM-07 | Dépublication d'un contenu acheté : les acheteurs conservent l'accès sauf retrait pour raison légale. Un brouillon ou un épisode pas encore sorti n'est jamais lisible, même avec un pass. | **[D-08]** |
 | RM-08 | Remboursement : manuel, au cas par cas, via le prestataire ; le droit d'accès est alors révoqué. | **[D-08]** |
-| RM-09 | Taille d'une saison : nombre d'épisodes prévu affiché à l'achat du pass. | **[D-08]** |
+| RM-09 | Une série compte **10 épisodes au maximum**, durée cible 1 min 30 par épisode, **1 min 50 maximum** par épisode, **15 minutes maximum** au total (calculé). Dépassement : avertissement admin avec confirmation **[D-28]**. | Validé |
 | RM-10 | Un épisode payant passé en gratuit reste dans la bibliothèque de ceux qui l'ont acheté. | Recommandé |
 | RM-11 | Le prix dépend de la grille tarifaire du **pays de paiement** choisi ; l'utilisateur paie dans la devise de ce pays. Pas de conversion automatique. | **[D-03]**, **[D-17]** |
 | RM-12 | Un achat est valable partout : un contenu acheté dans un pays reste accessible si l'utilisateur voyage ou change de pays de paiement. | Recommandé |
-| RM-13 | Un pass saison couvre **uniquement** sa saison ; il ne couvre jamais une autre saison, même de la même série. | Validé |
+| RM-13 | Un pass série couvre **uniquement** sa série ; une nouvelle histoire est une nouvelle série, avec son propre pass. Il n'existe pas de saisons. | Validé |
+| RM-16 | Un client qui possède le pass d'une série ne voit **plus jamais** de demande de paiement pour cette série. | Validé |
 | RM-14 | L'enchaînement automatique ne lance jamais un épisode payant non débloqué et ne déclenche jamais de paiement ; tout achat exige une action explicite. | Validé |
 | RM-15 | Les achats, la bibliothèque et la progression appartiennent au compte, pas à la méthode de connexion. | Validé |
 

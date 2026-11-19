@@ -11,7 +11,7 @@
 2. **Les prix sont des données**, modifiables par l'admin, stockés par devise. Rien n'est codé en dur.
 3. **Le prix payé est figé dans la commande** (RM-04).
 4. **Les droits d'accès (`entitlements`) sont séparés des commandes** : une commande décrit une tentative de paiement ; un droit décrit ce que l'utilisateur possède. Un droit peut aussi venir d'un geste administrateur.
-5. **Le pass saison est un droit au niveau de la saison**, pas une liste d'épisodes. Les épisodes futurs sont donc couverts automatiquement (RM-02).
+5. **Pas de saisons** : une série contient directement ses épisodes (10 au maximum). **Le pass série est un droit au niveau de la série**, pas une liste d'épisodes : les épisodes futurs sont couverts automatiquement (RM-02).
 6. **L'idempotence est garantie par la base** (contraintes d'unicité), pas seulement par le code.
 7. **Aucun secret d'authentification dans nos tables** : mots de passe et jetons sont gérés par Supabase Auth ; nos tables restent inaccessibles depuis le navigateur.
 8. Identifiants `uuid`, horodatages `timestamptz` en UTC.
@@ -20,21 +20,21 @@
 
 ```
 auth.users (Supabase : identités Google / e-mail, clients et admins)
-    ├──1 customers ──* orders *──1 (episode | season)
+    ├──1 customers ──* orders *──1 (episode | series)
     │        │            └──* payment_events
-    │        ├──* entitlements ──1 (episode | season)
+    │        ├──* entitlements ──1 (episode | series)
     │        └──* playback_progress ──1 episode
     └──0..1 staff_roles
 
 account_transfers (transferts d'achats entre deux comptes d'un client)
 app_settings (réglages ajustables : pays d'affichage par défaut, seuils, limites)
 
-series 1──* seasons 1──* episodes
-   seasons 1──* season_prices          (prix par grille tarifaire)
+series 1──* episodes                    (ordre 1 → N, 10 au maximum)
+   series 1──* series_prices            (prix du pass et d'un épisode, par grille tarifaire)
    episodes 1──* episode_price_overrides (exceptions de prix)
 
 markets ──* payment_routes *── payment_accounts *── payment_providers
-markets *──1 price_lists 1──* season_prices / episode_price_overrides
+markets *──1 price_lists 1──* series_prices / episode_price_overrides
 audit_logs, playback_sessions (journaux)
 ```
 
@@ -107,28 +107,16 @@ Le transfert approuvé est une transaction unique (SEC-14) : droits actifs du co
 | sort_order | int | |
 | created_at, updated_at | | |
 
-**`seasons`**
-
-| Colonne | Type | Notes |
-|---|---|---|
-| id | uuid PK | |
-| series_id | uuid FK series | |
-| number | int | UNIQUE (series_id, number) |
-| title, description | text | |
-| planned_episode_count | int NULL | affiché à l'achat du pass (RM-09) |
-| status | text | `draft` \| `published` \| `unpublished` |
-| created_at, updated_at | | |
-
 **`episodes`**
 
 | Colonne | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
-| season_id | uuid FK seasons | |
-| number | int | UNIQUE (season_id, number) |
+| series_id | uuid FK series | |
+| number | int | position dans la série (1 → N, ordre de lecture) ; UNIQUE (series_id, number) ; réorganisable par l'admin |
 | title, synopsis | text | |
 | thumbnail_path | text | |
-| duration_seconds | int | |
+| duration_seconds | int | requis pour publier ; repère 90 s, limite 110 s (avertissement, réglages) |
 | access_type | text | `free` \| `paid` |
 | status | text | `draft` \| `scheduled` \| `published` \| `unpublished` |
 | publish_at | timestamptz NULL | requis si `scheduled` |
@@ -138,7 +126,9 @@ Le transfert approuvé est une transaction unique (SEC-14) : droits actifs du co
 | video_status | text | `none` \| `uploading` \| `processing` \| `ready` \| `error` |
 | created_at, updated_at | | |
 
-Visibilité publique d'un épisode : série `published`, saison `published`, et épisode `published` **ou** (`scheduled` et `publish_at <= now()`).
+Visibilité publique d'un épisode : série `published` et épisode `published` **ou** (`scheduled` et `publish_at <= now()`).
+
+**Durée totale** d'une série : **calculée** (somme des `duration_seconds` des épisodes publiés et programmés) par la fonction `series_format_report` (§4), jamais saisie. Les limites (10 épisodes, 110 s par épisode, 900 s au total) sont dans `app_settings` ; un dépassement produit un **avertissement** dans l'admin, à confirmer explicitement (journalisé) **[D-28]**.
 
 ### 3.3 Marchés, devises et prix
 
@@ -173,14 +163,14 @@ Visibilité publique d'un épisode : série `published`, saison `published`, et 
 
 Passage à `pilot` ou `open` refusé par la base tant que : au moins une route de paiement active existe pour ce pays, et tous les contenus payants publiés ont un prix dans la grille du pays. Les moyens s'activent ensuite route par route (`payment_routes.is_enabled`).
 
-**`season_prices`** — prix d'une saison, par grille.
+**`series_prices`** — prix d'une série, par grille.
 
 | Colonne | Type | Notes |
 |---|---|---|
-| season_id | uuid FK | PK (season_id, price_list_id) |
+| series_id | uuid FK | PK (series_id, price_list_id) |
 | price_list_id | uuid FK | |
 | episode_price | int NOT NULL CHECK > 0 | prix par défaut d'un épisode payant |
-| pass_price | int NOT NULL CHECK > 0 | prix du pass saison |
+| pass_price | int NOT NULL CHECK > 0 | prix du **pass série** |
 | updated_at, updated_by | | |
 
 **`episode_price_overrides`** — exception pour un épisode précis.
@@ -192,8 +182,8 @@ Passage à `pilot` ou `open` refusé par la base tant que : au moins une route d
 | price | int NOT NULL CHECK > 0 | |
 
 Règles :
-- Prix d'un épisode = exception s'il existe, sinon `season_prices.episode_price` de la grille du marché.
-- Un épisode payant ou une saison ne peut être publié que s'il a un prix dans **chaque grille utilisée par un pays `pilot` ou `open`** (FR-55).
+- Prix d'un épisode = exception s'il existe, sinon `series_prices.episode_price` de la grille du marché.
+- Un épisode payant ne peut être publié que s'il a un prix dans **chaque grille utilisée par un pays `pilot` ou `open`** (FR-55).
 - Tout prix est validé contre les contraintes des comptes de paiement routés pour les marchés de la grille (ex. multiple de 5 chez CinetPay hors USD — 🟢 documentation CinetPay, à reconfirmer en sandbox).
 
 ### 3.4 Prestataires, comptes et routes de paiement
@@ -244,9 +234,9 @@ Sélection : route `is_enabled` de plus petite `priority` dont le compte et le p
 | id | uuid PK | |
 | reference | text UNIQUE | référence envoyée au prestataire (aléatoire, non devinable) |
 | user_id | uuid FK customers | |
-| product_type | text | `episode` \| `season_pass` |
+| product_type | text | `episode` \| `series_pass` |
 | episode_id | uuid NULL FK | |
-| season_id | uuid NULL FK | |
+| series_id | uuid NULL FK | |
 | payment_country | text FK markets | pays de paiement **confirmé par le client** (figé) |
 | payment_method | text | `mobile_money` \| `card` \| `wallet` |
 | price_list_id | uuid FK | grille appliquée (figée) |
@@ -257,11 +247,11 @@ Sélection : route `is_enabled` de plus petite `priority` dont le compte et le p
 | provider_transaction_id | text NULL | UNIQUE (provider, provider_transaction_id) |
 | status | text | `pending` \| `paid` \| `failed` \| `cancelled` \| `expired` \| `needs_review` \| `refunded` |
 | status_reason | text NULL | |
-| is_duplicate_payment | boolean DEFAULT false | payé alors que le contenu était **déjà couvert** (épisode possédé, ou pass de la saison possédé) → à rembourser |
+| is_duplicate_payment | boolean DEFAULT false | payé alors que le contenu était **déjà couvert** (épisode possédé, ou pass de la série possédé) → à rembourser |
 | created_at, paid_at, last_checked_at, updated_at | timestamptz | |
 
 Contraintes :
-- `CHECK` : exactement un de `episode_id` / `season_id` selon `product_type`.
+- `CHECK` : exactement un de `episode_id` / `series_id` selon `product_type`.
 - Transitions autorisées uniquement (appliquées par une fonction SQL, jamais par le client) :
   - `pending → paid | failed | cancelled | expired | needs_review`
   - `failed | cancelled | expired → paid | needs_review` — **le prestataire a le dernier mot** : si son API confirme un paiement, la commande est créditée
@@ -291,7 +281,7 @@ Contraintes :
 | id | uuid PK | |
 | user_id | uuid FK customers | |
 | episode_id | uuid NULL FK | |
-| season_id | uuid NULL FK | |
+| series_id | uuid NULL FK | |
 | source | text | `purchase` \| `admin_grant` \| `transfer` |
 | transfer_id | uuid NULL FK account_transfers | requis si `transfer` |
 | order_id | uuid NULL FK | requis si `purchase` |
@@ -302,8 +292,8 @@ Contraintes :
 | created_at | timestamptz | |
 
 Contraintes :
-- `CHECK` : exactement un de `episode_id` / `season_id`.
-- Index uniques partiels : `(user_id, episode_id) WHERE revoked_at IS NULL` et `(user_id, season_id) WHERE revoked_at IS NULL`. **Ce sont eux qui empêchent un double droit**, même si deux notifications arrivent en même temps.
+- `CHECK` : exactement un de `episode_id` / `series_id`.
+- Index uniques partiels : `(user_id, episode_id) WHERE revoked_at IS NULL` et `(user_id, series_id) WHERE revoked_at IS NULL`. **Ce sont eux qui empêchent un double droit**, même si deux notifications arrivent en même temps.
 - Remboursement d'une commande : seul le droit dont `order_id` = cette commande est révoqué. Une commande en double n'a pas de droit propre : son remboursement ne retire rien.
 
 ### 3.6 Journaux
@@ -351,21 +341,26 @@ Réglages initiaux :
 | `playback_token` | `{"validity_seconds": 300, "per_user_hour": 60}` | SEC-51, SEC-54 |
 | `order_expiry_minutes` / `reconcile_window_hours` | `60` / `72` | TECHNICAL_ARCHITECTURE §5.9 |
 | `progress_save_interval_seconds` | `10` | FR-37 |
+| `series_max_episodes` | `10` | RM-09 |
+| `episode_target_seconds` / `episode_max_seconds` | `90` / `110` | RM-09 |
+| `series_max_total_seconds` | `900` | RM-09 |
+| `format_limits_mode` | `"warn"` (`"block"` possible) | D-28 |
 
 ## 4. Fonctions SQL clés (logique au plus près des données)
 
 | Fonction | Rôle | Appelée par |
 |---|---|---|
 | `has_episode_access(user_id, episode_id) → boolean` | Voir définition ci-dessous | `/api/playback`, bibliothèque, listes |
-| `episode_price(episode_id, price_list_id) → int` | exception sinon prix saison | checkout |
+| `episode_price(episode_id, price_list_id) → int` | exception sinon prix de la série | checkout |
+| `series_format_report(series_id)` | nombre d'épisodes, durée totale calculée, épisodes trop longs, dépassements (RM-09) | admin |
 | `resolve_payment_route(country_code, method) → payment_account_id` | route active de plus haute priorité (compte et prestataire actifs) | checkout |
 | `create_order(user_id, product_type, product_id, payment_country, method)` | vérifie FR-21, pays `open` (ou `pilot` + client testeur), route active ; fige grille, prix, devise, compte ; réutilise une commande `pending` récente identique | `/api/checkout` |
 | `confirm_order_payment(order_id, payment_account_id, provider_tx_id, amount, currency)` | **transaction atomique** avec verrou sur la commande : vérifie compte/montant/devise (sinon `needs_review`), transition vers `paid` depuis un état autorisé (déjà `paid` → aucun effet), insère le droit `ON CONFLICT DO NOTHING`, marque `is_duplicate_payment` si le contenu était **déjà couvert** (même logique que `has_episode_access`, pas seulement une ligne identique) | webhook + réconciliation |
-| `user_library(user_id)` | passes + épisodes possédés + épisodes accessibles des saisons possédées | page bibliothèque |
+| `user_library(user_id)` | pass série + épisodes possédés + épisodes accessibles des séries possédées | page bibliothèque |
 
 **Définition de `has_episode_access`** (un client peut lire un épisode si) :
-1. l'épisode est **visible publiquement** (série, saison et épisode publiés, ou épisode programmé dont la date est passée) **et** (il est gratuit **ou** le client a un droit actif sur l'épisode **ou** sur sa saison) ; **ou**
-2. l'épisode a été dépublié **après** avoir été mis en ligne (`first_published_at` non nul) **et** le client a un droit actif sur l'épisode ou sa saison (RM-07 : les acheteurs conservent l'accès).
+1. l'épisode est **visible publiquement** (série et épisode publiés, ou épisode programmé dont la date est passée) **et** (il est gratuit **ou** le client a un droit actif sur l'épisode **ou** sur sa série) ; **ou**
+2. l'épisode a été dépublié **après** avoir été mis en ligne (`first_published_at` non nul) **et** le client a un droit actif sur l'épisode ou sa série (RM-07 : les acheteurs conservent l'accès).
 
 Un brouillon ou un épisode programmé non encore sorti n'est **jamais** lisible, même par un détenteur de pass. Un client bloqué n'a accès à rien.
 
@@ -388,7 +383,7 @@ Sécurité des fonctions : droit d'exécution **retiré** à `PUBLIC`, `anon` et
 
 - `v_sales_daily` : CA et nombre de commandes `paid` par jour et par devise.
 - `v_sales_by_market` : ventes par pays, moyen de paiement et prestataire/compte ; taux d'échec par route.
-- `v_sales_by_product` : ventes par série / saison / épisode, épisodes vs passes.
+- `v_sales_by_product` : ventes par série / épisode, épisodes vs pass série.
 - `v_user_stats` : inscrits, nouveaux inscrits, acheteurs, conversion.
 - `v_top_episodes` : lectures (playback_sessions) et ventes.
 
@@ -396,4 +391,4 @@ Le chiffre d'affaires n'additionne **jamais** des devises différentes.
 
 ## 7. Données de test
 
-Un script de données réalistes (6 séries dont 1 disponible, saisons, épisodes gratuits et payants, utilisateurs fictifs avec numéros de test, commandes dans tous les statuts) sera créé pour les environnements local et préproduction uniquement — **jamais en production**.
+Un script de données réalistes (6 séries dont 1 disponible, épisodes gratuits et payants dans les limites de format, utilisateurs fictifs avec numéros de test, commandes dans tous les statuts) sera créé pour les environnements local et préproduction uniquement — **jamais en production**.

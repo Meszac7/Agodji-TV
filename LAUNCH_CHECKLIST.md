@@ -14,7 +14,7 @@
 - [x] **F** D-05 SMS — sans objet (aucun SMS)
 - [ ] **F** D-06 Authentification administrateur (e-mail + TOTP)
 - [x] **F** D-07 Format vidéo : vertical 9:16 privilégié, horizontal accepté (validé) — [ ] durée moyenne des épisodes à indiquer
-- [ ] **F** D-08 Politiques : remboursement, retrait de contenu, pass après épisodes, taille de saison, classification d'âge
+- [ ] **F** D-08 Politiques : remboursement, retrait de contenu, pass après épisodes, classification d'âge
 - [ ] **F/J** D-09 Stratégie d'encaissement par zone monétaire (société béninoise)
 - [ ] **F** D-10 Mention « créé avec l'IA »
 - [ ] **F** D-11 Nom de domaine
@@ -95,7 +95,7 @@ Le fondateur crée les comptes à son nom (ou celui de la société) et active l
 
 ## 5. Contenu
 
-- [ ] Série disponible : affiche, bannière, synopsis, saison(s), épisodes encodés, vignettes, épisodes gratuits choisis.
+- [ ] Série disponible : affiche, bannière, synopsis, épisodes encodés (10 au maximum, ≈ 1 min 30, 15 min au total au maximum), vignettes, épisodes gratuits choisis, prix du pass série.
 - [ ] 5 séries « bientôt » : affiche, synopsis, date ou mention.
 - [ ] Logo officiel et favicon (sinon logotype provisoire assumé).
 - [ ] Textes : accueil, aide/FAQ (paiement, mot de passe oublié, connexion Google, contact), CGU, confidentialité.

@@ -17,7 +17,7 @@ Pays concernés par les questions (liste à ajuster) :
 
 > Bonjour,
 >
-> Nous sommes [nom de la société], société immatriculée au Bénin (RCCM n° [à compléter]). Nous préparons le lancement d'Agodjié TV, une plateforme de vidéo à la demande (achat d'épisodes et de saisons de séries, montants unitaires d'environ 300 à 1 500 FCFA), destinée aux utilisateurs d'Afrique de l'Ouest et d'Afrique centrale.
+> Nous sommes [nom de la société], société immatriculée au Bénin (RCCM n° [à compléter]). Nous préparons le lancement d'Agodjié TV, une plateforme de vidéo à la demande (achat d'épisodes ou d'une série complète, montants unitaires d'environ 300 à 1 500 FCFA), destinée aux utilisateurs d'Afrique de l'Ouest et d'Afrique centrale.
 >
 > Nous souhaitons intégrer [CinetPay / FedaPay] via votre API (page de paiement hébergée, notifications serveur, vérification de transaction). Avant de finaliser notre architecture, pourriez-vous nous confirmer **par écrit** les points ci-dessous ? Pour chaque pays, une réponse sous forme de tableau nous serait très utile.
 >

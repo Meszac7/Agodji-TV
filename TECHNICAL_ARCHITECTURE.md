@@ -233,7 +233,7 @@ Règles :
   - `RDC` : USD ou CDF, montant à décider ;
   - `GNF` : Guinée, montant à décider.
 - Plusieurs marchés partagent une grille (simple) ; un marché peut avoir sa propre grille si un prix local différent est souhaité (flexible), sans changer le code.
-- Les prix sont saisis par saison et par grille (prix épisode, prix pass), avec exceptions possibles par épisode (DATABASE_SCHEMA §3.3).
+- Les prix sont saisis **par série** et par grille (prix d'un épisode, prix du **pass série**), avec exceptions possibles par épisode (DATABASE_SCHEMA §3.3).
 - Les montants sont validés contre les contraintes de **tous les comptes de paiement** routés pour les marchés de la grille (ex. multiple de 5).
 - Pas de conversion automatique de devises : chaque prix est saisi explicitement (évite les montants bizarres et les risques de change).
 - Statistiques toujours **par devise**, jamais additionnées entre devises.
@@ -309,7 +309,7 @@ Sujets juridiques associés (LAUNCH_CHECKLIST §4) : TVA sur les services numér
 | Protection | **Jeton d'intégration** (`SHA256(clé + video_id + expiration)`) pour le lecteur iframe + **authentification par jeton CDN** pour les URL directes (playlists, segments, MP4, vignettes) ; restriction par domaine référent |
 | Coûts (indicatifs) | Encodage standard inclus ; stockage ~0,01 $/Go/région ; diffusion Afrique/Moyen-Orient ~0,06 $/Go sur le réseau standard (plus cher que l'Europe ~0,01 $) |
 
-**Estimation d'ordre de grandeur** (à recalculer avec la durée réelle des épisodes **[D-07]**) : un épisode de 10 min en 720p ≈ 100–150 Mo → ≈ 0,006–0,009 $ de diffusion par visionnage en Afrique, soit ~1 % à 2 % d'un prix de 300 FCFA (~0,46 €). Supportable. Les épisodes **gratuits** coûtent aussi en bande passante : à surveiller.
+**Estimation d'ordre de grandeur** (épisodes d'environ **1 min 30**, 1 min 50 maximum, D-07) : un épisode vertical en 720p ≈ 15–25 Mo → ≈ 0,001–0,0015 $ de diffusion par visionnage en Afrique (tarif public indicatif ~0,06 $/Go), soit **environ 0,2 % à 0,3 %** du prix d'un épisode (300 FCFA ≈ 0,46 €) ; une série complète de 15 minutes regardée en entier ≈ 0,01–0,015 $. Les épisodes **gratuits** coûtent aussi en bande passante : à surveiller.
 
 ### 6.2 Mise en œuvre de la protection
 1. Activer dans la bibliothèque Bunny : **authentification par jeton CDN** (playlists et segments HLS — indispensable avec notre lecteur sur mesure), **domaines autorisés** (domaine de production uniquement), **désactiver le repli MP4** pour les épisodes payants si possible.
@@ -330,7 +330,7 @@ Sujets juridiques associés (LAUNCH_CHECKLIST §4) : TVA sur les services numér
 
 Exigences : PRODUCT_REQUIREMENTS §5. Décision : `docs/decisions/2026-11-20-comptes-google-email-lecteur-vertical.md`. Le lecteur intégré de Bunny (iframe) est écarté : il ne permet pas le défilement continu entre épisodes, la diapositive de déblocage ni la reprise fine.
 
-#### Cinq responsabilités séparées
+#### Six responsabilités séparées
 
 ```
 ┌──────────────────────── Navigateur ────────────────────────┐   ┌──────────── Serveur ────────────┐
@@ -341,28 +341,29 @@ Exigences : PRODUCT_REQUIREMENTS §5. Décision : `docs/decisions/2026-11-20-com
 │    hls.js / HLS natif, qualité adaptative, préchargement,  │   │ 4. Progression                  │
 │    renouvellement du lien, reprise sur erreur réseau       │──►│    PUT /api/progress            │
 │                 ▲ ordre et états                           │   │ 5. Séquenceur (calcul)          │
-│ 5. Séquenceur (côté affichage) : diapositive courante,     │◄──┤    GET /api/feed/:serie?saison= │
+│ 5. Séquenceur (côté affichage) : diapositive courante,     │◄──┤    GET /api/feed/:serie         │
 │    enchaînement, arrêt devant un épisode verrouillé        │   │    → diapositives + états       │
 └────────────────────────────────────────────────────────────┘   └─────────────────────────────────┘
 ```
 
 | Couche | Responsabilité | Ne fait jamais |
 |---|---|---|
-| 1. Interface | Affichage plein écran, gestes (glisser, toucher), commandes discrètes, fond flou, diapositives de déblocage / bientôt / fin de saison | Décider d'un droit d'accès |
+| 1. Interface | Affichage plein écran, gestes (glisser, toucher), commandes discrètes, fond flou, diapositives de déblocage / bientôt / fin de série | Décider d'un droit d'accès |
 | 2. Moteur de diffusion | Lecture HLS adaptative (natif Safari/iOS, **hls.js** ailleurs), plafond de qualité (économie de données), préchargement du suivant, renouvellement du lien signé avant expiration, nouvelles tentatives réseau | Connaître le prix ou les achats |
 | 3. Droits d'accès (serveur) | `has_episode_access` (DATABASE_SCHEMA §4), statut du client, émission du lien signé à durée courte | Être appelé depuis le navigateur autrement que via `/api/playback` |
 | 4. Progression | Position par épisode, « vu » (> 95 %), « continuer à regarder » ; serveur (`playback_progress`) si connecté, stockage local de l'appareil sinon | Accorder un accès |
-| 5. Séquenceur | Construit l'ordre des diapositives d'une saison : épisodes publiés (lecture ou déblocage), épisodes programmés (« bientôt »), carte de fin de saison (saison suivante et son état d'accès) ; règle d'enchaînement (jamais vers un contenu verrouillé) | Contourner les droits : il **décrit** l'état, le serveur le **vérifie** à chaque lecture |
+| 5. Séquenceur (ordre des épisodes) | Construit l'ordre des diapositives d'une **série** (épisodes 1 → N, pas de saisons) : épisodes publiés (lecture ou déblocage), épisodes programmés (« bientôt »), carte de **fin de série** (autres séries, retour au catalogue) ; règle d'enchaînement (jamais vers un contenu verrouillé) | Contourner les droits : il **décrit** l'état, le serveur le **vérifie** à chaque lecture |
+| 6. Achats et pass série (serveur) | Commandes, paiement, droits au niveau **série** (pass) ou **épisode** (`entitlements`), confirmation idempotente (§5.9) ; après confirmation, le séquenceur recharge les états et la lecture reprend automatiquement | Être influencé par le navigateur (prix, droit) |
 
 #### Points techniques
-- **API** : `GET /api/feed/:serieSlug?saison=N` renvoie les diapositives et leur état pour l'utilisateur courant (sans `video_id`), calculé avec **exactement** `has_episode_access` et les règles de visibilité de la base (aucune règle réécrite côté navigateur) : brouillons jamais présents ; épisode programmé dont la date est passée = publié ; épisode dépublié après achat conservé pour l'acheteur (RM-07) ; `POST /api/playback/:episodeId` renvoie le lien signé si l'accès est confirmé ; `PUT /api/progress` enregistre la position (limité en fréquence).
+- **API** : `GET /api/feed/:serieSlug` renvoie les diapositives et leur état pour l'utilisateur courant (sans `video_id`), calculé avec **exactement** `has_episode_access` et les règles de visibilité de la base (aucune règle réécrite côté navigateur) : brouillons jamais présents ; épisode programmé dont la date est passée = publié ; épisode dépublié après achat conservé pour l'acheteur (RM-07) ; `POST /api/playback/:episodeId` renvoie le lien signé si l'accès est confirmé ; `PUT /api/progress` enregistre la position (limité en fréquence).
 - **Mémoire sur téléphones modestes** : au plus **3 éléments vidéo** montés (précédent, courant, suivant) ; les autres diapositives n'affichent qu'une image.
 - **Préchargement** : uniquement le manifeste et le premier segment de l'épisode suivant (si accessible), pour démarrer sans attente sans gaspiller la data.
 - **Jetons de lecture** : `/api/playback` distingue une **nouvelle lecture** (comptée dans les statistiques et dans la limite SEC-54) d'un **renouvellement** ou d'un **préchargement** (non comptés comme lecture, limite séparée plus large).
 - **Son** : l'entrée dans le lecteur par un toucher autorise la lecture avec son ; l'enchaînement conserve le choix de l'utilisateur. Si le navigateur l'impose, démarrage en sourdine avec un bouton « Activer le son » visible.
 - **Format** : `object-fit: contain` (jamais de déformation ni de recadrage) ; fond flou généré à partir de la vignette ; plein écran paysage pour les séries horizontales (`screen.orientation.lock` si disponible).
 - **Déblocage dans le flux** : après confirmation d'un achat, le séquenceur recharge les états (`/api/feed`) et déverrouille les diapositives couvertes sans recharger la page.
-- **Tests** : Playwright en formats mobiles — glisser haut/bas, enchaînement automatique, arrêt devant un épisode verrouillé, reprise à la bonne position, déblocage par pass, carte de fin de saison, vidéo horizontale non déformée, erreurs simulées (réseau coupé, lien expiré renouvelé, accès refusé) ; tests manuels sur téléphones réels (étape 9).
+- **Tests** : Playwright en formats mobiles — glisser haut/bas, enchaînement automatique, arrêt devant un épisode verrouillé, reprise à la bonne position, déblocage par pass série (plus aucune demande de paiement ensuite), reprise automatique après paiement, carte de fin de série, vidéo horizontale non déformée, erreurs simulées (réseau coupé, lien expiré renouvelé, accès refusé) ; tests manuels sur téléphones réels (étape 9).
 
 ## 7. Authentification (résumé)
 
