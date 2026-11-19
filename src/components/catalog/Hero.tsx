@@ -6,7 +6,11 @@ import type { DemoSeries } from "@/lib/demo/catalog";
 
 export function Hero({ series }: { series: DemoSeries }) {
   return (
-    <section className="relative isolate min-h-[68vh] overflow-hidden md:min-h-[560px]" aria-label={`À la une : ${series.title}`}>
+    <section
+      data-theme="dark"
+      className="relative isolate min-h-[68vh] overflow-hidden bg-bg text-text md:min-h-[560px]"
+      aria-label={`À la une : ${series.title}`}
+    >
       <div className="absolute inset-0 -z-10">
         <PosterArt palette={series.palette} title={series.title} showTitle={false} className="h-full w-full" />
       </div>

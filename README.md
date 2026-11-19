@@ -18,3 +18,19 @@ Plateforme de streaming africaine indépendante dédiée aux séries dramatiques
 | [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md) | Checklist de lancement |
 | [CLAUDE.md](CLAUDE.md) | Règles de développement |
 | [docs/questions-prestataires-paiement.md](docs/questions-prestataires-paiement.md) | Questions écrites à CinetPay et FedaPay + suivi des réponses |
+
+## Développement
+
+Prérequis : Node.js 22, PostgreSQL 16 (local) — aucune clé externe n'est nécessaire grâce aux simulateurs.
+
+| Commande | Rôle |
+|---|---|
+| `npm install` | Installer les dépendances |
+| `npm run db:local` | Démarrer un PostgreSQL local (port 54329) |
+| `DATABASE_URL=postgres://postgres@localhost:54329/postgres npm run db:migrate -- --demo` | Créer le schéma + données de démonstration |
+| `APP_ENV=development npm run dev` | Lancer le site (guide de style : `/guide-de-style`) |
+| `npm run check` | Lint + types + tests unitaires |
+| `npm run test:db` | Tests de base de données (PostgreSQL local requis) |
+| `npm run build && npm run test:e2e` | Tests navigateur (Playwright) |
+
+Recettes du fondateur : `docs/recette/`. Décisions techniques : `docs/decisions/`.

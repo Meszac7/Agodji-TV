@@ -8,9 +8,10 @@
  * Jetons de design Agodjié TV — DESIGN_GUIDELINES §2.
  * Toutes les couleurs de l'interface passent par ces variables : aucune couleur en dur dans les composants.
  * Thème sombre par défaut ; thème clair via data-theme="light" sur <html>.
+ * Les jetons s'appliquent aussi à un bloc isolé (ex. la bannière « À la une » reste sombre, comme un écran de cinéma).
  */
 :root,
-:root[data-theme="dark"] {
+[data-theme="dark"] {
   color-scheme: dark;
   --bg: #0b0b0f;
   --surface: #16161d;
@@ -32,7 +33,7 @@
   --shadow-raised: 0 12px 32px rgb(0 0 0 / 0.45);
 }
 
-:root[data-theme="light"] {
+[data-theme="light"] {
   color-scheme: light;
   --bg: #faf8f4;
   --surface: #ffffff;

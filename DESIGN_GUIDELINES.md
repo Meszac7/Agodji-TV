@@ -95,6 +95,7 @@ Toutes les couleurs sont des **jetons** (variables CSS). Le code n'utilise jamai
 - Chargement : couleur dominante ou flou en attendant l'image (pas de saut de mise en page).
 
 ### 5.2 Hero (accueil et fiche série)
+- La bannière reste **sombre dans les deux thèmes** (effet « écran de cinéma ») ; en thème clair, elle se détache du reste de la page claire.
 - Image de bannière plein écran (mobile : ~70 % de la hauteur), dégradé vers `--bg` en bas pour la lisibilité.
 - Titre (Figtree 800), accroche, métadonnées (saisons, genre, mention IA **[D-10]**).
 - Un bouton jaune principal (« Regarder l'épisode 1 — Gratuit » ou « Reprendre ») + un bouton secondaire (« Plus d'infos » / « Ajouter… » P2).

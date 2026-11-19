@@ -72,13 +72,13 @@ export default async function StyleGuidePage() {
 
       <Section id="series" title="Cartes de séries" intro="Affiches au format 2:3. Les séries à venir sont légèrement désaturées et portent le badge « Bientôt ».">
         <h3 className="mb-3 font-display text-base font-semibold">Disponible maintenant</h3>
-        <div className="no-scrollbar -mx-4 flex snap-x gap-3 overflow-x-auto px-4 sm:mx-0 sm:grid sm:grid-cols-4 sm:overflow-visible sm:px-0 lg:grid-cols-6">
+        <div className="no-scrollbar -mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 sm:mx-0 sm:grid sm:grid-cols-4 sm:overflow-visible sm:px-0 lg:grid-cols-6">
           {demoSeries.filter((s) => s.status === "published").map((s) => (
             <PosterCard key={s.slug} series={s} />
           ))}
         </div>
         <h3 className="mb-3 mt-8 font-display text-base font-semibold">Bientôt disponible</h3>
-        <div className="no-scrollbar -mx-4 flex snap-x gap-3 overflow-x-auto px-4 sm:mx-0 sm:grid sm:grid-cols-4 sm:overflow-visible sm:px-0 lg:grid-cols-6">
+        <div className="no-scrollbar -mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 sm:mx-0 sm:grid sm:grid-cols-4 sm:overflow-visible sm:px-0 lg:grid-cols-6">
           {demoSeries.filter((s) => s.status === "coming_soon").map((s) => (
             <PosterCard key={s.slug} series={s} />
           ))}
