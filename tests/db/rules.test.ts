@@ -31,11 +31,11 @@ describe("données de démonstration et de référence", () => {
     ]);
   });
 
-  it("grille XOF : 300 FCFA par épisode, 1 500 FCFA le pass série (D-03)", async () => {
+  it("grille XOF : 499 FCFA par épisode, Pass propre à la série (1 500 FCFA pour Sang Royal) (D-03)", async () => {
     const { rows } = await db.query(
       `SELECT sp.episode_price, sp.pass_price FROM app.series_prices sp JOIN app.price_lists pl ON pl.id = sp.price_list_id WHERE pl.code = 'XOF'`,
     );
-    expect(rows).toEqual([{ episode_price: 300, pass_price: 1500 }]);
+    expect(rows).toEqual([{ episode_price: 499, pass_price: 1500 }]);
   });
 
   it("les grilles des autres monnaies sont vides : aucune conversion automatique (D-03)", async () => {
@@ -133,14 +133,14 @@ describe("règles du catalogue", () => {
 });
 
 describe("règles de prix", () => {
-  it("prix effectif : exception d'épisode, sinon prix de la saison", async () => {
+  it("prix effectif : exception d'épisode, sinon prix de la série", async () => {
     await inRollback(db, async () => {
       const xof = await priceListId("XOF");
       const { rows: before } = await db.query(
         `SELECT app.episode_price(id, $1) AS p FROM app.episodes WHERE number = 5`,
         [xof],
       );
-      expect(before[0].p).toBe(300);
+      expect(before[0].p).toBe(499);
       await db.query(
         `INSERT INTO app.episode_price_overrides (episode_id, price_list_id, price) SELECT id, $1, 500 FROM app.episodes WHERE number = 5`,
         [xof],
@@ -256,59 +256,105 @@ describe("séries sans saisons (décision du 2026-11-21)", () => {
     const { rows } = await db.query(
       `SELECT sr.slug, sp.pass_price, sp.episode_price FROM app.series_prices sp JOIN app.series sr ON sr.id = sp.series_id`,
     );
-    expect(rows).toEqual([{ slug: "sang-royal", pass_price: 1500, episode_price: 300 }]);
+    expect(rows).toEqual([{ slug: "sang-royal", pass_price: 1500, episode_price: 499 }]);
   });
 
-  it("la durée totale est calculée automatiquement (épisodes publiés et programmés)", async () => {
+  it("la durée totale est calculée automatiquement sur TOUS les épisodes (y compris programmés et brouillons)", async () => {
     const { rows } = await db.query(`SELECT * FROM app.series_format_report($1)`, [await seriesId()]);
     expect(rows[0]).toEqual({
-      episode_count: 7,
+      episode_count: 8,
       total_seconds: 92 + 88 + 95 + 101 + 86 + 97 + 90,
-      missing_durations: 0,
+      missing_durations: 1,
       long_episode_numbers: [],
       over_episode_limit: false,
       over_total_limit: false,
+      publishable: true,
     });
   });
 
-  it("signale un épisode de plus de 1 min 50", async () => {
+  it("un brouillon compte dans la durée totale : il ne peut pas faire dépasser 15 min une série publiée", async () => {
     await inRollback(db, async () => {
-      await db.query(`UPDATE app.episodes SET duration_seconds = 125 WHERE number = 4`);
-      const { rows } = await db.query(`SELECT long_episode_numbers FROM app.series_format_report($1)`, [await seriesId()]);
-      expect(rows[0].long_episode_numbers).toEqual([4]);
+      // 649 s déjà présents + 260 s = 909 s > 900 s ; le brouillon est en plus trop long
+      await expectPgError(db.query(`UPDATE app.episodes SET duration_seconds = 260 WHERE number = 8`), CHECK_VIOLATION);
     });
   });
 
-  it("signale une série de plus de 10 épisodes et de plus de 15 minutes", async () => {
+  it("bloque un épisode de plus de 1 min 50 dans une série publiée", async () => {
+    await inRollback(db, async () => {
+      await expectPgError(db.query(`UPDATE app.episodes SET duration_seconds = 111 WHERE number = 4`), CHECK_VIOLATION);
+    });
+  });
+
+  it("accepte exactement 1 min 50 (110 s)", async () => {
+    await inRollback(db, async () => {
+      await db.query(`UPDATE app.episodes SET duration_seconds = 110 WHERE number = 4`);
+      const { rows } = await db.query(`SELECT publishable FROM app.series_format_report($1)`, [await seriesId()]);
+      expect(rows[0].publishable).toBe(true);
+    });
+  });
+
+  it("bloque un 11e épisode, même en brouillon, dans une série publiée", async () => {
     await inRollback(db, async () => {
       const id = await seriesId();
-      for (let n = 9; n <= 12; n++) {
-        await db.query(
-          `INSERT INTO app.episodes (series_id, number, title, duration_seconds, status) VALUES ($1, $2, 'Ajout', 105, 'published')`,
-          [id, n],
-        );
+      for (const n of [9, 10]) {
+        await db.query(`INSERT INTO app.episodes (series_id, number, title, duration_seconds) VALUES ($1, $2, 'Ajout', 20)`, [id, n]);
+      }
+      await expectPgError(
+        db.query(`INSERT INTO app.episodes (series_id, number, title, duration_seconds) VALUES ($1, 11, 'De trop', 20)`, [id]),
+        CHECK_VIOLATION,
+      );
+    });
+  });
+
+  it("bloque la publication d'un épisode sans durée", async () => {
+    await inRollback(db, async () => {
+      await expectPgError(db.query(`UPDATE app.episodes SET status = 'published' WHERE number = 8`), CHECK_VIOLATION);
+    });
+  });
+
+  it("bloque la programmation d'un épisode qui ferait dépasser 15 minutes", async () => {
+    await inRollback(db, async () => {
+      await db.query(`UPDATE app.episodes SET status = 'draft' WHERE number BETWEEN 1 AND 7`);
+      await db.query(`UPDATE app.episodes SET duration_seconds = 110 WHERE number BETWEEN 1 AND 7`);
+      await db.query(`UPDATE app.episodes SET duration_seconds = 110 WHERE number = 8`); // 880 s : OK
+      const id = await seriesId();
+      await db.query(`INSERT INTO app.episodes (series_id, number, title, duration_seconds) VALUES ($1, 9, 'Bonus', 30)`, [id]); // 910 s, brouillons libres
+      const { rows } = await db.query(`SELECT over_total_limit, publishable FROM app.series_format_report($1)`, [id]);
+      expect(rows[0]).toEqual({ over_total_limit: true, publishable: false });
+      await expectPgError(
+        db.query(`UPDATE app.episodes SET status = 'scheduled', publish_at = now() + interval '1 day' WHERE number = 1`),
+        CHECK_VIOLATION,
+      );
+    });
+  });
+
+  it("les brouillons d'une série jamais publiée restent modifiables librement, mais signalés", async () => {
+    await inRollback(db, async () => {
+      const { rows: s } = await db.query(`INSERT INTO app.series (slug, title) VALUES ('brouillon-test', 'Brouillon') RETURNING id`);
+      const id = s[0].id;
+      for (let n = 1; n <= 11; n++) {
+        await db.query(`INSERT INTO app.episodes (series_id, number, title, duration_seconds) VALUES ($1, $2, 'Ép.', 120)`, [id, n]);
       }
       const { rows } = await db.query(`SELECT * FROM app.series_format_report($1)`, [id]);
-      expect(rows[0]).toMatchObject({ episode_count: 11, over_episode_limit: true, over_total_limit: true });
+      expect(rows[0]).toMatchObject({
+        episode_count: 11,
+        total_seconds: 1320,
+        over_episode_limit: true,
+        over_total_limit: true,
+        publishable: false,
+      });
+      expect(rows[0].long_episode_numbers).toHaveLength(11);
+      await expectPgError(db.query(`UPDATE app.episodes SET status = 'published' WHERE series_id = $1 AND number = 1`, [id]), CHECK_VIOLATION);
     });
   });
 
-  it("les brouillons ne comptent ni dans le nombre d'épisodes ni dans la durée", async () => {
-    await inRollback(db, async () => {
-      await db.query(`UPDATE app.episodes SET duration_seconds = 600 WHERE number = 8`);
-      const { rows } = await db.query(`SELECT episode_count, over_total_limit FROM app.series_format_report($1)`, [await seriesId()]);
-      expect(rows[0]).toEqual({ episode_count: 7, over_total_limit: false });
-    });
-  });
-
-  it("les limites de format sont des réglages, mode « avertir » par défaut (D-28)", async () => {
+  it("aucun mode de contournement : seules les limites existent, en réglages versionnés (D-28)", async () => {
     const { rows } = await db.query(
       `SELECT key, value FROM app.app_settings WHERE key IN ('series_max_episodes','episode_max_seconds','series_max_total_seconds','format_limits_mode','episode_target_seconds') ORDER BY key`,
     );
     expect(rows).toEqual([
       { key: "episode_max_seconds", value: 110 },
       { key: "episode_target_seconds", value: 90 },
-      { key: "format_limits_mode", value: "warn" },
       { key: "series_max_episodes", value: 10 },
       { key: "series_max_total_seconds", value: 900 },
     ]);

@@ -30,8 +30,8 @@ CROSS JOIN (VALUES
 ) AS v(number, title, synopsis, duration, access, status)
 WHERE sr.slug = 'sang-royal';
 
--- Prix validés pour la grille XOF (D-03) : 300 FCFA l'épisode, 1 500 FCFA le pass série. Aucune autre grille remplie.
+-- Prix (D-03, 2026-11-22) : 499 FCFA par épisode (référence, modifiable épisode par épisode) ; Pass propre à la série (ici 1 500 FCFA). Grille XOF seulement.
 INSERT INTO app.series_prices (series_id, price_list_id, episode_price, pass_price)
-SELECT sr.id, pl.id, 300, 1500
+SELECT sr.id, pl.id, 499, 1500
 FROM app.series sr CROSS JOIN app.price_lists pl
 WHERE sr.slug = 'sang-royal' AND pl.code = 'XOF';
