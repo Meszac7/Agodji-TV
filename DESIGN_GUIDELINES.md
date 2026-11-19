@@ -35,7 +35,7 @@ Toutes les couleurs sont des **jetons** (variables CSS). Le code n'utilise jamai
 | `--primary-hover` | `#FFC933` | Survol / appui | 12,3:1 avec `--on-primary` |
 | `--danger` | `#FF5A5F` | Texte/icône d'erreur sur fond sombre | 6,4:1 sur `--bg` |
 | `--danger-solid` | `#D92D35` | Fond des boutons destructifs (texte blanc) | 4,8:1 |
-| `--success` | à définir | Confirmation de paiement | à vérifier |
+| `--success` | `#3DD68C` | Confirmation de paiement, badge « Acheté » (texte/icône) | 10,5:1 sur `--bg`, 9,6:1 sur `--surface` |
 
 ### 2.2 Thème clair
 
@@ -43,10 +43,16 @@ Toutes les couleurs sont des **jetons** (variables CSS). Le code n'utilise jamai
 |---|---|---|
 | `--bg` | `#FAF8F4` | — |
 | `--surface` | `#FFFFFF` | — |
-| `--text` | `#15141A` | 17,3:1 |
+| `--surface-raised` | `#FFFFFF` + ombre légère | — |
+| `--surface-sunken` | `#F3F0EA` (zones secondaires) | texte 16,1:1, texte secondaire 6,0:1 |
+| `--border` | `#E4E0D8` | — (séparateurs décoratifs) |
+| `--text` | `#15141A` | 17,3:1 sur `--bg`, 18,3:1 sur `--surface` |
 | `--text-muted` | `#5C5966` | 6,4:1 sur `--bg` |
-| `--primary` | `#F5B800` (fond de bouton uniquement, texte `#14110A`) | 10,5:1 |
-| `--primary-text` | `#8A6400` (liens/texte « jaune » sur fond clair) | 5,1:1 sur `--bg` |
+| `--primary` | `#F5B800` (fond de bouton uniquement) | — |
+| `--on-primary` | `#14110A` | 10,5:1 sur `--primary` |
+| `--primary-hover` | `#FFC933` | 12,3:1 avec `--on-primary` |
+| `--primary-text` | `#8A6400` (liens/texte « jaune » sur fond clair) | 5,1:1 sur `--bg`, 5,4:1 sur `--surface` |
+| `--success` | `#1A7F4B` | 4,7:1 sur `--bg`, 5,0:1 sur `--surface` |
 | `--danger` / `--danger-solid` | `#B42318` (texte blanc sur fond : 6,6:1) | 6,2:1 sur `--bg` |
 
 **Règle** : le jaune n'est **jamais** utilisé comme couleur de texte sur fond clair (contraste insuffisant) ; on utilise `--primary-text`.

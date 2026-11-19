@@ -19,15 +19,14 @@
 ## 2. Schéma relationnel
 
 ```
-customers 1──1 pin_credentials
-    │ 1──* customer_sessions
-    │ (otp_challenges : par numéro, avant même la création du compte)
-    │
-                              ├──* orders *──1 (episode | season)
-                              │       │
-                              │       └──* payment_events
-                              │
-                              └──* entitlements ──1 (episode | season)
+customers ──1 pin_credentials
+    ├──* customer_sessions
+    ├──* orders *──1 (episode | season)
+    │       └──* payment_events
+    └──* entitlements ──1 (episode | season)
+
+otp_challenges (par numéro, avant même la création du compte)
+app_settings (réglages ajustables : pays d'affichage par défaut, longueur du PIN, seuils)
 
 auth.users (Supabase, admins uniquement) 1──1 staff_roles
 
@@ -226,7 +225,7 @@ Passage à `pilot` ou `open` refusé par la base tant que : au moins une route d
 Règles :
 - Prix d'un épisode = exception s'il existe, sinon `season_prices.episode_price` de la grille du marché.
 - Un épisode payant ou une saison ne peut être publié que s'il a un prix dans **chaque grille utilisée par un pays `pilot` ou `open`** (FR-55).
-- Tout prix est validé contre les contraintes des comptes de paiement routés pour les marchés de la grille (ex. multiple de 5 chez CinetPay hors USD).
+- Tout prix est validé contre les contraintes des comptes de paiement routés pour les marchés de la grille (ex. multiple de 5 chez CinetPay hors USD — 🟢 documentation CinetPay, à reconfirmer en sandbox).
 
 ### 3.4 Prestataires, comptes et routes de paiement
 
@@ -238,14 +237,14 @@ Règles :
 | display_name | text | |
 | is_enabled | boolean | interrupteur global |
 
-**`payment_accounts`** — un contrat marchand chez un prestataire.
+**`payment_accounts`** — un contrat marchand chez un prestataire (un jeu d'identifiants, une URL de webhook).
 
 | Colonne | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
-| code | text UNIQUE | ex. `cinetpay-xof`, `cinetpay-xaf`, `fedapay-xof` ; sert dans l'URL du webhook |
+| code | text UNIQUE | ex. `cinetpay-bj`, `fedapay-bj` ; sert dans l'URL du webhook (`/api/webhooks/<prestataire>/<code>`) |
 | provider_code | text FK payment_providers | |
-| currency | text FK currencies | un compte = une devise |
+| currencies | text[] | devises acceptées par ce contrat (une ou plusieurs, selon les réponses des prestataires) |
 | environment | text | `sandbox` \| `live` |
 | credentials_ref | text | préfixe des variables d'environnement (ex. `PAYACCT_CINETPAY_XOF`) — **aucune clé en base** |
 | constraints | jsonb | ex. `{"amount_step": 5, "min_amount": 100}` (valeurs à confirmer par prestataire) |
@@ -258,7 +257,7 @@ Règles :
 | id | uuid PK | |
 | country_code | text FK markets | |
 | method | text | `mobile_money` \| `card` \| `wallet` |
-| payment_account_id | uuid FK payment_accounts | la devise du compte doit égaler celle de la grille du marché (contrainte) |
+| payment_account_id | uuid FK payment_accounts | la devise de la grille du pays doit figurer dans `currencies` du compte (contrainte) |
 | priority | int | 1 = principal, 2 = secours… UNIQUE (country_code, method, priority) |
 | operators_display | text[] | ex. `{MTN, Moov, Celtiis}` — affichage uniquement |
 | is_enabled | boolean | |
@@ -285,7 +284,7 @@ Sélection : route `is_enabled` de plus petite `priority` dont le compte et le p
 | currency | text | |
 | amount | int | **figé** à la création |
 | payment_account_id | uuid FK payment_accounts | compte qui encaisse (figé) |
-| provider | text | `cinetpay` \| `fedapay` (dénormalisé pour les filtres) |
+| provider | text | `cinetpay` \| `fedapay` \| `simulator` (dénormalisé pour les filtres ; `simulator` impossible en production) |
 | provider_transaction_id | text NULL | UNIQUE (provider, provider_transaction_id) |
 | status | text | `pending` \| `paid` \| `failed` \| `cancelled` \| `expired` \| `needs_review` \| `refunded` |
 | status_reason | text NULL | |
@@ -299,7 +298,7 @@ Contraintes :
   - `failed | cancelled | expired → paid | needs_review` — **le prestataire a le dernier mot** : si son API confirme un paiement, la commande est créditée
   - `needs_review → paid | failed | refunded` (décision admin)
   - `paid → refunded`
-- `expired` est posé par la tâche planifiée après 60 min sans paiement ; ces commandes restent revérifiées pendant 72 h (TECHNICAL_ARCHITECTURE §5.3).
+- `expired` est posé par la tâche planifiée après 60 min sans paiement ; ces commandes restent revérifiées pendant 72 h (TECHNICAL_ARCHITECTURE §5.9).
 
 **`payment_events`** — journal brut de chaque notification reçue.
 
@@ -337,6 +336,31 @@ Contraintes :
 - Index uniques partiels : `(user_id, episode_id) WHERE revoked_at IS NULL` et `(user_id, season_id) WHERE revoked_at IS NULL`. **Ce sont eux qui empêchent un double droit**, même si deux notifications arrivent en même temps.
 - Remboursement d'une commande : seul le droit dont `order_id` = cette commande est révoqué. Une commande en double n'a pas de droit propre : son remboursement ne retire rien.
 
+### 3.7 Réglages ajustables
+
+**`app_settings`** — valeurs modifiables sans changer le code (CLAUDE.md règle 2). Modification réservée au rôle `admin`, journalisée.
+
+| Colonne | Type | Notes |
+|---|---|---|
+| key | text PK | |
+| value | jsonb | |
+| updated_at, updated_by | | |
+
+Réglages initiaux :
+
+| Clé | Valeur initiale | Référence |
+|---|---|---|
+| `default_display_country` | `"BJ"` | D-21 |
+| `pin_length` | `4` | D-04 (4 ou 6) |
+| `pin_lock_soft` / `pin_lock_hard` | `{"failures": 5, "minutes": 15}` / `{"failures": 10}` | SEC-03 |
+| `ip_login_limits` | `{"turnstile_after": 20, "block_after": 50, "per": "hour"}` | SEC-04 |
+| `otp_limits` | `{"per_number_hour": 3, "per_number_day": 10, "validity_minutes": 5, "max_attempts": 5}` | SEC-11, SEC-12 |
+| `sms_daily_budget_alert` | à définir | SEC-14 |
+| `order_limit_per_hour` | `10` | SECURITY §9 |
+| `playback_token` | `{"validity_seconds": 300, "per_user_hour": 60}` | SEC-51, SEC-54 |
+| `order_expiry_minutes` / `reconcile_window_hours` | `60` / `72` | TECHNICAL_ARCHITECTURE §5.9 |
+| `session_idle_days` | `90` | SEC-07 |
+
 ### 3.6 Journaux
 
 **`audit_logs`** — actions administrateur et événements de sécurité.
@@ -369,6 +393,8 @@ Contraintes :
 2. l'épisode a été dépublié **après** avoir été mis en ligne (`first_published_at` non nul) **et** le client a un droit actif sur l'épisode ou sa saison (RM-07 : les acheteurs conservent l'accès).
 
 Un brouillon ou un épisode programmé non encore sorti n'est **jamais** lisible, même par un détenteur de pass. Un client bloqué n'a accès à rien.
+
+**Visiteur sans compte** (`user_id` NULL) : seul le cas 1 avec un épisode **gratuit** s'applique ; tout épisode payant est refusé.
 
 Sécurité des fonctions : droit d'exécution **retiré** à `PUBLIC`, `anon` et `authenticated` ; `SECURITY DEFINER` uniquement si nécessaire, avec `search_path` fixé. Appelées uniquement par le serveur.
 

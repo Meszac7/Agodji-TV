@@ -108,7 +108,7 @@ Colonne « Nécessaire avant » : moment où la décision devient réellement n�
 | D-13 | Lecteur vidéo V1 | Lecteur intégré Bunny (derrière une interface `VideoProvider`, remplaçable) | Recommandation par défaut | Étape 6 |
 | D-14 | Identité de marque | Logotype texte provisoire ; logo officiel intégré dès réception | En attente | Lancement public |
 | D-15 | Langue | Français en V1, textes centralisés | Recommandation par défaut | — |
-| D-16 | Prestataire SMS | Interface `SmsProvider` ; simulateur en développement ; prestataire réel choisi sur comparaison des tarifs par pays | En attente | Pilote (tests réels dès l'étape 8) |
+| D-16 | Prestataire SMS | Interface `SmsProvider` ; simulateur en développement ; prestataire réel choisi sur comparaison des tarifs par pays | En attente | Pilote (tests réels en préproduction pendant l'étape 9) |
 | D-17 | Choix du pays de paiement | Pays **confirmé par l'utilisateur** au premier achat, mémorisé ; l'indicatif et l'IP ne sont que des suggestions | **Principe validé** ; écrans à valider | Étape 5 |
 | D-18 | Prestataire principal par pays en zone XOF | Selon les frais réels ; l'autre en secours | En attente des grilles tarifaires | Pilote |
 | D-19 | Gabon, Congo, Tchad, Centrafrique, Guinée équatoriale, Guinée-Bissau | Pas d'exclusion ; questions écrites ; consultation ouverte en attendant | En attente des réponses | Ouverture de ces pays |

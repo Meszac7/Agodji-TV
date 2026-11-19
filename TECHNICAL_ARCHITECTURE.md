@@ -83,7 +83,7 @@ Principe : **le navigateur ne détient jamais de secret et ne parle jamais à la
 - **RLS activé sur toutes les tables sans aucune politique** pour les rôles `anon` et `authenticated` : même si la clé publique Supabase est utilisée (connexion admin), elle ne donne accès à aucune donnée. Droit d'exécution des fonctions SQL retiré à `PUBLIC`, `anon` et `authenticated`.
 - Région : choisir la même région pour Supabase et les fonctions Vercel, la plus proche de l'Afrique de l'Ouest/centrale disponible (probablement **Europe de l'Ouest, ex. Paris ou Francfort**) **[à vérifier : liste des régions Supabase/Vercel]**.
 - Publication programmée : pas de tâche planifiée nécessaire ; un contenu est visible si `status = 'published'` **ou** `status = 'scheduled' AND publish_at <= now()`.
-- Tâches planifiées (Vercel Cron) : réconciliation des paiements (§5.3), expiration des commandes, purge des tentatives de connexion, des OTP et des sessions expirés.
+- Tâches planifiées (Vercel Cron) : réconciliation des paiements (§5.9), expiration des commandes, purge des tentatives de connexion, des OTP et des sessions expirés.
 - Encodage vidéo : Bunny notifie `/api/webhooks/bunny` ; la notification sert seulement de **signal** — le serveur relit l'état de la vidéo via l'API Bunny avant de mettre à jour `video_status`. Bouton « actualiser l'état » dans l'admin en secours.
 
 ## 5. Paiements — architecture multi-prestataires et multi-marchés
@@ -101,6 +101,7 @@ Principe : **le navigateur ne détient jamais de secret et ne parle jamais à la
 | 🟡 | Source officielle **ancienne, ambiguë ou contradictoire** |
 | 🟠 | Source **tierce** uniquement (blog, comparatif) |
 | ⚪ | **Aucune information trouvée** — ce n'est **pas** une exclusion |
+| ❌ | **Refusé par écrit** par le prestataire |
 
 Trois questions distinctes, à ne jamais confondre :
 - **A — Disponibilité technique** : le prestataire sait-il encaisser dans ce pays, avec quels moyens ?
@@ -181,7 +182,7 @@ Prestataire (code)          Compte de paiement (contrat)        Route (pays × m
    prestataire)                                                     2 = secours
 ```
 
-Les comptes ci-dessus sont des **exemples** : le nombre réel de comptes dépendra des réponses écrites (un seul compte multi-devises, un compte par devise ou par pays — tous les cas se configurent).
+Les comptes ci-dessus sont des **exemples** : le nombre réel de comptes dépendra des réponses écrites. Un compte de paiement représente **un contrat marchand** (un jeu d'identifiants, une URL de webhook) et porte la **liste des devises** qu'il accepte : un contrat multi-devises = un compte avec plusieurs devises ; un contrat par devise ou par pays = plusieurs comptes. Tous les cas se configurent sans changer le code.
 
 - **Adaptateur par prestataire** : un module par prestataire implémente l'interface commune `PaymentProvider` :
   - `createCheckout(order, account, method)` → URL de paiement
@@ -189,7 +190,7 @@ Les comptes ci-dessus sont des **exemples** : le nombre réel de comptes dépend
   - `fetchTransactionStatus(reference, account)` → statut, montant, devise réels (fait foi)
   - `capabilities(account)` → devises, moyens, contraintes de montant (ex. multiple de 5)
   - Ajouter un prestataire = écrire un nouvel adaptateur qui passe la suite de tests commune ; **rien d'autre ne change** (commandes, droits, admin, statistiques sont indépendants du prestataire).
-- **Comptes de paiement** (`payment_accounts`) : un contrat marchand, une devise, un environnement (sandbox/live), une référence vers ses identifiants. Activable/désactivable.
+- **Comptes de paiement** (`payment_accounts`) : un contrat marchand, ses devises acceptées, un environnement (sandbox/live), une référence vers ses identifiants. Activable/désactivable.
 - **Routes** (`payment_routes`) : pour chaque pays et chaque moyen (`mobile_money`, `card`, `wallet`), un compte principal et éventuellement un compte de secours, la liste des opérateurs à afficher, et la date du dernier paiement réel de contrôle.
 
 **Activation progressive — trois niveaux indépendants** :
@@ -213,7 +214,7 @@ Le pays du numéro de téléphone **n'est pas** le pays de résidence ni le pays
 
 **Parcours :**
 
-1. **Navigation (sans compte)** : les prix sont affichés pour un « pays d'affichage » estimé à partir de l'adresse IP (indication fournie par l'hébergeur), visible et modifiable en un geste : « Prix pour : Bénin ▾ ». Si le pays estimé est inconnu, les prix affichés sont ceux du **Bénin** (grille XOF) avec la mention « Prix indicatifs — modifiables selon votre pays » (D-21). Si le pays est connu mais pas encore ouvert à l'achat, ses prix indicatifs sont affichés s'il a une grille, sinon ceux du Bénin, avec la même mention.
+1. **Navigation (sans compte)** : les prix sont affichés pour un « pays d'affichage » estimé à partir de l'adresse IP (en-tête de géolocalisation fourni par l'hébergeur, ex. `x-vercel-ip-country` chez Vercel **[à vérifier au moment de l'implémentation]**), visible et modifiable en un geste : « Prix pour : Bénin ▾ ». Si le pays estimé est inconnu, les prix affichés sont ceux du pays par défaut — **Bénin** (réglage `default_display_country`, DATABASE_SCHEMA §3.7) (grille XOF) avec la mention « Prix indicatifs — modifiables selon votre pays » (D-21). Si le pays est connu mais pas encore ouvert à l'achat, ses prix indicatifs sont affichés s'il a une grille, sinon ceux du Bénin, avec la même mention.
 2. **Premier achat** : un écran unique demande « **Dans quel pays se trouve votre compte Mobile Money ou votre carte ?** ». Une suggestion est présélectionnée, dans cet ordre : pays d'affichage choisi par l'utilisateur → pays estimé par IP → pays de l'indicatif du numéro. **L'utilisateur confirme d'un geste ou change.** Seuls les pays où l'achat est possible sont sélectionnables ; les autres apparaissent grisés « bientôt ».
 3. **Achats suivants** : le dernier pays de paiement utilisé est rappelé (« Payer depuis : Côte d'Ivoire · Changer »). Pas de nouvelle question.
 4. Changer de pays met à jour **immédiatement** le prix (grille du pays) et les moyens proposés, avant toute redirection.
@@ -227,8 +228,8 @@ Règles :
 ### 5.8 Devises et tarifs par marché
 
 - **Grilles tarifaires** (`price_lists`) : une grille = une devise + un pas d'arrondi. Chaque marché pointe vers une grille. Exemple initial **[D-03]** :
-  - `XOF` : pays UEMOA → 300 / 1 500 ;
-  - `XAF` : pays CEMAC → 300 / 1 500 ;
+  - `XOF` : pays UEMOA → **300 / 1 500** (validé) ;
+  - `XAF` : pays CEMAC → grille indépendante, montants à fixer (aucune conversion automatique) ;
   - `RDC` : USD ou CDF, montant à décider ;
   - `GNF` : Guinée, montant à décider.
 - Plusieurs marchés partagent une grille (simple) ; un marché peut avoir sa propre grille si un prix local différent est souhaité (flexible), sans changer le code.
@@ -353,8 +354,8 @@ Détails et justification : SECURITY_REQUIREMENTS §3.
 
 | Environnement | Usage | Base | Paiement | Vidéo |
 |---|---|---|---|---|
-| Local | Développement | Supabase local ou projet de dev | Sandbox | Bibliothèque de test |
-| Préproduction (*preview*) | Recette | Projet Supabase **séparé** | Sandbox | Bibliothèque de test |
+| Local | Développement | Supabase local ou PostgreSQL local | Simulateur (puis sandbox à partir de l'étape 7) | Simulateur (puis bibliothèque Bunny de test à partir de l'étape 6) |
+| Préproduction (*preview*) | Recette | Projet Supabase **séparé** | Simulateur et sandbox | Simulateur, puis bibliothèque Bunny de test |
 | Production | Public | Projet Supabase de prod | Live | Bibliothèque de prod |
 
 Variables d'environnement (noms indicatifs, aucune valeur dans le dépôt) :
@@ -370,10 +371,10 @@ Variables d'environnement (noms indicatifs, aucune valeur dans le dépôt) :
 | `BUNNY_STREAM_LIBRARY_ID` | serveur | Bibliothèque vidéo |
 | `BUNNY_STREAM_API_KEY` | **serveur** | Gestion des vidéos |
 | `BUNNY_TOKEN_SECURITY_KEY` / `BUNNY_CDN_TOKEN_KEY` | **serveur** | Signature des URL |
-| `TURNSTILE_SITE_KEY` (public) / `TURNSTILE_SECRET_KEY` (serveur) | mixte | Anti-robot |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (public) / `TURNSTILE_SECRET_KEY` (serveur) | mixte | Anti-robot |
 | `SMS_PROVIDER_*` | **serveur** | Envoi OTP |
 | `BUNNY_WEBHOOK_*` | **serveur** | Selon le mécanisme d'authentification proposé par Bunny **[à vérifier]** |
-| `SENTRY_DSN` | public | Remontée d'erreurs |
+| `NEXT_PUBLIC_SENTRY_DSN` | public | Remontée d'erreurs (identifiant non secret) |
 | `CRON_SECRET` | **serveur** | Protection des routes cron |
 | `APP_BASE_URL` | serveur | URL de retour paiement |
 

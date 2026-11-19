@@ -55,7 +55,7 @@
 
 Avec 10 essais maximum avant verrouillage dur et les PIN faibles interdits, la probabilité de deviner le PIN d'un compte ciblé est d'environ **0,1 %** (un peu plus en pratique car les choix humains ne sont pas uniformes).
 
-**Option plus sûre [D-04] :** un PIN à **6 chiffres** (1 000 000 de combinaisons) diviserait ce risque par ~100 pour un effort utilisateur très faible. Recommandé si le fondateur l'accepte ; sinon 4 chiffres avec toutes les mesures ci-dessous.
+**Option plus sûre [D-04] :** un PIN à **6 chiffres** (1 000 000 de combinaisons) diviserait ce risque par ~100 pour un effort utilisateur très faible. **Choix par défaut retenu : 4 chiffres** avec toutes les mesures ci-dessous ; la longueur est un réglage (`app_settings.pin_length`) qui permet de passer à 6 chiffres sans développement.
 
 ### 3.2 Règles
 
@@ -84,7 +84,7 @@ Avec 10 essais maximum avant verrouillage dur et les PIN faibles interdits, la p
 |---|---|
 | SEC-11 | Code à 6 chiffres généré et vérifié par **notre serveur**, stocké haché, validité ~5 min, 5 essais max, usage unique. Le fournisseur « phone » de Supabase Auth reste **désactivé** (il offrirait un envoi de SMS contournant SEC-12/13). |
 | SEC-12 | Envoi : max 3 SMS / numéro / heure et ~10 / jour ; limite par IP ; **Turnstile obligatoire avant tout envoi**. |
-| SEC-13 | Envoi uniquement vers les **indicatifs des pays ouverts** (`markets.otp_enabled`) — protection principale contre la fraude au SMS vers des numéros surtaxés. |
+| SEC-13 | Envoi uniquement vers les **indicatifs pour lesquels l'envoi de SMS est activé** (`markets.otp_enabled`), indépendamment du statut de paiement du pays — protection principale contre la fraude au SMS vers des numéros surtaxés. |
 | SEC-14 | Alerte si le volume quotidien de SMS dépasse un seuil défini (budget). |
 
 ### 3.5 Administrateurs
@@ -131,7 +131,7 @@ Avec 10 essais maximum avant verrouillage dur et les PIN faibles interdits, la p
 | ID | Règle |
 |---|---|
 | SEC-50 | Aucune URL vidéo permanente ou publique pour un épisode payant. |
-| SEC-51 | Jeton de lecture émis par le serveur **après** vérification de `has_episode_access` (qui exclut brouillons et épisodes non sortis) ; validité de quelques minutes, compatible avec la lecture complète d'un épisode (vérifié en S2). |
+| SEC-51 | Jeton de lecture émis par le serveur **après** vérification de `has_episode_access` (qui exclut brouillons et épisodes non sortis) ; validité de quelques minutes, compatible avec la lecture complète d'un épisode (vérifié à l'étape 6 de la feuille de route). |
 | SEC-52 | Authentification par jeton activée sur le lecteur intégré **et** sur le CDN (playlists et segments HLS) ; domaines référents restreints ; repli MP4 désactivé si possible. |
 | SEC-53 | Clé de signature Bunny uniquement côté serveur. |
 | SEC-54 | Limite d'émission de jetons par utilisateur/IP (ex. 60/heure) pour détecter le partage de compte massif ou le scraping. |

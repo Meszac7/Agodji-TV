@@ -15,7 +15,7 @@
 - [ ] **F** D-06 Authentification administrateur (e-mail + TOTP)
 - [ ] **F** D-07 Format vidéo (vertical/horizontal) et durée des épisodes
 - [ ] **F** D-08 Politiques : remboursement, retrait de contenu, pass après épisodes, taille de saison, classification d'âge
-- [ ] **F/J** D-09 Entité juridique et pays d'enregistrement
+- [ ] **F/J** D-09 Stratégie d'encaissement par zone monétaire (société béninoise)
 - [ ] **F** D-10 Mention « créé avec l'IA »
 - [ ] **F** D-11 Nom de domaine
 - [ ] **F** D-12 Budget mensuel
@@ -40,8 +40,8 @@ Le fondateur crée les comptes à son nom (ou celui de la société) et active l
 | 2 | **Supabase** (2 projets : préproduction, production) | Base de données, Auth, stockage d'images | Accès au projet ; plan Pro pour la production | [ ] |
 | 3 | **Vercel** | Hébergement | Projet relié au dépôt ; plan Pro (usage commercial) | [ ] |
 | 4 | **Bunny.net** | Vidéo | Bibliothèque Stream préproduction + production ; clé API, clé de jeton | [ ] |
-| 5a | **CinetPay** — un compte **par zone monétaire** (XOF, XAF, RDC, GNF) selon ce que CinetPay exige | Paiements | Compte(s) marchand(s), KYC validé, sandbox puis live, clés API, site ID, clé secrète HMAC | [ ] |
-| 5b | **FedaPay** — compte XOF | Paiements UEMOA | Compte marchand, KYC validé, sandbox puis live, clé secrète, secret de webhook | [ ] |
+| 5a | **CinetPay** — nombre de comptes (un seul ou un par devise/pays) **selon la réponse écrite** de CinetPay | Paiements | Compte(s) marchand(s), KYC validé, sandbox puis live, clés API, site ID, clé secrète HMAC | [ ] |
+| 5b | **FedaPay** — devises et pays couverts **selon la réponse écrite** de FedaPay (dont Guinée) | Paiements | Compte marchand, KYC validé, sandbox puis live, clé secrète, secret de webhook | [ ] |
 | 6 | **Prestataire SMS** | OTP | Compte, numéro/nom d'expéditeur autorisé dans chaque pays, crédit | [ ] |
 | 7 | **Cloudflare Turnstile** | Anti-robot | Clé de site + clé secrète (gratuit) | [ ] |
 | 8 | **Sentry** | Suivi des erreurs | Projet + DSN | [ ] |
@@ -76,7 +76,7 @@ Le fondateur crée les comptes à son nom (ou celui de la société) et active l
 - [ ] **Stratégie d'encaissement par zone monétaire** (D-09) : quelle entité encaisse en UEMOA, en CEMAC, en RDC, en Guinée ; comptes bancaires de reversement correspondants.
 - [ ] Réglementation des changes (BCEAO, BEAC, Banque centrale du Congo) : rapatriement des fonds vers la société.
 - [ ] TVA / taxes sur les services numériques **dans chaque pays ouvert à l'achat**.
-- [ ] Entité juridique et compte bancaire de reversement.
+- [ ] Compte(s) bancaire(s) de reversement de la société béninoise.
 - [ ] **Conditions générales d'utilisation et de vente** (achat définitif, absence d'expiration, politique de remboursement, retrait de contenu).
 - [ ] **Politique de confidentialité** (données collectées, durée de conservation, droits des utilisateurs).
 - [ ] Conformité aux autorités de protection des données des pays ouverts (ex. APDP au Bénin, ARTCI en Côte d'Ivoire ; Cameroun et RDC à vérifier), déclarations éventuelles.
@@ -106,7 +106,7 @@ Le fondateur crée les comptes à son nom (ou celui de la société) et active l
 - [ ] Sentry actif, alertes de paiement configurées.
 - [ ] Domaine, HTTPS, en-têtes de sécurité vérifiés.
 - [ ] Domaines autorisés Bunny = domaine de production.
-- [ ] Indicatifs pays OTP limités aux pays ouverts.
+- [ ] Envoi de SMS OTP limité aux indicatifs activés (`otp_enabled`).
 - [ ] Comptes admin avec TOTP ; aucun compte de test admin en production.
 - [ ] Configuration Supabase Auth durcie : inscriptions publiques désactivées, fournisseur « phone » désactivé, changement de mot de passe sécurisé, MFA `aal2` exigé par l'application, limites de débit actives.
 - [ ] Test : avec la clé publique Supabase, aucune table ni fonction n'est accessible.
@@ -121,10 +121,12 @@ Le fondateur crée les comptes à son nom (ou celui de la société) et active l
 - [ ] Procédure : fuite de clé (rotation).
 - [ ] Suivi mensuel des coûts (SMS, bande passante, commissions, hébergement).
 
-## 8. Go / No-go
+## 8. Go / No-go du lancement public
 
-- [ ] Toutes les sections ci-dessus complètes.
-- [ ] Bêta fermée sans incident bloquant.
+Le lancement public correspond à l'ouverture (`open`) du premier pays ; les pays suivants s'ouvrent ensuite un par un selon le §9.
+
+- [ ] Sections 1 à 7 complètes pour ce qui concerne le premier pays.
+- [ ] Pilote multi-pays (étape 10) terminé sans incident bloquant.
 - [ ] **Décision de lancement du fondateur.**
 
 ## 9. Ouverture d'un pays à l'achat (à répéter pour chaque pays)

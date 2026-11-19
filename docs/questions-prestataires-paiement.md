@@ -2,6 +2,7 @@
 
 > Objet : confirmer par écrit, avant toute ouverture d'un pays à l'achat, ce qu'une **société immatriculée au Bénin** peut faire chez chaque prestataire.
 > Envoi recommandé **par e-mail** (trace écrite), depuis l'adresse de la société, au service commercial **et** au service conformité de chaque prestataire. Décision **D-20** (PROJECT_BRIEF §8).
+> Les groupes de questions sont numérotés Q-I à Q-VIII pour ne pas les confondre avec les confirmations **A** (disponibilité technique), **B** (accès pour la société béninoise) et **C** (reversement) de TECHNICAL_ARCHITECTURE §5.1.
 > Les réponses sont consignées au §4 de ce document, puis reportées dans TECHNICAL_ARCHITECTURE §5.2 à §5.4 (passage des symboles 🟢/🟡/⚪ à ✅ ou ❌) et dans l'admin (état des confirmations par pays).
 
 Pays concernés par les questions (liste à ajuster) :
@@ -27,38 +28,38 @@ Pays concernés par les questions (liste à ajuster) :
 
 ## 2. Questions communes aux deux prestataires
 
-### A. Éligibilité de notre société béninoise
+### Q-I. Éligibilité de notre société béninoise
 1. Une société immatriculée au Bénin peut-elle ouvrir un compte marchand chez vous ? Pour quels types d'activité (vente de contenus numériques / vidéo à la demande) ?
 2. Quelle est la liste exacte des documents KYC/KYB demandés pour une société béninoise ? Délai habituel de validation ?
 3. Notre activité (vente de séries, dont certaines produites avec l'intelligence artificielle) fait-elle l'objet de restrictions ou de vérifications particulières ?
 4. Existe-t-il des frais d'ouverture, d'abonnement, de maintenance ou un minimum de volume mensuel ?
 
-### B. Pays où notre compte peut encaisser
+### Q-II. Pays où notre compte peut encaisser
 5. Avec un compte ouvert par notre société béninoise, **dans quels pays** pouvons-nous encaisser des paiements de clients ? Merci de répondre pays par pays pour la liste ci-dessus (oui / non / sous conditions).
 6. Faut-il **un compte marchand distinct par pays ou par devise** ? Si oui, peut-il être ouvert par notre société béninoise, ou faut-il une entité, un représentant ou un compte bancaire dans le pays concerné ?
 7. Pour chaque pays : quels **opérateurs Mobile Money** et quels **portefeuilles** (Wave, etc.) sont actifs aujourd'hui ? Y a-t-il des opérateurs prévus prochainement ?
 8. **Cartes bancaires** : acceptées dans quels pays ? Visa et Mastercard ? Cartes émises hors d'Afrique acceptées ? 3-D Secure obligatoire ?
 9. Un client peut-il payer avec un moyen de paiement d'un pays différent de celui que nous indiquons dans la transaction (ex. client au Togo payant avec un compte Mobile Money béninois) ?
 
-### C. Devises
+### Q-III. Devises
 10. Dans quelles **devises** pouvons-nous créer des transactions avec notre compte : XOF, XAF, GNF, CDF, USD ?
 11. Si un client paie dans une devise différente de celle de notre compte, y a-t-il **conversion** ? Par qui, à quel taux, avec quels frais ?
 12. Contraintes de montant par devise : minimum, maximum, **multiple obligatoire** (ex. multiple de 5) ?
 
-### D. Frais
+### Q-IV. Frais
 13. Grille **actuelle et complète** des frais d'encaissement par pays, opérateur et carte (pourcentage et éventuels **frais fixes** par transaction).
 14. Ces frais sont-ils négociables selon le volume ? À partir de quel volume ?
 15. Frais facturés en cas d'échec, d'annulation ou de remboursement ?
 16. Les frais sont-ils hors taxes ? Quelle TVA s'applique ?
 
-### E. Reversements à notre société
+### Q-V. Reversements à notre société
 17. Les fonds encaissés dans **chaque pays** peuvent-ils être reversés à notre société béninoise ? Sur un compte bancaire au Bénin ? Sur un compte Mobile Money béninois ?
 18. Dans quelle **devise** sont reversés les fonds encaissés en XAF, GNF, CDF ou USD ? Taux et frais de conversion ?
 19. **Délai** de reversement (en jours ouvrés) par pays et par moyen ; reversement automatique ou sur demande ; montant minimum ?
 20. Frais de reversement (fixes et/ou en pourcentage) ?
 21. Existe-t-il des contraintes réglementaires (change, rapatriement de fonds) pour les fonds encaissés hors zone UEMOA ? Les prenez-vous en charge ?
 
-### F. Technique
+### Q-VI. Technique
 22. Format exact des **notifications serveur** (webhooks) : méthode, champs, mécanisme d'authentification (signature, HMAC, secret par compte), nombre et rythme des relances.
 23. API de **vérification de transaction** : champs retournés (statut, montant, devise, pays, opérateur), liste exhaustive des statuts.
 24. Peut-on **présélectionner** sur la page de paiement : la famille de moyen (Mobile Money / carte), l'opérateur, le pays ? Peut-on **restreindre** les pays ou opérateurs proposés ?
@@ -67,11 +68,11 @@ Pays concernés par les questions (liste à ajuster) :
 27. Disponibilité : existe-t-il une page d'état / d'incidents, et des engagements de disponibilité ?
 28. Limites de débit de l'API ?
 
-### G. Remboursements et litiges
+### Q-VII. Remboursements et litiges
 29. Les remboursements sont-ils possibles **par API** ? Pour quels moyens (Mobile Money, carte) et dans quels pays ? Délais ?
 30. Procédure en cas de contestation d'un client ou de rétrofacturation (carte) ?
 
-### H. Conformité
+### Q-VIII. Conformité
 31. Quelles obligations nous incombent (conditions générales, mentions légales, politique de remboursement affichée) ?
 32. Êtes-vous agréé ou partenaire d'établissements agréés dans chacun des pays listés ? Lesquels ?
 

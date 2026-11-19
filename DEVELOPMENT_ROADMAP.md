@@ -60,7 +60,7 @@ Chaque étape indique : **livrables**, **tests automatisés**, **validation par 
 **Livrables**
 - Projet Next.js + TypeScript strict, Tailwind, jetons de design (sombre par défaut, clair disponible, choix mémorisé), polices Figtree et Roboto.
 - Page « guide de style » (préproduction uniquement) : couleurs, typographie, boutons, badges, cartes d'affiche et d'épisode, états.
-- Base de données : migrations versionnées pour le catalogue, les pays, les grilles tarifaires (XOF 300 / 1 500 pré-rempli), les prestataires, comptes et routes ; RLS verrouillé ; données de démonstration réalistes (6 séries, dont 1 disponible).
+- Base de données : migrations versionnées pour le catalogue, les pays, les grilles tarifaires (XOF 300 / 1 500 pré-rempli, autres grilles vides), les prestataires, comptes et routes, les réglages ajustables (`app_settings`) ; RLS verrouillé ; données de démonstration réalistes (6 séries, dont 1 disponible).
 - Interfaces `PaymentProvider`, `SmsProvider`, `VideoProvider` et leurs **simulateurs** (non utilisables en production).
 - En-têtes de sécurité, `.env.example`, Sentry (désactivé sans clé), CI GitHub Actions.
 
@@ -73,6 +73,7 @@ Chaque étape indique : **livrables**, **tests automatisés**, **validation par 
 ### Étape 2 — Site public et épisodes gratuits
 
 **Livrables**
+- **Maquettes mobiles** des écrans de l'étape (accueil, fiche série, lecteur), validées par le fondateur **avant** leur intégration (DESIGN_GUIDELINES §10) ; les maquettes des écrans d'achat et de compte sont présentées au début des étapes 3 et 5.
 - Accueil (bannière, rangées « Disponible » / « Bientôt »), catalogue, fiche série, saisons, liste d'épisodes avec badges d'accès et prix.
 - Prix affichés pour le pays d'affichage : estimé par IP, **Bénin par défaut** avec la mention « Prix indicatifs — modifiables selon votre pays » (D-21), sélecteur de pays.
 - Format d'affichage selon le réglage de la série (vertical ou horizontal).
@@ -134,7 +135,7 @@ Le simulateur reproduit les scénarios réels : succès, échec, annulation, not
 **Livrables** : adaptateur Bunny (`VideoProvider`) ; téléversement depuis l'admin ; état d'encodage (webhook Bunny + vérification) ; lecture signée à durée courte ; restriction de domaine.
 
 **Tests automatisés** : matrice d'accès (sans droit / épisode / pass / pass + nouvel épisode / brouillon ou non sorti → refusé / dépublié après achat → conservé / droit révoqué / client bloqué) ; limites d'émission de jetons.
-**Tests manuels documentés** (prototype S2) : lien copié refusé après expiration et depuis un autre domaine ; épisode complet lisible jusqu'au bout ; lecture sur Android et iPhone réels.
+**Tests manuels documentés** : lien copié refusé après expiration et depuis un autre domaine ; épisode complet lisible jusqu'au bout ; lecture sur Android et iPhone réels.
 
 **Validation fondateur** : téléverser un vrai épisode, le regarder sur votre téléphone, essayer de partager le lien.
 
