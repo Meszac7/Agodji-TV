@@ -24,10 +24,11 @@
 |---|---|
 | **Maintenant** | Feu vert sur ce plan · **envoyer les questions écrites aux prestataires (D-20)** — les délais de réponse sont hors de notre contrôle |
 | Avant l'étape 2 (maquettes) | Format et durée de la première série (D-07) — sinon maquettes faites pour les deux formats |
-| Avant l'étape 3 | Confirmer PIN 4 chiffres (D-04) et OTP obligatoire (D-05) — valeurs par défaut appliquées sinon, modifiables ensuite |
+| Avant l'étape 3 | **Recommandation argumentée sur le PIN à 4 ou 6 chiffres présentée au fondateur**, puis décision D-04 ; OTP obligatoire (D-05) |
 | Avant l'étape 4 | Authentification admin e-mail + TOTP (D-06) |
 | Avant l'étape 5 | Validation des écrans d'achat et du choix du pays (D-17) |
-| Avant l'étape 6 | Compte Bunny Stream ; lecteur intégré Bunny (D-13) |
+| Avant l'étape 2 (lecteur) | Choix du lecteur (D-13) : lecteur sur mesure recommandé |
+| Avant l'étape 6 | Compte Bunny Stream |
 | Avant l'étape 7 | Comptes **sandbox** CinetPay et FedaPay |
 | Avant le pilote (étape 10) | Réponses des prestataires (D-20), stratégie d'encaissement (D-09), prestataire SMS (D-16), prestataire principal par pays (D-18), politiques et textes légaux (D-08), mention IA (D-10), domaine (D-11), budget (D-12), liste des testeurs (D-22) |
 | Avant chaque ouverture de pays hors XOF | Grille tarifaire de la monnaie (D-03), réponses A/B/C, (D-19 pour l'Afrique centrale non documentée) |
@@ -73,20 +74,23 @@ Chaque étape indique : **livrables**, **tests automatisés**, **validation par 
 ### Étape 2 — Site public et épisodes gratuits
 
 **Livrables**
-- **Maquettes mobiles** des écrans de l'étape (accueil, fiche série, lecteur), validées par le fondateur **avant** leur intégration (DESIGN_GUIDELINES §10) ; les maquettes des écrans d'achat et de compte sont présentées au début des étapes 3 et 5.
+- **Maquettes du parcours utilisateur complet**, validées par le fondateur **avant** l'intégration (DESIGN_GUIDELINES §10) : découverte (accueil, catalogue) → fiche série → épisode gratuit dans le lecteur → épisode payant → écran d'achat (choix épisode/pass, confirmation du pays de paiement, moyen de paiement) → paiement **simulé** → vérification → confirmation → lecture du contenu débloqué → bibliothèque. Inclut connexion/inscription, états d'erreur et thèmes sombre/clair. Les maquettes sont **cliquables** (prototype navigable sur mobile), les paiements restent simulés.
+- **Lecteur vidéo** selon PRODUCT_REQUIREMENTS §5 (FR-30 à FR-39) : lecture mobile, plein écran, qualité adaptative et mode économie de données, reprise (sur l'appareil pour les visiteurs), gestion des erreurs — sur vidéo de démonstration HLS.
 - Accueil (bannière, rangées « Disponible » / « Bientôt »), catalogue, fiche série, saisons, liste d'épisodes avec badges d'accès et prix.
 - Prix affichés pour le pays d'affichage : estimé par IP, **Bénin par défaut** avec la mention « Prix indicatifs — modifiables selon votre pays » (D-21), sélecteur de pays.
 - Format d'affichage selon le réglage de la série (vertical ou horizontal).
 - Lecture des épisodes gratuits via `/api/playback` (simulateur vidéo : vidéo de démonstration).
 - Navigation mobile (barre inférieure), images optimisées.
 
-**Tests automatisés** : règles de visibilité (brouillon, programmé, publié, dépublié, série « bientôt ») ; `video_id` absent de toutes les données envoyées au navigateur ; prix affichés = grille du pays sélectionné ; parcours Playwright sur mobile (Android et iPhone émulés) et ordinateur ; budget de poids de page ; contrastes d'accessibilité.
+**Tests automatisés** : lecteur (démarrage, plein écran, reprise, erreurs simulées : réseau coupé, lien expiré renouvelé, accès refusé) ; règles de visibilité (brouillon, programmé, publié, dépublié, série « bientôt ») ; `video_id` absent de toutes les données envoyées au navigateur ; prix affichés = grille du pays sélectionné ; parcours Playwright sur mobile (Android et iPhone émulés) et ordinateur ; budget de poids de page ; contrastes d'accessibilité.
 
-**Validation fondateur** : visiter le site sur votre téléphone, regarder l'épisode gratuit, changer le pays d'affichage, vérifier les textes.
+**Validation fondateur** : 1) valider les maquettes du parcours complet ; 2) puis, sur le site, regarder l'épisode gratuit sur votre téléphone (plein écran, reprise, connexion lente), changer le pays d'affichage, vérifier les textes.
 
 **Sortie** : parcours visiteur fluide sur mobile, aucune donnée interne exposée.
 
 ### Étape 3 — Comptes clients
+
+**Préalable** : recommandation argumentée sur le PIN à 4 ou 6 chiffres (simplicité, sécurité, récupération de compte) présentée au fondateur, décision D-04 prise.
 
 **Livrables** : inscription (numéro → code SMS → PIN), connexion, PIN oublié, changement de PIN, déconnexion de tous les appareils, page « Mon compte » ; retour au contexte d'origine après connexion ; Turnstile (clés de test) ; liste blanche des indicatifs pour les SMS.
 
@@ -108,7 +112,7 @@ Chaque étape indique : **livrables**, **tests automatisés**, **validation par 
 
 ### Étape 5 — Achat, paiement (simulé) et bibliothèque
 
-**Livrables** : écran d'achat (épisode / pass), **confirmation du pays de paiement** (D-17) et moyens proposés selon les routes ; commandes à prix figé ; moteur de paiement complet (webhooks, vérification, `confirm_order_payment`, réconciliation, expiration) branché sur le **simulateur** ; page de retour ; bibliothèque ; statuts de pays `unavailable` / `pilot` / `open` et comptes testeurs ; transactions et file « À traiter » dans l'admin ; alertes.
+**Livrables** : écrans d'achat conformes aux maquettes validées à l'étape 2 ; écran d'achat (épisode / pass),  **confirmation du pays de paiement** (D-17) et moyens proposés selon les routes ; commandes à prix figé ; moteur de paiement complet (webhooks, vérification, `confirm_order_payment`, réconciliation, expiration) branché sur le **simulateur** ; page de retour ; bibliothèque ; statuts de pays `unavailable` / `pilot` / `open` et comptes testeurs ; transactions et file « À traiter » dans l'admin ; alertes.
 
 Le simulateur reproduit les scénarios réels : succès, échec, annulation, notification en double, notification tardive, notification perdue, montant différent, panne temporaire.
 
@@ -124,7 +128,8 @@ Le simulateur reproduit les scénarios réels : succès, échec, annulation, not
 - pays `unavailable` → achat refusé, consultation et gratuits toujours accessibles ; pays `pilot` → achat réservé aux testeurs ;
 - pays de paiement différent de l'indicatif → accepté s'il est ouvert ; pays modifié dans la requête vers un pays fermé → refusé ;
 - route principale désactivée → bascule sur le secours ; aucune route → moyen masqué ; compte désactivé → commandes en cours toujours vérifiées ;
-- pass saison → nouvel épisode ajouté visible automatiquement dans la bibliothèque.
+- pass saison → nouvel épisode ajouté visible automatiquement dans la bibliothèque ;
+- reprise de lecture enregistrée côté serveur pour un client connecté ; achat depuis le lecteur puis lecture immédiate.
 
 **Validation fondateur** : acheter un épisode puis un pass avec le paiement simulé, depuis deux « pays » différents ; voir la transaction dans l'admin ; provoquer un échec et un succès tardif.
 

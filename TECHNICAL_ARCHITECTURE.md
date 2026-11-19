@@ -312,7 +312,7 @@ Sujets juridiques associés (LAUNCH_CHECKLIST §4) : TVA sur les services numér
 **Estimation d'ordre de grandeur** (à recalculer avec la durée réelle des épisodes **[D-07]**) : un épisode de 10 min en 720p ≈ 100–150 Mo → ≈ 0,006–0,009 $ de diffusion par visionnage en Afrique, soit ~1 % à 2 % d'un prix de 300 FCFA (~0,46 €). Supportable. Les épisodes **gratuits** coûtent aussi en bande passante : à surveiller.
 
 ### 6.2 Mise en œuvre de la protection
-1. Activer dans la bibliothèque Bunny : **authentification du jeton d'intégration**, **authentification par jeton CDN**, **domaines autorisés** (domaine de production uniquement), **désactiver le repli MP4** pour les épisodes payants si possible.
+1. Activer dans la bibliothèque Bunny : **authentification par jeton CDN** (indispensable avec un lecteur sur mesure), **authentification du jeton d'intégration** (si le lecteur intégré Bunny est retenu), **domaines autorisés** (domaine de production uniquement), **désactiver le repli MP4** pour les épisodes payants si possible.
 2. Le navigateur appelle `GET /api/playback/:episodeId`. Le serveur vérifie RM-01, puis génère une URL de lecture signée expirant après **quelques minutes** (recommandation Bunny : 1 à 5 min pour le jeton).
 3. Les épisodes gratuits passent aussi par ce point (sans vérification de droit) : cela empêche l'intégration sauvage sur d'autres sites.
 4. La clé de signature n'est **jamais** exposée. Les identifiants vidéo ne figurent pas dans les pages publiques ; en revanche, l'URL du lecteur intégré contient l'identifiant de la vidéo une fois la lecture autorisée. **Ce n'est pas un problème** : la protection repose sur les jetons (embed + CDN), pas sur le secret de l'identifiant.
@@ -326,9 +326,27 @@ Sujets juridiques associés (LAUNCH_CHECKLIST §4) : TVA sur les services numér
 - Un DRM complet (Widevine/FairPlay — Bunny propose une offre « MediaCage » **[à vérifier : prix et compatibilité]**) rend l'extraction des fichiers beaucoup plus difficile, mais n'empêche pas non plus l'enregistrement d'écran et ajoute coût et incompatibilités. **Reporté**, à réévaluer si du piratage est constaté.
 - Mesures dissuasives possibles plus tard : filigrane visible avec le numéro partiellement masqué de l'acheteur.
 
-### 6.4 Lecteur **[D-13]**
-- **V1 recommandé** : lecteur intégré Bunny (iframe), couleurs personnalisées, signé côté serveur. Moins de code, moins de risques.
-- **Plus tard** : lecteur sur mesure (ex. hls.js/Vidstack) si l'expérience souhaitée l'exige (contrôle total de l'interface, statistiques fines).
+### 6.4 Lecteur **[D-13]** — exigences techniques
+
+Le lecteur est une fonctionnalité centrale (PRODUCT_REQUIREMENTS §5). Exigences techniques, indépendantes de la solution :
+
+| Exigence | Mise en œuvre prévue |
+|---|---|
+| Streaming adaptatif | HLS ; lecture native sur Safari/iOS, **hls.js** (bibliothèque open source) sur les autres navigateurs |
+| Qualités | Paliers d'encodage incluant 240p/360p/480p/720p (1080p selon coût) — configuration Bunny à vérifier |
+| Plafond « Économie de données » | Limitation du niveau de qualité maximal côté lecteur |
+| Accès signé | URL HLS signée (jeton CDN Bunny) émise par `/api/playback` ; renouvellement avant expiration sans interrompre la lecture |
+| Reprise | Table `playback_progress (user_id, episode_id, position_seconds, completed, updated_at)` ; envoi groupé, limité en fréquence |
+| Erreurs | Classification des erreurs (réseau, accès, média, inconnu), nouvelles tentatives automatiques avec délai croissant, remontée Sentry |
+| Mesures | Temps jusqu'à la première image, interruptions, erreurs (FR-32) |
+| Tests | Playwright sur viewports mobiles (lecture, plein écran, reprise, erreurs simulées : réseau coupé, jeton expiré, accès refusé) ; tests manuels sur appareils réels |
+
+**Recommandation révisée pour D-13** (à valider avant l'intégration du lecteur à l'étape 2) : un **lecteur sur mesure** construit sur hls.js (avec l'interface aux couleurs d'Agodjié TV), plutôt que le lecteur intégré Bunny en iframe. Raisons :
+- la **reprise de lecture**, l'enchaînement avec l'**achat dans le lecteur**, le mode **économie de données** et la **gestion fine des erreurs** demandent un contrôle total que l'iframe ne garantit pas (les possibilités d'interaction avec le lecteur Bunny en iframe sont **à vérifier**) ;
+- le lecteur reste indépendant de l'hébergeur vidéo (`VideoProvider`) : changer d'hébergeur ne change pas l'expérience ;
+- coût : plus de développement et de tests (contrôles, accessibilité, compatibilité navigateurs), réduit en s'appuyant sur hls.js plutôt qu'en partant de zéro.
+
+Alternative si le fondateur préfère aller plus vite : lecteur intégré Bunny, en acceptant des limites sur la reprise, l'achat dans le lecteur et la personnalisation.
 
 ## 7. Authentification (résumé)
 

@@ -10,7 +10,7 @@
 - [x] **F** D-01 Prestataires : CinetPay + FedaPay (orientation validée le 2026-11-19)
 - [x] **F** D-02 Orientation panafricaine (validée le 2026-11-19)
 - [x] **F** D-03 Grille XOF : 300 / 1 500 FCFA (validée) — [ ] montants XAF, GNF, CDF/USD à fixer avant l'ouverture des pays concernés
-- [ ] **F** D-04 Longueur du PIN (4 ou 6 chiffres)
+- [ ] **F** D-04 Longueur du PIN (4 ou 6 chiffres) — recommandation argumentée attendue avant l'étape 3
 - [ ] **F** D-05 OTP SMS obligatoire (inscription, réinitialisation)
 - [ ] **F** D-06 Authentification administrateur (e-mail + TOTP)
 - [ ] **F** D-07 Format vidéo (vertical/horizontal) et durée des épisodes
@@ -19,7 +19,7 @@
 - [ ] **F** D-10 Mention « créé avec l'IA »
 - [ ] **F** D-11 Nom de domaine
 - [ ] **F** D-12 Budget mensuel
-- [ ] **F** D-13 Lecteur vidéo V1
+- [ ] **F** D-13 Lecteur vidéo V1 (lecteur sur mesure recommandé) — avant l'intégration du lecteur à l'étape 2
 - [ ] **F** D-14 Logo et identité de marque
 - [ ] **F** D-15 Langue(s)
 - [ ] **F/T** D-16 Prestataire SMS

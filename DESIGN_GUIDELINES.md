@@ -121,10 +121,15 @@ Toutes les couleurs sont des **jetons** (variables CSS). Le code n'utilise jamai
 - *Échoué* : message en `--danger`, cause compréhensible, « Réessayer ».
 - *En attente prolongée* : explication + lien vers la bibliothèque.
 
-### 5.6 Lecteur
-- Plein écran au toucher sur mobile, orientation adaptée au format **[D-07]**.
-- Contrôles larges, accent jaune pour la barre de progression.
-- Fin d'épisode : carte « Épisode suivant » (lecture ou achat).
+### 5.6 Lecteur (fonctionnalité centrale — exigences complètes : PRODUCT_REQUIREMENTS §5)
+- Fond noir pur pendant la lecture, interface qui s'efface ; titre de l'épisode et retour en haut, contrôles en bas.
+- Contrôles larges (zones tactiles ≥ 44 px), barre de progression épaisse au toucher avec curseur jaune royal, temps écoulé/restant en chiffres tabulaires.
+- Double-tap gauche/droite = −10 s / +10 s avec retour visuel ; tap au centre = lecture/pause.
+- Bouton plein écran toujours visible ; orientation adaptée au format **[D-07]**.
+- Menu qualité simple : « Auto », « Économie de données », « Haute qualité ».
+- Chargement : anneau discret, jamais d'écran figé ; erreurs dans un panneau sombre avec message clair et une action (bouton jaune « Réessayer » ou « Acheter »).
+- Reprise : bandeau « Reprendre à 12:34 · Recommencer ».
+- Fin d'épisode : carte « Épisode suivant » avec compte à rebours, ou écran d'achat intégré au lecteur.
 
 ### 5.7 Saisie du PIN
 - 4 (ou 6) cases, clavier numérique (`inputmode="numeric"`, `autocomplete="one-time-code"` pour l'OTP), masquage avec option d'affichage, message d'erreur neutre.

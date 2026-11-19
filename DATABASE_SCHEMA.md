@@ -371,6 +371,16 @@ Réglages initiaux :
 
 Écriture seule (pas de modification ni de suppression via l'application).
 
+**`playback_progress`** — reprise de lecture (FR-37), clients connectés uniquement.
+
+| Colonne | Type | Notes |
+|---|---|---|
+| user_id | uuid FK customers | PK (user_id, episode_id) |
+| episode_id | uuid FK episodes | |
+| position_seconds | int | |
+| completed | boolean | vrai au-delà de ~95 % |
+| updated_at | timestamptz | |
+
 **`playback_sessions`** — un enregistrement par jeton de lecture émis (statistiques « top épisodes », détection d'abus).
 
 | Colonne | Type |

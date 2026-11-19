@@ -21,7 +21,8 @@ Si le code et ces documents divergent, **signaler l'écart** et mettre à jour l
 ## État du projet
 
 - Phase 1 (cadrage) terminée ; plan de développement en 11 étapes proposé (DEVELOPMENT_ROADMAP). **Validés** : D-01 (CinetPay + FedaPay, intégrations modulaires), D-02 (panafricain, activation progressive), D-03 pour XOF (300 / 1 500 FCFA, autres monnaies indépendantes, aucune conversion automatique), principe de D-17, D-21 (Bénin par défaut, prix indicatifs), principe de D-22 (pilote multi-pays). Société exploitante : béninoise. Autres décisions : registre PROJECT_BRIEF §8 avec leur échéance.
-- Aucun code applicatif. **Ne commencer une étape de la feuille de route qu'avec le feu vert explicite du fondateur.**
+- **Étape 1 en cours** (feu vert du fondateur reçu). Ne pas passer à l'étape suivante sans validation explicite du fondateur.
+- Conditions du fondateur : maquettes du parcours complet à l'étape 2 (paiements simulés) ; recommandation argumentée sur le PIN 4 ou 6 chiffres **avant l'étape 3** (D-04 non tranché) ; le lecteur vidéo est une fonctionnalité centrale (PRODUCT_REQUIREMENTS §5).
 - Les services externes non disponibles sont remplacés par des simulateurs (TECHNICAL_ARCHITECTURE §12), jamais activables en production.
 - Ne jamais présenter une décision en attente comme validée.
 

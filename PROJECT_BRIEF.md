@@ -96,7 +96,7 @@ Colonne « Nécessaire avant » : moment où la décision devient réellement n�
 | D-01 | Prestataires de paiement | **CinetPay + FedaPay**, intégrations **modulaires** (un adaptateur par prestataire derrière une interface commune, activable/désactivable). Les réponses commerciales n'empêchent pas de construire le reste : un **simulateur de paiement** sert au développement et aux tests | **Validé** | — |
 | D-02 | Pays | **Panafricain**, activation progressive : consultation partout, achat pays par pays et moyen par moyen dès confirmation A/B/C | **Validé** | — |
 | D-03 | Grilles tarifaires | **XOF : 300 FCFA / épisode, 1 500 FCFA / saison** (prix indicatifs validés, modifiables dans l'admin). Autres monnaies (XAF, GNF, CDF/USD) : **grilles indépendantes**, montants à saisir le moment venu ; **aucune conversion automatique** | **Validé** pour XOF ; autres montants en attente | Ouverture d'un pays hors XOF |
-| D-04 | Longueur du PIN | 4 chiffres avec toutes les protections de SECURITY_REQUIREMENTS §3 ; longueur **paramétrable** (4 ou 6) | Recommandation par défaut : 4 | Étape 3 (modifiable ensuite) |
+| D-04 | Longueur du PIN | **Non tranchée** : recommandation argumentée (simplicité, sécurité, récupération de compte) présentée au fondateur **avant l'étape 3**. Techniquement, la longueur est un réglage (4 ou 6) | En attente | **Avant l'étape 3** |
 | D-05 | Vérification du numéro par SMS (OTP) | Obligatoire à l'inscription et pour réinitialiser le PIN | Recommandation par défaut | Étape 3 |
 | D-06 | Authentification des administrateurs | E-mail + mot de passe fort + double authentification (TOTP) obligatoire | À confirmer | **Étape 4** |
 | D-07 | Format vidéo et durée moyenne | Le format est un **réglage par série** (vertical 9:16 ou horizontal 16:9) : l'interface s'adapte, rien n'est figé. Merci d'indiquer le format de la première série et une durée moyenne | Information attendue | Étape 2 (maquettes) — non bloquant |
@@ -105,7 +105,7 @@ Colonne « Nécessaire avant » : moment où la décision devient réellement n�
 | D-10 | Mention « contenu créé avec l'IA » | Mention discrète sur la fiche série (champ déjà prévu) | En attente | Pilote |
 | D-11 | Nom de domaine | À fournir | En attente | Pilote |
 | D-12 | Budget mensuel d'infrastructure | Estimation indicative dans TECHNICAL_ARCHITECTURE §10 | En attente | Création des comptes payants |
-| D-13 | Lecteur vidéo V1 | Lecteur intégré Bunny (derrière une interface `VideoProvider`, remplaçable) | Recommandation par défaut | Étape 6 |
+| D-13 | Lecteur vidéo V1 | Fonctionnalité centrale. **Recommandation révisée : lecteur sur mesure sur hls.js** (reprise, achat dans le lecteur, économie de données, gestion des erreurs) ; alternative : lecteur intégré Bunny. Voir TECHNICAL_ARCHITECTURE §6.4 | En attente | Étape 2 (intégration du lecteur) |
 | D-14 | Identité de marque | Logotype texte provisoire ; logo officiel intégré dès réception | En attente | Lancement public |
 | D-15 | Langue | Français en V1, textes centralisés | Recommandation par défaut | — |
 | D-16 | Prestataire SMS | Interface `SmsProvider` ; simulateur en développement ; prestataire réel choisi sur comparaison des tarifs par pays | En attente | Pilote (tests réels en préproduction pendant l'étape 9) |

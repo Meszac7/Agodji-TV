@@ -106,15 +106,66 @@ Pas d'e-mail requis. Le nom affiché est facultatif.
 
 **FR-26 — Reçu.** Chaque commande payée apparaît dans « Mes achats » avec date, montant, référence. Pas d'envoi SMS de reçu en V1 (coût) — P2.
 
-## 5. Lecture vidéo
+## 5. Lecture vidéo — fonctionnalité centrale
 
-**FR-30 — Lecteur.** Lecture adaptative (qualité ajustée au débit), plein écran, reprise, contrôle de qualité manuel. Format selon **[D-07]**.
+Le lecteur est le cœur du produit : c'est là que l'utilisateur passe le plus de temps et juge la qualité de la plateforme. Ces exigences s'appliquent quel que soit le lecteur technique retenu **[D-13]**.
 
-**FR-31 — Accès protégé.** Pour un épisode payant, le serveur vérifie le droit d'accès puis génère un **lien de lecture signé et à durée courte**. Copier ce lien ne permet pas à un tiers de regarder au-delà de sa courte durée de validité (voir SECURITY_REQUIREMENTS §6 pour les limites).
+**FR-30 — Lecture mobile.**
+- Démarrage de la lecture en **un geste** depuis la carte d'épisode ou la fiche série.
+- Lecture **dans la page** sur mobile (pas de sortie forcée vers le lecteur du système), avec passage en plein écran à la demande.
+- Fonctionne sur Chrome Android, Samsung Internet, Safari iOS et navigateurs de bureau récents.
+- Format vertical (9:16) ou horizontal (16:9) selon la série **[D-07]** : le lecteur occupe l'écran de façon adaptée sans bandes inutiles.
+- Temps cible jusqu'à la première image : **< 3 s en 4G moyenne** (mesuré en recette).
 
-**FR-32 — Économie de données (P1).** Qualité de départ modérée par défaut ; l'utilisateur peut forcer une qualité basse.
+**FR-31 — Accès protégé.** Pour un épisode payant, le serveur vérifie le droit d'accès puis génère un **lien de lecture signé et à durée courte**. Copier ce lien ne permet pas à un tiers de regarder au-delà de sa courte durée de validité (voir SECURITY_REQUIREMENTS §6 pour les limites). Le renouvellement de l'accès pendant un long épisode est transparent pour l'utilisateur.
 
-**FR-33 — Reprise de lecture (P1).** Mémoriser la position de lecture par épisode pour un utilisateur connecté.
+**FR-34 — Plein écran et orientation.**
+- Bouton plein écran toujours visible ; double-tap ou geste équivalent.
+- Contenu horizontal : passage en paysage proposé en plein écran (verrouillage de l'orientation lorsque le navigateur le permet).
+- Contenu vertical : plein écran en portrait.
+- Sortie du plein écran sans perdre la position.
+
+**FR-35 — Contrôles.**
+- Lecture/pause (tap au centre), barre de progression large et précise au pouce, avance/recul de **10 s** (double-tap à droite/à gauche), volume/sourdine, durée écoulée et restante.
+- Les contrôles se masquent après ~3 s d'inactivité et réapparaissent au toucher.
+- Accessibles au clavier sur ordinateur (espace, flèches, F pour plein écran).
+- Sous-titres français si fournis (P1).
+
+**FR-36 — Adaptation à la connexion.**
+- Streaming **adaptatif** : la qualité suit automatiquement le débit.
+- Qualités basses disponibles (au moins 240p/360p) pour les connexions faibles.
+- Choix manuel de la qualité : **Auto** (par défaut), **Économie de données** (qualité plafonnée basse), **Haute qualité**. Le choix est mémorisé sur l'appareil.
+- Démarrage rapide en qualité modérée, puis montée en qualité si le débit le permet.
+- Indication discrète de chargement (pas d'écran figé sans explication).
+
+**FR-37 — Reprise de lecture.**
+- Pour un utilisateur connecté, la position est enregistrée régulièrement (toutes les ~10 s, à la pause et à la fermeture) côté serveur.
+- Pour un visiteur, la position des épisodes gratuits est mémorisée sur l'appareil.
+- À la réouverture : « Reprendre à 12:34 » ou « Recommencer ».
+- Un épisode regardé à plus de ~95 % est marqué « vu » ; la série affiche « Continuer : épisode 4 ».
+- Sur l'accueil (P1) : rangée « Continuer à regarder ».
+
+**FR-38 — Enchaînement.**
+- Fin d'épisode : carte « Épisode suivant » avec compte à rebours de quelques secondes si l'épisode suivant est accessible ; sinon écran d'achat (épisode ou pass) sans quitter le lecteur.
+- Après un achat réussi depuis le lecteur, la lecture démarre directement.
+
+**FR-39 — Gestion des erreurs.** Chaque erreur a un message clair en français et une action :
+
+| Situation | Message (exemple) | Action proposée |
+|---|---|---|
+| Connexion perdue / trop faible | « Connexion trop faible. La lecture reprendra automatiquement. » | Nouvelle tentative automatique (avec délai croissant), bouton « Réessayer », passage suggéré en économie de données |
+| Lien de lecture expiré | — (invisible) | Renouvellement automatique et reprise à la même position |
+| Accès refusé (non acheté, achat remboursé) | « Cet épisode fait partie du contenu payant. » | Écran d'achat |
+| Paiement encore en vérification | « Votre paiement est en cours de vérification. » | Rafraîchissement automatique |
+| Vidéo indisponible (encodage, retrait) | « Cet épisode n'est pas disponible pour le moment. » | Retour à la série ; incident remonté à l'équipe |
+| Navigateur incompatible | « Votre navigateur ne permet pas la lecture. » | Conseil de navigateur |
+| Erreur inconnue | « Un problème est survenu pendant la lecture. » | « Réessayer » ; code d'erreur discret pour le support |
+
+Toutes les erreurs de lecture sont remontées au suivi d'erreurs (sans donnée personnelle) pour mesurer leur fréquence.
+
+**FR-32 — Statistiques de lecture (P1).** Démarrages, temps de chargement initial, interruptions (rebuffering), erreurs, taux de complétion par épisode — pour piloter la qualité et les coûts.
+
+**FR-33 — Économie de données.** Couvert par FR-36 (mode « Économie de données ») ; pas de lecture automatique de vidéo sur l'accueil mobile.
 
 ## 6. Bibliothèque personnelle
 
