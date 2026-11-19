@@ -4,7 +4,7 @@
 INSERT INTO app.series (slug, title, tagline, synopsis, genres, is_ai_generated, video_orientation, status, release_label, is_featured, sort_order) VALUES
   ('sang-royal', 'Sang Royal', 'Un trône, deux héritiers, une seule nuit pour tout perdre.',
    'Le roi meurt sans désigner d''héritier. Entre alliances et trahisons, deux héritiers se disputent le trône.',
-   '{Drame,Intrigue}', true, 'landscape', 'published', NULL, true, 1),
+   '{Drame,Intrigue}', true, 'portrait', 'published', NULL, true, 1),
   ('nuits-de-cotonou', 'Nuits de Cotonou', 'Quand la ville s''endort, les secrets se réveillent.', NULL, '{Thriller}', true, 'landscape', 'coming_soon', 'Prochainement', false, 2),
   ('le-marche-des-promesses', 'Le Marché des Promesses', 'Tout s''achète. Même la loyauté.', NULL, '{Drame,Famille}', true, 'portrait', 'coming_soon', 'Prochainement', false, 3),
   ('heritage', 'L''Héritage', 'Le testament ne disait pas tout.', NULL, '{Drame}', true, 'landscape', 'coming_soon', 'Prochainement', false, 4),

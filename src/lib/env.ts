@@ -10,7 +10,6 @@ const envSchema = z.object({
     .enum(["true", "false"])
     .default("false")
     .transform((v) => v === "true"),
-  SMS_PROVIDER: z.string().min(1).default("simulator"),
   VIDEO_PROVIDER: z.string().min(1).default("simulator"),
 });
 
@@ -30,7 +29,6 @@ export function assertNoSimulatorInProduction(env: ServerEnv): void {
   if (env.APP_ENV !== "production") return;
   const problems: string[] = [];
   if (env.PAYMENT_SIMULATOR_ENABLED) problems.push("PAYMENT_SIMULATOR_ENABLED=true");
-  if (env.SMS_PROVIDER === "simulator") problems.push("SMS_PROVIDER=simulator");
   if (env.VIDEO_PROVIDER === "simulator") problems.push("VIDEO_PROVIDER=simulator");
   if (problems.length > 0) {
     throw new UnsafeConfigurationError(

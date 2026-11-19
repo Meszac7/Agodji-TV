@@ -1,18 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SmsSimulator } from "./sms/simulator";
 import { VideoSimulator } from "./video/simulator";
-
-describe("simulateur SMS", () => {
-  it("garde le message dans la boîte d'envoi au lieu de l'envoyer", async () => {
-    const sms = new SmsSimulator();
-    expect(await sms.send("+22990000001", "Votre code : 123456")).toMatchObject({ accepted: true });
-    expect(sms.outbox).toHaveLength(1);
-  });
-  it("refuse un numéro qui n'est pas au format international", async () => {
-    const sms = new SmsSimulator();
-    expect((await sms.send("90000001", "x")).accepted).toBe(false);
-  });
-});
 
 describe("simulateur vidéo (liens signés)", () => {
   const video = new VideoSimulator("secret-video-de-test-0123456789");

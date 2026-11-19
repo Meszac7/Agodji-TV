@@ -52,10 +52,8 @@ describe("données de démonstration et de référence", () => {
     expect(rows[0].value).toBe("BJ");
   });
 
-  it("tous les pays sont fermés à l'achat et sans SMS au départ (activation progressive)", async () => {
-    const { rows } = await db.query(
-      `SELECT count(*)::int AS n FROM app.markets WHERE payment_status <> 'unavailable' OR otp_enabled`,
-    );
+  it("tous les pays sont fermés à l'achat au départ (activation progressive)", async () => {
+    const { rows } = await db.query(`SELECT count(*)::int AS n FROM app.markets WHERE payment_status <> 'unavailable'`);
     expect(rows[0].n).toBe(0);
     const { rows: all } = await db.query(`SELECT count(*)::int AS n FROM app.markets`);
     expect(all[0].n).toBe(16);
@@ -67,6 +65,21 @@ describe("données de démonstration et de référence", () => {
       { code: "cinetpay", is_enabled: false },
       { code: "fedapay", is_enabled: false },
     ]);
+  });
+});
+
+describe("aucune dépendance aux SMS ni au PIN (décision du 2026-11-20)", () => {
+  it("la colonne otp_enabled n'existe plus", async () => {
+    const { rows } = await db.query(
+      `SELECT 1 FROM information_schema.columns WHERE table_schema = 'app' AND table_name = 'markets' AND column_name = 'otp_enabled'`,
+    );
+    expect(rows).toEqual([]);
+  });
+  it("aucun réglage PIN / OTP / SMS ne subsiste", async () => {
+    const { rows } = await db.query(
+      `SELECT key FROM app.app_settings WHERE key ~ '(pin|otp|sms)'`,
+    );
+    expect(rows).toEqual([]);
   });
 });
 

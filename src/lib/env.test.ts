@@ -9,17 +9,16 @@ describe("garde de configuration (SEC-44)", () => {
 
   it("refuse de démarrer en production avec le simulateur de paiement", () => {
     expect(() =>
-      parseServerEnv({ APP_ENV: "production", PAYMENT_SIMULATOR_ENABLED: "true", SMS_PROVIDER: "x", VIDEO_PROVIDER: "bunny" }),
+      parseServerEnv({ APP_ENV: "production", PAYMENT_SIMULATOR_ENABLED: "true", VIDEO_PROVIDER: "bunny" }),
     ).toThrow(UnsafeConfigurationError);
   });
 
-  it("refuse de démarrer en production avec le simulateur SMS ou vidéo (valeur par défaut comprise)", () => {
-    expect(() => parseServerEnv({ APP_ENV: "production", VIDEO_PROVIDER: "bunny" })).toThrow(/SMS_PROVIDER=simulator/);
-    expect(() => parseServerEnv({ APP_ENV: "production", SMS_PROVIDER: "x" })).toThrow(/VIDEO_PROVIDER=simulator/);
+  it("refuse de démarrer en production avec le simulateur vidéo (valeur par défaut comprise)", () => {
+    expect(() => parseServerEnv({ APP_ENV: "production" })).toThrow(/VIDEO_PROVIDER=simulator/);
   });
 
   it("accepte la production sans aucun simulateur", () => {
-    const env = parseServerEnv({ APP_ENV: "production", PAYMENT_SIMULATOR_ENABLED: "false", SMS_PROVIDER: "x", VIDEO_PROVIDER: "bunny" });
+    const env = parseServerEnv({ APP_ENV: "production", PAYMENT_SIMULATOR_ENABLED: "false", VIDEO_PROVIDER: "bunny" });
     expect(env.APP_ENV).toBe("production");
   });
 
