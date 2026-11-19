@@ -21,7 +21,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      # npm 11 : le npm 10 fourni avec Node 22 échoue sur ce fichier de verrouillage (bug de résolution des dépendances facultatives).
+      - run: npx -y npm@11.6.2 ci
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
@@ -46,7 +47,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      # npm 11 : le npm 10 fourni avec Node 22 échoue sur ce fichier de verrouillage (bug de résolution des dépendances facultatives).
+      - run: npx -y npm@11.6.2 ci
       - run: npm run test:db
         env:
           TEST_DATABASE_ADMIN_URL: postgres://postgres:postgres@localhost:5432/postgres
@@ -71,7 +73,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      # npm 11 : le npm 10 fourni avec Node 22 échoue sur ce fichier de verrouillage (bug de résolution des dépendances facultatives).
+      - run: npx -y npm@11.6.2 ci
       # Les serveurs de paquets Ubuntu renvoient parfois 503 : on réessaie, puis on installe
       # le navigateur seul (les bibliothèques système sont déjà présentes sur ubuntu-latest).
       - name: Installer Chromium (avec reprises)

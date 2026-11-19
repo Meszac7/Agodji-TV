@@ -8,7 +8,7 @@ import { authorizePlayback } from "@/server/playback/service";
 
 export const dynamic = "force-dynamic";
 
-const params = z.object({ episodeId: z.string().uuid() });
+const params = z.object({ episodeId: z.uuid() });
 const body = z.object({ purpose: z.enum(["start", "renew", "preload"]).default("start") });
 
 // SEC-54 : nouvelles lectures et renouvellements/préchargements limités séparément
