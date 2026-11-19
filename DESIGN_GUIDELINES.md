@@ -114,7 +114,7 @@ Toutes les couleurs sont des **jetons** (variables CSS). Le code n'utilise jamai
 - Aucun pays de paiement disponible pour l'utilisateur : message neutre « Le paiement n'est pas encore disponible dans votre pays. Vous pouvez continuer à regarder les épisodes gratuits. », sans bouton jaune, avec un lien vers les épisodes gratuits.
 - Logos d'opérateurs : fichiers officiels fournis par les prestataires/opérateurs, utilisés selon leurs règles **[à obtenir]**.
 - Mentions claires : achat définitif, accès sans limite de durée.
-- Si non connecté : le formulaire numéro → OTP → PIN s'insère dans la même feuille, sans perdre le contexte.
+- Si non connecté : la connexion (« Continuer avec Google » ou e-mail + mot de passe) s'insère dans la même feuille, par-dessus le lecteur, sans perdre l'épisode en cours.
 
 ### 5.5 États de paiement
 - *En vérification* : animation sobre + texte rassurant, jamais d'écran vide.
@@ -122,18 +122,31 @@ Toutes les couleurs sont des **jetons** (variables CSS). Le code n'utilise jamai
 - *Échoué* : message en `--danger`, cause compréhensible, « Réessayer ».
 - *En attente prolongée* : explication + lien vers la bibliothèque.
 
-### 5.6 Lecteur (fonctionnalité centrale — exigences complètes : PRODUCT_REQUIREMENTS §5)
-- Fond noir pur pendant la lecture, interface qui s'efface ; titre de l'épisode et retour en haut, contrôles en bas.
-- Contrôles larges (zones tactiles ≥ 44 px), barre de progression épaisse au toucher avec curseur jaune royal, temps écoulé/restant en chiffres tabulaires.
-- Double-tap gauche/droite = −10 s / +10 s avec retour visuel ; tap au centre = lecture/pause.
-- Bouton plein écran toujours visible ; orientation adaptée au format **[D-07]**.
-- Menu qualité simple : « Auto », « Économie de données », « Haute qualité ».
-- Chargement : anneau discret, jamais d'écran figé ; erreurs dans un panneau sombre avec message clair et une action (bouton jaune « Réessayer » ou « Acheter »).
-- Reprise : bandeau « Reprendre à 12:34 · Recommencer ».
-- Fin d'épisode : carte « Épisode suivant » avec compte à rebours, ou écran d'achat intégré au lecteur.
+### 5.6 Lecteur vertical en défilement continu (fonctionnalité centrale — PRODUCT_REQUIREMENTS §5)
+**Principe : la vidéo d'abord.** L'interface du site disparaît ; seules des commandes discrètes flottent au-dessus de l'image et s'effacent après ~3 s.
 
-### 5.7 Saisie du PIN
-- 4 (ou 6) cases, clavier numérique (`inputmode="numeric"`, `autocomplete="one-time-code"` pour l'OTP), masquage avec option d'affichage, message d'erreur neutre.
+- **Plein écran mobile** : une diapositive = un épisode = toute la hauteur de l'écran (`100dvh`), fond noir.
+- **Image entière** (`contain`) : jamais de déformation ni de recadrage ; les zones vides sont comblées par un **fond flou** de l'image.
+- **Haut, discret** : retour (flèche) · « **Sang Royal** · S1 · Épisode 3 » en petit texte blanc avec ombre légère.
+- **Côté droit** (colonne verticale d'icônes, comme les formats verticaux) : son, épisodes (liste), plein écran, qualité.
+- **Bas** : barre de progression fine (2 px) qui s'épaissit au toucher (6 px) avec curseur **jaune royal** ; temps écoulé / durée en chiffres tabulaires.
+- **Toucher au centre** : pause / lecture (icône brève au centre, 600 ms).
+- **Glisser** vers le haut / le bas : épisode suivant / précédent ; indice visuel discret la première fois (« Glissez pour l'épisode suivant »).
+- **Ordinateur** : colonne vidéo centrée au format 9:16 sur fond noir flouté, boutons ▲ ▼ à droite, raccourcis clavier.
+- **Vidéo horizontale** : image entière au centre, fond flou au-dessus et au-dessous ; bouton plein écran = passage en paysage.
+- **Diapositive de déblocage** : image floutée et assombrie, cadenas, titre de l'épisode, deux options (pass mis en avant en jaune, épisode seul en secondaire), mention « Achat définitif · sans expiration ».
+- **Diapositive « bientôt »** : image floutée, « Épisode 7 — disponible le 26 novembre », mention « inclus dans votre pass » si c'est le cas.
+- **Fin de saison** : carte plein écran « Saison 1 terminée » ; saison suivante avec son affiche ; si non débloquée : bouton jaune « Débloquer la saison 2 — 1 500 FCFA » et mention explicite « Votre pass Saison 1 ne couvre pas la saison 2 ».
+- **Panneau « Épisodes »** : feuille qui monte du bas, liste compacte (numéro, titre, durée, état : vu ✓, en cours, gratuit, débloqué, cadenas, bientôt), épisode courant surligné.
+- **Chargement** : anneau discret ; **erreurs** : panneau sombre centré, message clair et une seule action jaune.
+- **Reprise** : démarrage directement à la position mémorisée, avec un court rappel « Reprise à 6:12 · Recommencer ».
+
+### 5.7 Connexion et inscription
+- Feuille (mobile) ou fenêtre centrée (ordinateur), jamais une page qui fait perdre le contexte.
+- Bouton « **Continuer avec Google** » en premier (logo Google selon ses règles d'usage), puis séparateur « ou », puis e-mail + mot de passe.
+- Lien « Mot de passe oublié ? » ; bascule « Créer un compte / J'ai déjà un compte ».
+- Après inscription par e-mail : écran « Vérifiez votre boîte mail » avec bouton « Renvoyer l'e-mail ».
+- Mot de passe : indication de longueur minimale, bouton afficher/masquer.
 
 ### 5.8 Administration
 - Même jetons de couleur et polices, mais mise en page **fonctionnelle et dense** : tableaux, formulaires clairs, thème clair conseillé pour le travail prolongé.
@@ -165,5 +178,5 @@ Toutes les couleurs sont des **jetons** (variables CSS). Le code n'utilise jamai
 
 ## 10. Livrables de design avant développement des écrans
 1. Page de référence des jetons et composants (« guide de style » vivant dans l'application, accessible en préproduction).
-2. Maquettes mobiles de : accueil, fiche série, écran d'achat, retour de paiement, bibliothèque, connexion/inscription, lecteur.
+2. Maquettes mobiles du parcours complet (DEVELOPMENT_ROADMAP, étape 2), dont le **lecteur vertical en défilement continu** (maquette cliquable `/maquettes/lecteur`).
 3. Validation par le fondateur avant intégration des écrans.

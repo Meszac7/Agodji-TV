@@ -20,9 +20,9 @@
 
 | # | Menace | Mesures (sections) |
 |---|---|---|
-| T1 | Deviner le PIN d'un autre utilisateur | §3 |
-| T2 | Créer un compte avec le numéro de quelqu'un d'autre | §3 (OTP) |
-| T3 | Fraude au SMS (« SMS pumping ») qui génère une grosse facture | §3.4, §9 |
+| T1 | Voler ou deviner le mot de passe d'un client | §3.1 |
+| T2 | Prise de contrôle anticipée : créer un compte avec l'e-mail d'un autre avant lui | §3.2 |
+| T3 | Perdre ses achats en changeant de méthode de connexion, ou fusion abusive de comptes | §3.2 |
 | T4 | Faux « paiement réussi » envoyé par le navigateur ou un faux webhook | §5 |
 | T5 | Webhooks répétés → doubles droits ou incohérences | §5 |
 | T6 | Payer moins cher en modifiant le prix dans la requête | §5 |
@@ -33,66 +33,51 @@
 | T11 | Injection, XSS, CSRF, clickjacking | §10 |
 | T12 | Abus automatisés (robots, scraping, déni de service applicatif) | §9 |
 
-## 3. Authentification par numéro + PIN
+## 3. Authentification : Google et e-mail + mot de passe
 
-### 3.1 Analyse du PIN à 4 chiffres
+Décision : `docs/decisions/2026-11-20-comptes-google-email-lecteur-vertical.md`. **Aucune fonction ne dépend d'un SMS.** Clients et administrateurs utilisent **Supabase Auth** ; nos tables applicatives restent fermées au navigateur (§4).
 
-**Faits :**
-- Un PIN à 4 chiffres n'offre que **10 000 combinaisons**.
-- Les PIN choisis par les humains sont très prévisibles : une étude publique sur des PIN divulgués (DataGenetics, 2012) indiquait que `1234` représentait à lui seul ~11 % des choix et que les 20 PIN les plus courants en couvraient ~27 %.
-- Contrairement au PIN d'une carte bancaire, un site web peut être attaqué à distance, en masse, depuis de nombreuses adresses IP.
-
-**Conclusion :** un PIN à 4 chiffres **seul** est insuffisant. Il devient **acceptable pour Agodjié TV** uniquement si les conditions suivantes sont **toutes** remplies :
-
-1. Le numéro est **vérifié par SMS (OTP)** à l'inscription → on ne peut pas créer de compte sur le numéro d'un autre (SEC-01).
-2. Le PIN n'est **jamais vérifiable ailleurs que sur notre serveur**, qui applique les limites de tentatives (SEC-02).
-3. **Verrouillage par compte** strict (SEC-03).
-4. **Limitation par IP + anti-robot** pour bloquer l'attaque « un PIN courant essayé sur des milliers de numéros » (SEC-04).
-5. **Liste de PIN interdits** (SEC-05).
-6. **Sessions longues** sur l'appareil de confiance : le PIN est rarement retapé, donc rarement exposé (SEC-07).
-
-**Pourquoi c'est un risque acceptable ici :** un compte Agodjié TV ne contient **ni moyen de paiement enregistré ni argent**. Un paiement Mobile Money exige toujours une validation sur le téléphone du payeur. Un compte piraté donne accès à des épisodes déjà payés (quelques milliers de FCFA au plus) et au numéro de téléphone. Le niveau de protection est donc proportionné à la valeur protégée.
-
-Avec 10 essais maximum avant verrouillage dur et les PIN faibles interdits, la probabilité de deviner le PIN d'un compte ciblé est d'environ **0,1 %** (un peu plus en pratique car les choix humains ne sont pas uniformes).
-
-**Option plus sûre [D-04] :** un PIN à **6 chiffres** (1 000 000 de combinaisons) diviserait ce risque par ~100 pour un effort utilisateur très faible. **Choix par défaut retenu : 4 chiffres** avec toutes les mesures ci-dessous ; la longueur est un réglage (`app_settings.pin_length`) qui permet de passer à 6 chiffres sans développement.
-
-### 3.2 Règles
+### 3.1 Règles
 
 | ID | Règle |
 |---|---|
-| SEC-01 | Inscription et réinitialisation du PIN uniquement après **OTP SMS** valide envoyé au numéro. |
-| SEC-02 | PIN haché avec **Argon2id** (paramètres recommandés OWASP au moment de l'implémentation) + **poivre** secret stocké hors base (variable d'environnement). Jamais stocké ni journalisé en clair. Vérification uniquement par notre serveur : il n'existe **aucun autre point d'entrée** permettant d'ouvrir une session client (pas de Supabase Auth pour les clients, TECHNICAL_ARCHITECTURE §7). |
-| SEC-03 | Par compte : après **5 échecs** consécutifs → verrouillage **15 min** ; après **10 échecs** depuis la dernière connexion réussie → verrouillage dur, déblocage uniquement par réinitialisation via OTP. Remise à zéro au succès. **Compromis assumé** : un tiers connaissant un numéro peut volontairement verrouiller ce compte ; le titulaire se débloque avec un SMS (coût borné par SEC-12). Sans verrouillage dur, une attaque lente et répétée finirait par deviner un PIN à 4 chiffres. Un compte verrouillé à répétition déclenche une alerte (P1). |
-| SEC-04 | Par IP (hachée) : au-delà de ~20 tentatives de connexion/heure → **Cloudflare Turnstile** obligatoire ; au-delà de ~50/heure → blocage temporaire. Seuils ajustables. Surveillance d'un taux d'échec global anormal (attaque répartie). |
-| SEC-05 | PIN refusés : chiffres identiques (`0000`…), suites (`1234`, `4321`, `0123`…), les ~50 PIN les plus courants, années `19xx`/`20xx` récentes (6 chiffres : liste équivalente). |
-| SEC-06 | Messages d'erreur neutres : « Numéro ou PIN incorrect » — ne pas révéler si le numéro existe. Temps de réponse homogène. |
-| SEC-07 | Sessions : jeton aléatoire 256 bits dans un cookie `httpOnly`, `Secure`, `SameSite=Lax` ; seul son hachage est stocké (`customer_sessions`) ; expiration après ~90 jours d'inactivité **[à valider]** ; nouveau jeton à chaque connexion (pas de réutilisation d'un jeton antérieur). |
-| SEC-08 | Changement / réinitialisation du PIN → **suppression de toutes les autres sessions** en base (effet immédiat). |
+| SEC-01 | Méthodes de connexion clients : **Google** (OAuth via Supabase, flux PKCE) et **e-mail + mot de passe**. Aucune autre méthode active (téléphone, lien magique, autres réseaux) ; les fournisseurs non utilisés sont **désactivés** dans Supabase. |
+| SEC-02 | **Confirmation d'e-mail obligatoire** pour les comptes e-mail + mot de passe. Un compte non confirmé ne peut ni acheter, ni être lié à une autre méthode, ni recevoir de droit d'accès. |
+| SEC-03 | Mot de passe : **au moins 10 caractères** ; détection des mots de passe divulgués activée si l'offre Supabase le permet **[à vérifier]** ; jamais stocké ni journalisé par notre application (géré par Supabase). |
+| SEC-04 | **Cloudflare Turnstile** sur l'inscription, la connexion et la demande de réinitialisation (protection anti-robot intégrée à Supabase Auth **[à vérifier : configuration]**) ; limites de débit de Supabase Auth actives. |
+| SEC-05 | Messages d'erreur neutres (« E-mail ou mot de passe incorrect ») ; la demande de réinitialisation répond toujours « Si un compte existe, un e-mail a été envoyé ». |
+| SEC-06 | Les appels d'authentification passent par **notre serveur** (actions serveur / routes) ; **aucun client Supabase n'est instancié dans le navigateur**. Retour OAuth sur une route serveur unique (`/auth/callback`) qui échange le code. URL de redirection autorisées limitées au domaine (liste blanche Supabase). |
+| SEC-07 | Sessions : jetons Supabase dans des cookies `httpOnly`, `Secure`, `SameSite=Lax`, rafraîchis côté serveur ; jeton d'accès court (~1 h) avec rotation du jeton de rafraîchissement ; durée d'inactivité maximale configurée **[à valider à l'étape 3]**. |
+| SEC-08 | Changement de mot de passe ou réinitialisation → **déconnexion des autres sessions**. Changement d'e-mail → confirmation sur l'**ancienne et la nouvelle** adresse (option « secure email change »). Actions sensibles du compte (changer d'e-mail, retirer une méthode) → **réauthentification récente**. |
 | SEC-09 | Bouton « Se déconnecter de tous les appareils ». |
-| SEC-10 | Événements de sécurité journalisés (connexion réussie/échouée, verrouillage, réinitialisation) sans le PIN ni le numéro en clair. |
+| SEC-10 | Événements de sécurité (connexion, échec, réinitialisation, liaison/retrait de méthode, transfert d'achats) journalisés sans mot de passe ni jeton. |
 
-### 3.3 Récupération de compte
-- « PIN oublié » → OTP au numéro enregistré → nouveau PIN.
-- **Risque propre au marché : recyclage des numéros.** Les opérateurs réattribuent les numéros inactifs. Le nouveau titulaire pourrait récupérer le compte de l'ancien. Risque accepté vu la faible valeur d'un compte ; mitigation P2 : demander une confirmation supplémentaire si le compte est inactif depuis plus de 12 mois.
-- **Échange de carte SIM (SIM swap)** : même logique ; risque accepté pour la V1.
-- Changement de numéro : manuel par l'admin en V1, avec vérification (preuve d'achat, ancien numéro), action journalisée.
-
-### 3.4 OTP SMS
+### 3.2 Liaison des comptes
 
 | ID | Règle |
 |---|---|
-| SEC-11 | Code à 6 chiffres généré et vérifié par **notre serveur**, stocké haché, validité ~5 min, 5 essais max, usage unique. Le fournisseur « phone » de Supabase Auth reste **désactivé** (il offrirait un envoi de SMS contournant SEC-12/13). |
-| SEC-12 | Envoi : max 3 SMS / numéro / heure et ~10 / jour ; limite par IP ; **Turnstile obligatoire avant tout envoi**. |
-| SEC-13 | Envoi uniquement vers les **indicatifs pour lesquels l'envoi de SMS est activé** (`markets.otp_enabled`), indépendamment du statut de paiement du pays — protection principale contre la fraude au SMS vers des numéros surtaxés. |
-| SEC-14 | Alerte si le volume quotidien de SMS dépasse un seuil défini (budget). |
+| SEC-11 | **Un client = un identifiant stable** (`auth.users.id` = `customers.id`). Commandes, droits, bibliothèque et progression référencent cet identifiant, jamais une méthode de connexion. |
+| SEC-12 | Liaison automatique uniquement entre identités dont l'**e-mail est vérifié** (comportement de Supabase **testé** à l'étape 3). Une identité e-mail **non confirmée** portant la même adresse qu'un compte Google ne doit jamais donner accès à ce compte ; le scénario de **prise de contrôle anticipée** (un tiers crée d'abord un compte avec l'adresse de la victime) est un **test obligatoire**. |
+| SEC-13 | Liaison manuelle (ajouter Google, définir un mot de passe) : uniquement pour un client **connecté** et récemment réauthentifié. Retrait d'une méthode : seulement s'il en reste au moins une. |
+| SEC-14 | Transfert d'achats entre deux comptes : **administrateur uniquement**, après vérification de la propriété des deux comptes, motif obligatoire, journal d'audit, opération transactionnelle (aucun droit perdu ni dupliqué). |
+
+### 3.3 Numéro de téléphone
+
+| ID | Règle |
+|---|---|
+| SEC-15 | Le numéro est **facultatif et non vérifié**. Il ne sert **jamais** à se connecter, à récupérer un compte, à lier des comptes ni à déterminer le pays de paiement. Validation de format (E.164) uniquement ; affiché « non vérifié ». |
+
+### 3.4 Récupération de compte
+- E-mail + mot de passe : lien de réinitialisation à usage unique et à durée courte (Supabase), envoyé à l'adresse confirmée.
+- Google : la récupération relève de Google.
+- Perte d'accès à l'adresse e-mail : procédure de support manuelle (preuves d'achat), action journalisée.
+- Les e-mails partent d'un **service SMTP** configuré dans Supabase avec un domaine authentifié (SPF, DKIM) pour limiter l'usurpation et les indésirables **[D-24]**.
 
 ### 3.5 Administrateurs
 
 | ID | Règle |
 |---|---|
-| SEC-15 | Comptes admin **séparés** des comptes clients (Supabase Auth), e-mail + mot de passe fort (≥ 12 caractères) + **TOTP obligatoire** **[D-06]**. Chaque action admin exige une session de niveau MFA **`aal2`** : un mot de passe deviné ou volé ne suffit pas. Inscriptions publiques Supabase désactivées. |
-| SEC-16 | Nombre d'admins minimal ; rôle `editor` sans accès aux données personnelles ni aux transactions. |
+| SEC-16 | Administrateurs : e-mail + mot de passe fort (≥ 12 caractères) + **TOTP obligatoire** ; chaque action admin exige une session de niveau **`aal2`** et un rôle dans `staff_roles` (attribué uniquement par un autre admin ou par migration). Un client ne peut jamais s'attribuer un rôle. Nombre d'admins minimal ; rôle `editor` sans accès aux données personnelles ni aux transactions **[D-06]**. |
 
 ## 4. Accès aux données
 
@@ -103,7 +88,7 @@ Avec 10 essais maximum avant verrouillage dur et les PIN faibles interdits, la p
 | SEC-22 | La clé `service_role` n'existe que côté serveur ; jamais dans une variable `NEXT_PUBLIC_*`. |
 | SEC-23 | Les données de catalogue envoyées au navigateur n'incluent ni `video_id` ni champs internes ; l'identifiant vidéo n'apparaît que dans l'URL de lecture signée, une fois l'accès autorisé. |
 | SEC-24 | Tests automatisés : clé publique sans aucun accès, client A vs données de B, éditeur vs transactions, client bloqué. |
-| SEC-25 | Un client **bloqué** perd immédiatement l'accès : ses sessions sont supprimées et le statut est vérifié à chaque requête authentifiée (lecture, achat). |
+| SEC-25 | Un client **bloqué** perd immédiatement l'accès : blocage dans Supabase Auth, révocation de ses sessions, et statut `customers.status` vérifié par notre serveur à chaque requête sensible (lecture payante, achat, progression) — le jeton d'accès encore valide ne suffit pas. |
 | SEC-26 | Le pays de paiement est **confirmé par le client** à l'achat et **revalidé par le serveur** (statut du pays, statut testeur, route active). Ni l'indicatif du numéro ni la géolocalisation IP ne servent à facturer : ce sont de simples suggestions. |
 
 ## 5. Paiements
@@ -162,14 +147,14 @@ Avec 10 essais maximum avant verrouillage dur et les PIN faibles interdits, la p
 
 | Point d'entrée | Limite indicative |
 |---|---|
-| Envoi OTP | SEC-12 |
-| Connexion PIN | SEC-03, SEC-04 |
+| Inscription, connexion, réinitialisation | Limites Supabase Auth + Turnstile (SEC-04) |
+| Envoi d'e-mails (confirmation, réinitialisation) | Limites Supabase + quota du service SMTP ; alerte si volume anormal |
 | Création de commande | ~10 / utilisateur / heure |
 | Jeton de lecture | SEC-54 |
 | Webhooks | non limités mais authentifiés |
 | Routes cron | protégées par `CRON_SECRET` |
 
-Implémentation V1 : compteurs en base (`auth_attempts` et équivalents), sans service supplémentaire. Protection de base contre le déni de service assurée par l'hébergeur (Vercel) ; Cloudflare devant le site en option si nécessaire.
+Implémentation V1 : limites intégrées à Supabase Auth pour l'authentification ; compteurs en base pour nos propres routes (commandes, jetons de lecture), sans service supplémentaire. Protection de base contre le déni de service assurée par l'hébergeur (Vercel) ; Cloudflare devant le site en option si nécessaire.
 
 ## 10. Vulnérabilités web courantes
 
@@ -184,9 +169,9 @@ Implémentation V1 : compteurs en base (`auth_attempts` et équivalents), sans s
 | SEC-86 | Dépendances : fichier de verrouillage versionné, alertes de vulnérabilité (Dependabot), mises à jour régulières. |
 
 ## 11. Données personnelles
-- Collecte minimale : numéro, PIN haché, nom affiché facultatif, achats.
-- Numéros et IP **hachés** dans les journaux techniques ; jamais envoyés à Sentry ou aux outils d'audience.
-- Durées de conservation : tentatives de connexion 30 jours ; journaux d'audit et transactions selon obligations comptables (à confirmer **[LAUNCH_CHECKLIST]**).
+- Collecte minimale : e-mail, nom affiché facultatif, numéro facultatif non vérifié, achats, progression de lecture.
+- E-mails, numéros et IP **masqués ou hachés** dans les journaux techniques ; jamais envoyés à Sentry ou aux outils d'audience.
+- Durées de conservation : journaux d'audit et transactions selon obligations comptables (à confirmer **[LAUNCH_CHECKLIST]**).
 - Suppression de compte : anonymisation du profil, conservation des transactions (obligation comptable).
 - Conformité aux lois locales de protection des données de **chaque pays ouvert** à vérifier avec un conseil juridique avant son ouverture.
 

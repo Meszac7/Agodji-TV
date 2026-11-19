@@ -13,22 +13,21 @@
 4. **Les droits d'accès (`entitlements`) sont séparés des commandes** : une commande décrit une tentative de paiement ; un droit décrit ce que l'utilisateur possède. Un droit peut aussi venir d'un geste administrateur.
 5. **Le pass saison est un droit au niveau de la saison**, pas une liste d'épisodes. Les épisodes futurs sont donc couverts automatiquement (RM-02).
 6. **L'idempotence est garantie par la base** (contraintes d'unicité), pas seulement par le code.
-7. **Données sensibles isolées** : hachages de PIN et tentatives de connexion dans des tables inaccessibles depuis le navigateur.
+7. **Aucun secret d'authentification dans nos tables** : mots de passe et jetons sont gérés par Supabase Auth ; nos tables restent inaccessibles depuis le navigateur.
 8. Identifiants `uuid`, horodatages `timestamptz` en UTC.
 
 ## 2. Schéma relationnel
 
 ```
-customers ──1 pin_credentials
-    ├──* customer_sessions
-    ├──* orders *──1 (episode | season)
-    │       └──* payment_events
-    └──* entitlements ──1 (episode | season)
+auth.users (Supabase : identités Google / e-mail, clients et admins)
+    ├──1 customers ──* orders *──1 (episode | season)
+    │        │            └──* payment_events
+    │        ├──* entitlements ──1 (episode | season)
+    │        └──* playback_progress ──1 episode
+    └──0..1 staff_roles
 
-otp_challenges (par numéro, avant même la création du compte)
-app_settings (réglages ajustables : pays d'affichage par défaut, longueur du PIN, seuils)
-
-auth.users (Supabase, admins uniquement) 1──1 staff_roles
+account_transfers (transferts d'achats entre deux comptes d'un client)
+app_settings (réglages ajustables : pays d'affichage par défaut, seuils, limites)
 
 series 1──* seasons 1──* episodes
    seasons 1──* season_prices          (prix par grille tarifaire)
@@ -36,82 +35,51 @@ series 1──* seasons 1──* episodes
 
 markets ──* payment_routes *── payment_accounts *── payment_providers
 markets *──1 price_lists 1──* season_prices / episode_price_overrides
-auth_attempts, audit_logs, playback_sessions (journaux)
+audit_logs, playback_sessions (journaux)
 ```
 
 ## 3. Tables
 
 ### 3.1 Utilisateurs
 
-Les clients ne sont **pas** des utilisateurs Supabase Auth (voir TECHNICAL_ARCHITECTURE §7). Seuls les administrateurs le sont.
+Clients et administrateurs sont des utilisateurs **Supabase Auth** (`auth.users`) : Google et/ou e-mail + mot de passe (TECHNICAL_ARCHITECTURE §7). Les méthodes de connexion (identités) sont gérées par Supabase ; nos tables ne stockent **aucun** mot de passe ni jeton.
 
-**`customers`** — un enregistrement par client.
+**`customers`** — profil applicatif d'un client, créé à sa première connexion.
 
 | Colonne | Type | Notes |
 |---|---|---|
-| id | uuid PK | généré par la base |
-| phone_e164 | text UNIQUE NOT NULL | ex. `+22990000000` ; vérifié par OTP |
-| phone_verified_at | timestamptz | |
+| id | uuid PK FK `auth.users(id)` | **identifiant stable** : toutes les commandes, droits, la bibliothèque et la progression y sont rattachés, quelle que soit la méthode de connexion (SEC-11) |
 | display_name | text NULL | facultatif |
-| phone_country_code | text NOT NULL | pays de l'**indicatif** du numéro, déduit par le serveur. Sert à l'envoi des SMS et comme simple suggestion — **jamais** considéré comme pays de résidence ou de facturation |
+| phone_e164 | text NULL | **facultatif, non vérifié** (format E.164 contrôlé) ; jamais utilisé pour se connecter, récupérer un compte ou déduire le pays de paiement (SEC-15) |
 | last_payment_country | text NULL FK markets | dernier pays de paiement **confirmé par le client** (proposé par défaut aux achats suivants) |
 | is_tester | boolean DEFAULT false | autorise l'achat dans les pays au statut `pilot` (attribué par un admin) |
 | status | text | `active` \| `blocked` \| `deleted` |
 | terms_version | text | version des CGU acceptée |
 | terms_accepted_at | timestamptz | |
-| created_at, updated_at, last_login_at | timestamptz | |
+| created_at, updated_at, last_seen_at | timestamptz | |
 
-**`pin_credentials`** — **serveur uniquement** (aucune politique RLS d'accès client).
+Règles :
+- L'e-mail et son état de confirmation sont lus dans `auth.users` (source unique, pas de copie) ; un client dont l'e-mail n'est pas confirmé ne peut pas acheter (SEC-02).
+- Suppression de compte : anonymisation du profil, conservation des commandes (obligation comptable).
 
-| Colonne | Type | Notes |
-|---|---|---|
-| user_id | uuid PK FK customers | |
-| pin_hash | text NOT NULL | Argon2id + poivre (voir SECURITY_REQUIREMENTS §3) |
-| pin_updated_at | timestamptz | |
-| failed_count | int DEFAULT 0 | échecs consécutifs |
-| locked_until | timestamptz NULL | verrouillage temporaire |
-| hard_locked | boolean DEFAULT false | verrouillage nécessitant une réinitialisation par OTP |
-
-**`customer_sessions`** — sessions de connexion des clients.
+**`account_transfers`** — transferts d'achats entre deux comptes d'un même client (FR-15, SEC-14), administrateur uniquement.
 
 | Colonne | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
-| user_id | uuid FK customers | |
-| token_hash | text UNIQUE | SHA-256 du jeton du cookie (le jeton lui-même n'est jamais stocké) |
-| created_at, last_seen_at | timestamptz | |
-| expires_at | timestamptz | ~90 jours glissants **[à valider]** |
-| user_agent_summary | text | ex. « Android · Chrome », affiché dans « mes appareils » |
-
-**`otp_challenges`** — codes SMS en cours.
-
-| Colonne | Type | Notes |
-|---|---|---|
-| id | uuid PK | |
-| phone_e164 | text | |
-| purpose | text | `signup` \| `pin_reset` |
-| code_hash | text | haché, jamais en clair |
-| attempts | int DEFAULT 0 | max 5 |
-| expires_at | timestamptz | ~5 min |
-| consumed_at | timestamptz NULL | usage unique |
+| from_customer_id, to_customer_id | uuid FK customers | différents |
+| performed_by | uuid FK auth.users | administrateur |
+| reason | text NOT NULL | motif et preuves |
+| entitlements_moved | int | nombre de droits transférés |
 | created_at | timestamptz | |
 
-**`auth_attempts`** — **serveur uniquement**, sert à la limitation de débit.
-
-| Colonne | Type | Notes |
-|---|---|---|
-| id | bigint PK | |
-| kind | text | `pin_login` \| `otp_send` \| `otp_verify` \| `pin_reset` |
-| phone_hash | text | HMAC du numéro (pas le numéro en clair) |
-| ip_hash | text | HMAC de l'IP |
-| success | boolean | |
-| created_at | timestamptz | index ; purge après 30 jours |
+Le transfert est une transaction unique : les droits actifs du compte source sont recréés sur le compte cible (sans doublon grâce aux index uniques) puis révoqués à la source avec le motif « transfert ».
 
 **`staff_roles`** — administrateurs et éditeurs.
 
 | Colonne | Type | Notes |
 |---|---|---|
-| user_id | uuid PK FK auth.users | compte admin Supabase Auth, distinct des clients |
+| user_id | uuid PK FK auth.users | compte Supabase Auth avec TOTP obligatoire |
 | role | text | `admin` \| `editor` |
 | created_at, created_by | | |
 
@@ -196,7 +164,6 @@ Visibilité publique d'un épisode : série `published`, saison `published`, et 
 | country_code | text PK | `BJ`, `CI`, `SN`, `TG`, `BF`, `ML`, `NE`, `CM`, `CD`, `GN`… |
 | name | text | |
 | phone_prefix | text | ex. `+229` |
-| otp_enabled | boolean | envoi de SMS OTP autorisé vers cet indicatif (création de compte possible) — indépendant du paiement |
 | price_list_id | uuid NULL FK price_lists | requis dès que `payment_status` ≠ `unavailable` |
 | payment_status | text | `unavailable` (achat impossible, « bientôt disponible ») \| `pilot` (achat réservé aux clients `is_tester`) \| `open` (achat pour tous) |
 | providers_confirmation | jsonb | pour chaque prestataire : état des confirmations écrites A/B/C et lien vers la réponse (TECHNICAL_ARCHITECTURE §5.1) |
@@ -351,15 +318,10 @@ Réglages initiaux :
 | Clé | Valeur initiale | Référence |
 |---|---|---|
 | `default_display_country` | `"BJ"` | D-21 |
-| `pin_length` | `4` | D-04 (4 ou 6) |
-| `pin_lock_soft` / `pin_lock_hard` | `{"failures": 5, "minutes": 15}` / `{"failures": 10}` | SEC-03 |
-| `ip_login_limits` | `{"turnstile_after": 20, "block_after": 50, "per": "hour"}` | SEC-04 |
-| `otp_limits` | `{"per_number_hour": 3, "per_number_day": 10, "validity_minutes": 5, "max_attempts": 5}` | SEC-11, SEC-12 |
-| `sms_daily_budget_alert` | à définir | SEC-14 |
 | `order_limit_per_hour` | `10` | SECURITY §9 |
 | `playback_token` | `{"validity_seconds": 300, "per_user_hour": 60}` | SEC-51, SEC-54 |
 | `order_expiry_minutes` / `reconcile_window_hours` | `60` / `72` | TECHNICAL_ARCHITECTURE §5.9 |
-| `session_idle_days` | `90` | SEC-07 |
+| `progress_save_interval_seconds` | `10` | FR-37 |
 
 ### 3.6 Journaux
 

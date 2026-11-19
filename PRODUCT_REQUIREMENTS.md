@@ -14,8 +14,8 @@
 | 2 | Catalogue des séries | P0 |
 | 3 | Fiche série | P0 |
 | 4 | Saisons et liste d'épisodes | P0 |
-| 5 | Lecture des épisodes gratuits | P0 |
-| 6 | Inscription et connexion | P0 |
+| 5 | Lecteur vertical en défilement continu + lecture des épisodes gratuits | P0 |
+| 6 | Inscription et connexion (Google, e-mail + mot de passe) | P0 |
 | 7 | Achat d'un épisode | P0 |
 | 8 | Achat d'un pass saison | P0 |
 | 9 | Vérification des paiements côté serveur | P0 |
@@ -46,30 +46,41 @@
 
 Le bouton « Acheter le pass saison — 1 500 FCFA » est visible en haut de la liste de la saison, avec le nombre d'épisodes inclus.
 
-**FR-06 — Épisode gratuit.** Lecture immédiate sans compte. À la fin de l'épisode : proposition de l'épisode suivant (gratuit → lecture ; payant → écran d'achat).
+**FR-06 — Épisode gratuit.** Lecture immédiate sans compte, dans le lecteur vertical (§5). Le défilement continue vers l'épisode suivant (gratuit → lecture ; payant → diapositive de déblocage, FR-38).
 
-**FR-07 — Épisode payant pour un visiteur.** Un clic ouvre un écran d'achat expliquant les deux options (épisode / pass). L'authentification n'est demandée **qu'au moment de payer**.
+**FR-07 — Épisode payant pour un visiteur.** La diapositive de déblocage explique les deux options (épisode / pass). La connexion (Google ou e-mail) n'est demandée **qu'au moment de payer**, sans quitter le lecteur.
 
-## 3. Authentification
+## 3. Comptes et authentification
 
-Voir SECURITY_REQUIREMENTS §3 pour les règles détaillées.
+Voir SECURITY_REQUIREMENTS §3 et la décision `docs/decisions/2026-11-20-comptes-google-email-lecteur-vertical.md`. **Aucune fonction ne dépend d'un service SMS.**
 
-**FR-10 — Inscription.**
-1. Saisie du numéro de téléphone (sélecteur de pays, format international E.164).
-2. Réception d'un code SMS à usage unique (OTP) et saisie **[D-05]**.
-3. Choix d'un PIN (4 chiffres **[D-04]**) et confirmation. Les PIN trop simples sont refusés (0000, 1234, 1111, etc.).
-4. Acceptation des CGU / politique de confidentialité (case à cocher).
-5. L'utilisateur est connecté et revient exactement là où il était (ex. écran d'achat).
+**FR-10 — Inscription / connexion avec Google.** Un bouton « Continuer avec Google ». Au premier passage, le compte est créé ; aux suivants, l'utilisateur est connecté. Aucun mot de passe à retenir.
 
-Pas d'e-mail requis. Le nom affiché est facultatif.
+**FR-11 — Inscription avec e-mail et mot de passe.**
+1. Adresse e-mail + mot de passe (au moins 10 caractères) + acceptation des CGU / politique de confidentialité.
+2. E-mail de confirmation avec lien. **Un compte non confirmé peut naviguer et regarder les épisodes gratuits, mais ne peut pas acheter** tant que l'adresse n'est pas confirmée.
+3. Après confirmation, l'utilisateur revient exactement là où il était (ex. écran d'achat dans le lecteur).
 
-**FR-11 — Connexion.** Numéro + PIN. Session longue (l'utilisateur ne retape pas son PIN à chaque visite sur le même appareil).
+**FR-12 — Connexion par e-mail et mot de passe.** Session longue sur l'appareil (pas de reconnexion à chaque visite).
 
-**FR-12 — PIN oublié.** Code SMS au numéro enregistré → nouveau PIN. Toutes les autres sessions sont fermées.
+**FR-13 — Mot de passe oublié.** Lien de réinitialisation envoyé par e-mail. Après changement, les autres sessions sont fermées.
 
-**FR-13 — Gestion du compte.** Changer de PIN (avec l'ancien PIN), se déconnecter, se déconnecter de tous les appareils, demander la suppression du compte (P1).
+**FR-14 — Mon compte.**
+- Nom affiché (facultatif).
+- **Numéro de téléphone facultatif**, ajouté à tout moment, **sans vérification par SMS**. Il est affiché comme « non vérifié », ne sert **jamais** à se connecter, à récupérer le compte ni à déterminer le pays de paiement. Usage futur possible : contact du support, préremplissage du numéro Mobile Money (avec confirmation de l'utilisateur).
+- Méthodes de connexion : voir celles liées au compte, **ajouter Google** ou **définir un mot de passe** ; retirer une méthode seulement s'il en reste une autre.
+- Changer d'adresse e-mail (confirmation sur l'ancienne et la nouvelle adresse).
+- Se déconnecter, se déconnecter de tous les appareils, demander la suppression du compte (P1).
 
-**FR-14 — Changement de numéro.** V1 : par demande au support, traité par un administrateur (procédure manuelle documentée). P2 : en libre-service.
+**FR-15 — Liaison des comptes (ne jamais perdre ses achats).**
+- Achats, bibliothèque et progression sont rattachés au **compte**, jamais à la méthode de connexion.
+- Même adresse e-mail confirmée avec Google et avec mot de passe → un seul compte.
+- Adresses différentes → l'utilisateur lie lui-même ses méthodes depuis « Mon compte » (FR-14).
+- Deux comptes créés par erreur → demande au support ; un administrateur peut transférer les achats après vérification (FR-62).
+
+**FR-16 — Connexion au bon moment.** La connexion n'est demandée qu'au moment d'acheter (ou pour la reprise de lecture synchronisée entre appareils). Elle s'ouvre par-dessus le lecteur, sans perdre l'épisode en cours.
+
+**Reporté** : connexion par numéro de téléphone + code (PIN), connexion par lien magique, autres réseaux sociaux.
 
 ## 4. Achat et paiement
 
@@ -106,75 +117,102 @@ Pas d'e-mail requis. Le nom affiché est facultatif.
 
 **FR-26 — Reçu.** Chaque commande payée apparaît dans « Mes achats » avec date, montant, référence. Pas d'envoi SMS de reçu en V1 (coût) — P2.
 
-## 5. Lecture vidéo — fonctionnalité centrale
+## 5. Visionnage — lecteur vertical et défilement continu (fonctionnalité centrale)
 
-Le lecteur est le cœur du produit : c'est là que l'utilisateur passe le plus de temps et juge la qualité de la plateforme. Ces exigences s'appliquent quel que soit le lecteur technique retenu **[D-13]**.
+L'expérience de visionnage s'inspire de la **navigation verticale** des plateformes de vidéos courtes, adaptée aux séries épisodiques : *ouvrir une série, regarder, faire défiler, continuer*. Elle ne cherche pas à reproduire une application existante. Décision de référence : `docs/decisions/2026-11-20-comptes-google-email-lecteur-vertical.md`.
 
-**FR-30 — Lecture mobile.**
-- Démarrage de la lecture en **un geste** depuis la carte d'épisode ou la fiche série.
-- Lecture **dans la page** sur mobile (pas de sortie forcée vers le lecteur du système), avec passage en plein écran à la demande.
-- Fonctionne sur Chrome Android, Samsung Internet, Safari iOS et navigateurs de bureau récents.
-- Format vertical (9:16) ou horizontal (16:9) selon la série **[D-07]** : le lecteur occupe l'écran de façon adaptée sans bandes inutiles.
-- Temps cible jusqu'à la première image : **< 3 s en 4G moyenne** (mesuré en recette).
+### 5.1 Entrée dans le lecteur
 
-**FR-31 — Accès protégé.** Pour un épisode payant, le serveur vérifie le droit d'accès puis génère un **lien de lecture signé et à durée courte**. Copier ce lien ne permet pas à un tiers de regarder au-delà de sa courte durée de validité (voir SECURITY_REQUIREMENTS §6 pour les limites). Le renouvellement de l'accès pendant un long épisode est transparent pour l'utilisateur.
+**FR-30 — Lancer une série.** Depuis la fiche série (résumé, saisons), le bouton principal lance :
+- le **premier épisode** si l'utilisateur n'a rien regardé ;
+- sinon « **Reprendre — Épisode 4 à 6:12** » (position exacte).
+Dès l'entrée, l'expérience devient **immersive** : la vidéo occupe presque tout l'écran du téléphone, l'interface du site disparaît.
 
-**FR-34 — Plein écran et orientation.**
-- Bouton plein écran toujours visible ; double-tap ou geste équivalent.
-- Contenu horizontal : passage en paysage proposé en plein écran (verrouillage de l'orientation lorsque le navigateur le permet).
-- Contenu vertical : plein écran en portrait.
-- Sortie du plein écran sans perdre la position.
+### 5.2 Format d'image
 
-**FR-35 — Contrôles.**
-- Lecture/pause (tap au centre), barre de progression large et précise au pouce, avance/recul de **10 s** (double-tap à droite/à gauche), volume/sourdine, durée écoulée et restante.
-- Les contrôles se masquent après ~3 s d'inactivité et réapparaissent au toucher.
-- Accessibles au clavier sur ordinateur (espace, flèches, F pour plein écran).
-- Sous-titres français si fournis (P1).
+**FR-31 — Vertical et horizontal, sans déformation.**
+- Format défini **par série** (vertical 9:16 privilégié, horizontal 16:9 accepté) **[D-07]**.
+- La vidéo est toujours affichée **entière, sans déformation ni recadrage abusif**. S'il reste des zones vides (écran plus allongé que la vidéo, ou vidéo horizontale sur téléphone tenu verticalement), elles sont comblées par un **fond flou** tiré de l'image.
+- Vidéo horizontale : affichée au centre ; le bouton plein écran passe en **paysage** (rotation proposée quand le navigateur le permet).
 
-**FR-36 — Adaptation à la connexion.**
-- Streaming **adaptatif** : la qualité suit automatiquement le débit.
-- Qualités basses disponibles (au moins 240p/360p) pour les connexions faibles.
-- Choix manuel de la qualité : **Auto** (par défaut), **Économie de données** (qualité plafonnée basse), **Haute qualité**. Le choix est mémorisé sur l'appareil.
-- Démarrage rapide en qualité modérée, puis montée en qualité si le débit le permet.
-- Indication discrète de chargement (pas d'écran figé sans explication).
+### 5.3 Navigation entre les épisodes
 
-**FR-37 — Reprise de lecture.**
-- Pour un utilisateur connecté, la position est enregistrée régulièrement (toutes les ~10 s, à la pause et à la fermeture) côté serveur.
-- Pour un visiteur, la position des épisodes gratuits est mémorisée sur l'appareil.
-- À la réouverture : « Reprendre à 12:34 » ou « Recommencer ».
-- Un épisode regardé à plus de ~95 % est marqué « vu » ; la série affiche « Continuer : épisode 4 ».
-- Sur l'accueil (P1) : rangée « Continuer à regarder ».
+**FR-32 — Défilement vertical.**
+- **Glisser vers le haut** : épisode suivant. **Glisser vers le bas** : épisode précédent. Transition fluide, une diapositive = un épisode.
+- Sur ordinateur : flèches haut/bas du clavier, molette, et boutons ▲ ▼ à côté de la vidéo.
+- L'épisode suivant est **préchargé** pour démarrer sans attente.
 
-**FR-38 — Enchaînement.**
-- Fin d'épisode : carte « Épisode suivant » avec compte à rebours de quelques secondes si l'épisode suivant est accessible ; sinon écran d'achat (épisode ou pass) sans quitter le lecteur.
-- Après un achat réussi depuis le lecteur, la lecture démarre directement.
+**FR-33 — Enchaînement automatique.** À la fin d'un épisode, passage automatique au suivant **s'il est accessible**. Si le suivant est payant et non débloqué, le défilement s'arrête sur sa diapositive de déblocage (FR-38) : **jamais de lecture ni de paiement automatique** vers un contenu payant.
 
-**FR-39 — Gestion des erreurs.** Chaque erreur a un message clair en français et une action :
+**FR-34 — Liste des épisodes à la demande.** Un bouton discret « Épisodes » ouvre un panneau listant les épisodes de la saison (état : vu, en cours, gratuit, débloqué, verrouillé, bientôt) pour sauter directement à l'un d'eux, puis refermer et continuer à défiler. L'utilisateur n'a **jamais besoin** de ce panneau pour enchaîner.
 
-| Situation | Message (exemple) | Action proposée |
+### 5.4 Commandes (discrètes)
+
+**FR-35 — Interface minimale.** L'écran montre surtout la vidéo. Les commandes apparaissent au toucher et disparaissent après ~3 s :
+- **toucher** au centre : lecture / pause (icône brève) ;
+- **son** : activer / couper ;
+- **barre de progression** fine, élargie au toucher pour se déplacer dans l'épisode ;
+- **plein écran** ;
+- **épisode précédent / suivant** (en plus du glissement) ;
+- en haut, discret : « **Sang Royal · S1 · Épisode 3** » et bouton retour vers la fiche série ;
+- bouton « Épisodes » (FR-34) et qualité (Auto / Économie de données / Haute qualité, FR-36).
+Contrôles accessibles au clavier sur ordinateur (espace, flèches, M pour le son, F pour plein écran).
+
+### 5.5 Qualité de diffusion
+
+**FR-36 — Adaptation à la connexion.** Streaming adaptatif (qualité ajustée au débit), qualités basses disponibles (240p/360p), choix manuel Auto / Économie de données / Haute qualité mémorisé sur l'appareil, démarrage rapide en qualité modérée, indicateur de chargement discret. Temps cible jusqu'à la première image : < 3 s en 4G moyenne.
+
+**FR-37 — Progression et reprise.**
+- Position enregistrée régulièrement (toutes les ~10 s, à la pause, au changement d'épisode, à la fermeture) : côté serveur pour un utilisateur connecté (synchronisée entre appareils), sur l'appareil pour un visiteur.
+- Épisode regardé à plus de ~95 % = « vu ».
+- La fiche série et l'accueil (« Continuer à regarder ») proposent de reprendre **exactement** là où l'utilisateur s'était arrêté.
+- Revenir à un épisode partiellement vu en faisant défiler reprend à sa position.
+
+### 5.6 Droits d'accès dans le défilement
+
+**FR-38 — Diapositive de déblocage.** Pour un épisode payant non débloqué, la diapositive montre l'image floutée de l'épisode, son titre et deux options claires :
+- « **Débloquer la saison — 1 500 FCFA** · tous les épisodes, y compris les prochains » (mis en avant) ;
+- « Seulement cet épisode — 300 FCFA ».
+L'achat se fait **sans quitter le lecteur** (connexion si nécessaire, puis paiement — simulé jusqu'à l'étape 7). Après confirmation, la diapositive se déverrouille et la lecture démarre ; tous les épisodes couverts deviennent lisibles dans le défilement **sans rechargement**.
+
+**FR-39 — Pass saison dans le défilement.** Avec un pass : aucun écran de paiement entre les épisodes de la saison ; les nouveaux épisodes publiés apparaissent dans le défilement et sont lisibles immédiatement ; le pass n'expire pas.
+
+**FR-40 — Épisode acheté à l'unité.** Seul cet épisode est débloqué ; les autres gardent leurs conditions d'accès (gratuit, payant).
+
+**FR-41 — Épisode programmé.** Un épisode annoncé mais non encore publié apparaît comme diapositive « **Épisode 7 — disponible le 26 novembre** » (avec « inclus dans votre pass » si c'est le cas). Il n'est jamais lisible avant sa date.
+
+### 5.7 Fin de saison et saisons suivantes
+
+**FR-42 — Fin de saison.** Après le dernier épisode publié, une diapositive de fin :
+- s'il existe une **saison suivante** : « Découvrir la saison 2 ». Si elle est accessible (épisode gratuit ou saison débloquée), la lecture continue ; sinon, offre de déblocage claire **avec la mention explicite** « Votre pass Saison 1 ne couvre pas la saison 2 » ;
+- s'il n'y a pas de saison suivante : « Vous êtes à jour », date du prochain épisode si connue, suggestions d'autres séries.
+L'interface ne laisse **jamais** croire qu'un achat couvre une autre saison.
+
+### 5.8 Erreurs
+
+**FR-43 — Gestion des erreurs.** Chaque erreur a un message clair et une action :
+
+| Situation | Message | Action |
 |---|---|---|
-| Connexion perdue / trop faible | « Connexion trop faible. La lecture reprendra automatiquement. » | Nouvelle tentative automatique (avec délai croissant), bouton « Réessayer », passage suggéré en économie de données |
-| Lien de lecture expiré | — (invisible) | Renouvellement automatique et reprise à la même position |
-| Accès refusé (non acheté, achat remboursé) | « Cet épisode fait partie du contenu payant. » | Écran d'achat |
-| Paiement encore en vérification | « Votre paiement est en cours de vérification. » | Rafraîchissement automatique |
-| Vidéo indisponible (encodage, retrait) | « Cet épisode n'est pas disponible pour le moment. » | Retour à la série ; incident remonté à l'équipe |
-| Navigateur incompatible | « Votre navigateur ne permet pas la lecture. » | Conseil de navigateur |
-| Erreur inconnue | « Un problème est survenu pendant la lecture. » | « Réessayer » ; code d'erreur discret pour le support |
+| Connexion perdue / trop faible | « Connexion trop faible. La lecture reprendra automatiquement. » | Nouvelle tentative automatique, « Réessayer », suggestion du mode économie de données |
+| Lien de lecture expiré | — (invisible) | Renouvellement automatique, reprise à la même position |
+| Accès refusé (achat remboursé, compte bloqué) | « Cet épisode n'est plus disponible pour votre compte. » | Diapositive de déblocage ou contact support |
+| Paiement en vérification | « Votre paiement est en cours de vérification. » | Rafraîchissement automatique |
+| Vidéo indisponible | « Cet épisode n'est pas disponible pour le moment. » | Passer au suivant ; incident remonté à l'équipe |
+| Erreur inconnue | « Un problème est survenu pendant la lecture. » | « Réessayer » ; code discret pour le support |
 
-Toutes les erreurs de lecture sont remontées au suivi d'erreurs (sans donnée personnelle) pour mesurer leur fréquence.
-
-**FR-32 — Statistiques de lecture (P1).** Démarrages, temps de chargement initial, interruptions (rebuffering), erreurs, taux de complétion par épisode — pour piloter la qualité et les coûts.
-
-**FR-33 — Économie de données.** Couvert par FR-36 (mode « Économie de données ») ; pas de lecture automatique de vidéo sur l'accueil mobile.
+**FR-44 — Mesures de qualité (P1).** Temps jusqu'à la première image, interruptions, erreurs, taux de complétion et d'enchaînement par épisode.
 
 ## 6. Bibliothèque personnelle
 
-**FR-40 —** Page « Ma bibliothèque » listant :
+**FR-45 —** Page « Ma bibliothèque » listant :
 - les passes saison possédés (avec tous les épisodes publiés de la saison, y compris les nouveaux) ;
 - les épisodes achetés à l'unité ;
 - un accès direct à la lecture.
 
-**FR-41 —** Un nouvel épisode ajouté à une saison dont l'utilisateur a le pass apparaît automatiquement, sans action de sa part.
+**FR-46 —** Un nouvel épisode ajouté à une saison dont l'utilisateur a le pass apparaît automatiquement, sans action de sa part — dans la bibliothèque **et** dans le défilement du lecteur.
+
+**FR-47 —** « Continuer à regarder » : séries en cours avec reprise directe dans le lecteur à la bonne position (FR-37).
 
 ## 7. Administration
 
@@ -189,7 +227,7 @@ Interface web réservée aux administrateurs, accessible sous `/admin`, sur le m
 - **FR-55** Garde-fous : impossible de publier un épisode payant (ou une saison) sans prix dans **chaque grille tarifaire utilisée par un pays en statut `pilote` ou `ouvert`**, sans vidéo encodée ou sans vignette. Impossible de passer un pays en `pilote` ou `ouvert` tant que des contenus payants publiés n'ont pas de prix dans sa grille ou qu'aucune route de paiement n'est active. Les prix sont validés contre les contraintes des prestataires (ex. multiple de 5). Avertissement avant de dépublier un contenu déjà acheté.
 
 ### 7.1 bis Marchés et paiements (réservé au rôle `admin`)
-- **FR-56** Pays : statut de paiement (`indisponible`, `pilote` — achats réservés aux testeurs —, `ouvert`), SMS activés ou non pour l'indicatif, grille tarifaire, état des confirmations écrites A/B/C par prestataire (avec lien vers la réponse).
+- **FR-56** Pays : statut de paiement (`indisponible`, `pilote` — achats réservés aux testeurs —, `ouvert`), grille tarifaire, état des confirmations écrites A/B/C par prestataire (avec lien vers la réponse).
 - **FR-56b** Comptes testeurs : marquer un client comme testeur pour les pays en statut `pilote` **[D-22]**.
 - **FR-57** Grilles tarifaires : création (devise), rattachement des pays.
 - **FR-58** Prestataires et comptes de paiement : activer / désactiver un prestataire ou un compte (les clés restent dans la configuration de l'hébergeur, jamais saisies dans l'admin).
@@ -199,7 +237,7 @@ Interface web réservée aux administrateurs, accessible sous `/admin`, sur le m
 ### 7.2 Utilisateurs
 - **FR-60** Liste des utilisateurs (numéro partiellement masqué par défaut, date d'inscription, nombre d'achats).
 - **FR-61** Fiche utilisateur : historique d'achats, bibliothèque, sessions actives.
-- **FR-62** Actions : bloquer / débloquer un compte, forcer la déconnexion, **accorder manuellement un accès** (geste commercial ou litige), avec motif obligatoire et journalisation.
+- **FR-62** Actions : bloquer / débloquer un compte, forcer la déconnexion, **accorder manuellement un accès** (geste commercial ou litige), **transférer les achats** d'un compte créé par erreur vers le compte principal du même client (FR-15), avec motif obligatoire et journalisation.
 
 ### 7.3 Transactions
 - **FR-70** Liste filtrable des paiements : statut (`en attente`, `réussi`, `échoué`, `annulé`, `expiré`, `à examiner`, `remboursé`), prestataire, montant, devise, date, utilisateur, contenu.
@@ -234,6 +272,9 @@ Interface web réservée aux administrateurs, accessible sous `/admin`, sur le m
 | RM-10 | Un épisode payant passé en gratuit reste dans la bibliothèque de ceux qui l'ont acheté. | Recommandé |
 | RM-11 | Le prix dépend de la grille tarifaire du **pays de paiement** choisi ; l'utilisateur paie dans la devise de ce pays. Pas de conversion automatique. | **[D-03]**, **[D-17]** |
 | RM-12 | Un achat est valable partout : un contenu acheté dans un pays reste accessible si l'utilisateur voyage ou change de pays de paiement. | Recommandé |
+| RM-13 | Un pass saison couvre **uniquement** sa saison ; il ne couvre jamais une autre saison, même de la même série. | Validé |
+| RM-14 | L'enchaînement automatique ne lance jamais un épisode payant non débloqué et ne déclenche jamais de paiement ; tout achat exige une action explicite. | Validé |
+| RM-15 | Les achats, la bibliothèque et la progression appartiennent au compte, pas à la méthode de connexion. | Validé |
 
 ## 9. Exigences non fonctionnelles
 
@@ -247,7 +288,7 @@ Interface web réservée aux administrateurs, accessible sous `/admin`, sur le m
 | NFR-06 | Langue : français **[D-15]**. Textes centralisés pour permettre la traduction plus tard. |
 | NFR-09 | Panafricain : aucun pays, devise, prestataire ou opérateur codé en dur ; tout est configuration en base. |
 | NFR-07 | Navigateurs : Chrome Android, Safari iOS, Samsung Internet, Opera Mini en mode non-extrême **[HYPOTHÈSE]**, navigateurs de bureau récents. |
-| NFR-08 | Données personnelles : collecte minimale (numéro, PIN haché, achats). Conformité aux lois locales (voir LAUNCH_CHECKLIST). |
+| NFR-08 | Données personnelles : collecte minimale (e-mail, nom affiché facultatif, numéro facultatif non vérifié, achats). Conformité aux lois locales (voir LAUNCH_CHECKLIST). |
 
 ## 10. Reporté après la V1
 
@@ -261,9 +302,9 @@ Interface web réservée aux administrateurs, accessible sous `/admin`, sur le m
 | Téléchargement hors-ligne | Nécessite DRM et application native |
 | DRM complet (Widevine/FairPlay) | Coût et complexité ; à réévaluer si piratage constaté |
 | Recherche, filtres | Catalogue de 6 séries |
-| Notifications (SMS, push, « me prévenir ») | Coût SMS ; P2 |
+| Notifications (e-mail, push, « me prévenir ») | P2 ; aucun SMS payant |
 | Avis, commentaires, notes | Modération nécessaire |
 | Multi-profils, contrôle parental | Non essentiels |
 | Multilingue, sous-titres multiples | P2 (les sous-titres FR peuvent être P1 si fournis) |
 | Bandes-annonces | P1 si le fondateur les fournit |
-| Changement de numéro en libre-service | Procédure manuelle en V1 |
+| Connexion par numéro de téléphone + code (PIN) | Non développée au lancement (pas de SMS) |

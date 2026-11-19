@@ -21,15 +21,16 @@ Si le code et ces documents divergent, **signaler l'écart** et mettre à jour l
 ## État du projet
 
 - Phase 1 (cadrage) terminée ; plan de développement en 11 étapes proposé (DEVELOPMENT_ROADMAP). **Validés** : D-01 (CinetPay + FedaPay, intégrations modulaires), D-02 (panafricain, activation progressive), D-03 pour XOF (300 / 1 500 FCFA, autres monnaies indépendantes, aucune conversion automatique), principe de D-17, D-21 (Bénin par défaut, prix indicatifs), principe de D-22 (pilote multi-pays). Société exploitante : béninoise. Autres décisions : registre PROJECT_BRIEF §8 avec leur échéance.
-- **Étape 1 livrée, en attente de validation du fondateur** (fiche `docs/recette/etape-1.md`). Ne pas commencer l'étape 2 sans validation explicite.
 - Décisions techniques de l'étape 1 et reports assumés : `docs/decisions/2026-11-19-etape-1-socle.md`.
-- Conditions du fondateur : maquettes du parcours complet à l'étape 2 (paiements simulés) ; recommandation argumentée sur le PIN 4 ou 6 chiffres **avant l'étape 3** (D-04 non tranché) ; le lecteur vidéo est une fonctionnalité centrale (PRODUCT_REQUIREMENTS §5).
+- **Étape 1 validée** par le fondateur (2026-11-20).
+- Décisions du 2026-11-20 (`docs/decisions/2026-11-20-comptes-google-email-lecteur-vertical.md`) : connexion **Google + e-mail/mot de passe** (pas de PIN, **aucun SMS**) ; numéro facultatif non vérifié ; liaison des comptes sans perte d'achats ; **lecteur vertical 9:16 sur mesure en défilement continu** (style vidéos courtes, adapté aux séries). La **maquette du lecteur** doit être validée avant de le coder.
+- Étape 2 : maquettes du parcours complet (paiements simulés), puis site public et lecteur. Présenter chaque phase et attendre la validation.
 - Les services externes non disponibles sont remplacés par des simulateurs (TECHNICAL_ARCHITECTURE §12), jamais activables en production.
 - Ne jamais présenter une décision en attente comme validée.
 
 ## Pile prévue (sous réserve des vérifications des étapes 3, 6 et 7 de la feuille de route)
 
-Next.js (App Router) + TypeScript · Tailwind · Supabase (Postgres, Storage, RLS ; Auth **pour les admins uniquement**) · auth client maison (numéro + PIN + OTP, sessions en base) · Bunny Stream · CinetPay + FedaPay (adaptateurs derrière l'interface `PaymentProvider`, routage pays × moyen configurable en base) · Vercel · Sentry · Turnstile · Zod · Vitest · Playwright.
+Next.js (App Router) + TypeScript · Tailwind · Supabase (Postgres, Storage, RLS, **Auth : Google + e-mail pour les clients, e-mail + TOTP pour les admins**, appelée côté serveur uniquement) · lecteur sur mesure (hls.js) en défilement vertical · Bunny Stream · CinetPay + FedaPay (adaptateurs derrière l'interface `PaymentProvider`, routage pays × moyen configurable en base) · Vercel · Sentry · Turnstile · Zod · Vitest · Playwright.
 
 ## Règles non négociables
 
@@ -39,11 +40,12 @@ Next.js (App Router) + TypeScript · Tailwind · Supabase (Postgres, Storage, RL
 4. **Le prix est toujours recalculé côté serveur.**
 5. **Le navigateur ne parle jamais à la base.** RLS activé sur toutes les tables sans politique pour `anon`/`authenticated` ; tout passe par le serveur, qui filtre par client de la session.
 6. **Vidéos payantes** : jamais d'URL permanente ; jeton court émis après `has_episode_access`. Clé de signature jamais exposée ; `video_id` absent des données de catalogue.
-7. **PIN** : Argon2id + poivre, vérification serveur uniquement, verrouillages et limites SEC-03 à SEC-05. Aucun autre moyen d'ouvrir une session client (fournisseur « phone » de Supabase désactivé).
+7. **Comptes** : Google et e-mail + mot de passe uniquement (SEC-01 à SEC-15) ; confirmation d'e-mail obligatoire avant tout achat ; aucun client Supabase dans le navigateur ; achats et bibliothèque rattachés à l'identifiant client, jamais à la méthode de connexion ; **aucune fonction dépendant d'un SMS**.
 8. **Admin** : session Supabase + MFA `aal2` + rôle `staff_roles` vérifiés côté serveur sur chaque route/action ; actions sensibles dans `audit_logs`.
 9. **Webhooks de paiement** : 200 seulement après traitement ; 500 en cas d'erreur temporaire ; notifications répétées retraitées sans effet de bord.
 10. Ne pas inventer de capacités, tarifs ou formats d'API des prestataires. **Aucune capacité ni restriction n'est « confirmée » sans source officielle explicite ou réponse écrite du prestataire** ; utiliser les niveaux de preuve de TECHNICAL_ARCHITECTURE §5.1 et toujours citer la source.
 11. **La consultation et les épisodes gratuits ne sont jamais bloqués** par l'état des paiements d'un pays. Le pays de paiement est confirmé par l'utilisateur, jamais déduit silencieusement du numéro ou de l'IP.
+12. **Lecteur** : l'enchaînement automatique ne lance jamais un épisode payant non débloqué ni un paiement ; un pass ne couvre que sa saison ; vidéo jamais déformée ni recadrée abusivement.
 
 ## Méthode de travail
 

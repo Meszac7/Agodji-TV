@@ -1,7 +1,7 @@
 # Agodjié TV — Plan de développement V1
 
 > Statut : **proposé, en attente du feu vert du fondateur**. Aucun code n'a été écrit.
-> Principe : livrer en **petites étapes visibles**, chacune démontrée au fondateur, testée, et poussée sur GitHub. Les réponses commerciales et administratives (prestataires, juriste, SMS) **ne bloquent pas** la construction : des **simulateurs** remplacent les services externes tant qu'ils ne sont pas disponibles (TECHNICAL_ARCHITECTURE §12).
+> Principe : livrer en **petites étapes visibles**, chacune démontrée au fondateur, testée, et poussée sur GitHub. Les réponses commerciales et administratives (prestataires, juriste) **ne bloquent pas** la construction : des **simulateurs** remplacent les services externes tant qu'ils ne sont pas disponibles (TECHNICAL_ARCHITECTURE §12).
 
 ---
 
@@ -9,11 +9,11 @@
 
 | Élément | Bloquant pour démarrer ? | Pourquoi |
 |---|---|---|
-| **Feu vert du fondateur sur ce plan** | **Oui** | Seule condition pour commencer l'étape 1 |
+| **Validation de la maquette du lecteur vertical** | **Oui, pour coder le lecteur** (étape 2) | Exigence du fondateur (2026-11-20) |
 | Comptes Supabase / Vercel | Non pour coder (base locale) — **recommandé avant la fin de l'étape 1** | Sans eux, vous ne pouvez voir l'avancement que par captures d'écran et vidéos ; avec eux, vous testez vous-même sur un lien de préproduction |
 | Format vidéo (D-07) | Non | Format réglable par série ; utile pour les maquettes de l'étape 2 |
 | Compte Bunny Stream | Non avant l'étape 6 | Les étapes 2 à 5 utilisent une vidéo de démonstration locale |
-| Prestataire SMS (D-16) | Non avant le pilote | Simulateur : les codes s'affichent dans un journal de développement |
+| Projet Supabase de préproduction + identifiant Google OAuth (D-25) | **Oui pour l'étape 3** | Supabase Auth (Google, e-mail) ne peut pas tourner localement sans Docker dans l'environnement de travail ; un projet Supabase gratuit de préproduction suffit |
 | Comptes sandbox CinetPay / FedaPay | Non avant l'étape 7 | Simulateur de paiement pour tout le moteur d'achat |
 | Réponses écrites des prestataires (D-20), juriste (D-09) | Non avant le pilote | Elles conditionnent l'ouverture des pays, pas le code |
 | Logo, domaine, textes légaux | Non avant le pilote / lancement | Éléments provisoires jusque-là |
@@ -23,14 +23,14 @@
 | Échéance | Décisions |
 |---|---|
 | **Maintenant** | Feu vert sur ce plan · **envoyer les questions écrites aux prestataires (D-20)** — les délais de réponse sont hors de notre contrôle |
-| Avant l'étape 2 (maquettes) | Format et durée de la première série (D-07) — sinon maquettes faites pour les deux formats |
-| Avant l'étape 3 | **Recommandation argumentée sur le PIN à 4 ou 6 chiffres présentée au fondateur**, puis décision D-04 ; OTP obligatoire (D-05) |
+| Avant l'étape 2 (maquettes) | Durée moyenne des épisodes de la première série (D-07, utile pour les coûts) — le format vertical est validé |
+| Avant l'étape 3 | Projet Supabase de préproduction et identifiant Google OAuth créés (D-25), guidés pas à pas ; confirmation de l'authentification admin (D-06) |
 | Avant l'étape 4 | Authentification admin e-mail + TOTP (D-06) |
 | Avant l'étape 5 | Validation des écrans d'achat et du choix du pays (D-17) |
-| Avant l'étape 2 (lecteur) | Choix du lecteur (D-13) : lecteur sur mesure recommandé |
+| Avant l'étape 2 (lecteur) | **Validation de la maquette du lecteur vertical** (D-27) — lecteur sur mesure validé (D-13) |
 | Avant l'étape 6 | Compte Bunny Stream |
 | Avant l'étape 7 | Comptes **sandbox** CinetPay et FedaPay |
-| Avant le pilote (étape 10) | Réponses des prestataires (D-20), stratégie d'encaissement (D-09), prestataire SMS (D-16), prestataire principal par pays (D-18), politiques et textes légaux (D-08), mention IA (D-10), domaine (D-11), budget (D-12), liste des testeurs (D-22) |
+| Avant le pilote (étape 10) | Réponses des prestataires (D-20), stratégie d'encaissement (D-09), service d'envoi d'e-mails (D-24), prestataire principal par pays (D-18), politiques et textes légaux (D-08), mention IA (D-10), domaine (D-11), budget (D-12), liste des testeurs (D-22) |
 | Avant chaque ouverture de pays hors XOF | Grille tarifaire de la monnaie (D-03), réponses A/B/C, (D-19 pour l'Afrique centrale non documentée) |
 | Avant le lancement public | Logo et identité (D-14) |
 
@@ -39,15 +39,15 @@
 | Étape | Livré au fondateur | Services externes nécessaires |
 |---|---|---|
 | 1 | Socle technique + guide de style visible | Aucun (recommandé : Supabase + Vercel de préproduction) |
-| 2 | Site public consultable + épisodes gratuits (vidéo de démonstration) | Aucun |
-| 3 | Comptes clients (numéro + code SMS + PIN) | Aucun (SMS simulés) |
+| 2 | Maquettes du parcours complet, site public, **lecteur vertical en défilement continu** (vidéos de démonstration) | Aucun |
+| 3 | Comptes clients : Google + e-mail/mot de passe, liaison des comptes, profil (numéro facultatif) | Projet Supabase de préproduction + identifiant Google OAuth |
 | 4 | Administration : contenus, prix, publication | Aucun (Supabase local ou préproduction pour l'auth admin) |
 | 5 | Achat complet avec paiement simulé, bibliothèque | Aucun (simulateur) |
 | 6 | Vraies vidéos protégées (Bunny) | Compte Bunny |
 | 7 | Adaptateurs CinetPay et FedaPay en sandbox | Comptes sandbox |
 | 8 | Statistiques + administration des pays et paiements | — |
 | 9 | Durcissement, revue de sécurité, recette mobile | — |
-| 10 | Pilote : achats réels par des testeurs dans plusieurs pays | Comptes live, SMS réel, domaine, réponses prestataires |
+| 10 | Pilote : achats réels par des testeurs dans plusieurs pays | Comptes live, service d'e-mails, domaine, réponses prestataires |
 | 11 | Ouverture progressive au public | Par pays, selon LAUNCH_CHECKLIST §9 |
 
 Les étapes 6 et 7 peuvent être avancées ou menées en parallèle dès que les comptes correspondants existent.
@@ -75,30 +75,30 @@ Chaque étape indique : **livrables**, **tests automatisés**, **validation par 
 
 **Livrables**
 - **Maquettes du parcours utilisateur complet**, validées par le fondateur **avant** l'intégration (DESIGN_GUIDELINES §10) : découverte (accueil, catalogue) → fiche série → épisode gratuit dans le lecteur → épisode payant → écran d'achat (choix épisode/pass, confirmation du pays de paiement, moyen de paiement) → paiement **simulé** → vérification → confirmation → lecture du contenu débloqué → bibliothèque. Inclut connexion/inscription, états d'erreur et thèmes sombre/clair. Les maquettes sont **cliquables** (prototype navigable sur mobile), les paiements restent simulés.
-- **Lecteur vidéo** selon PRODUCT_REQUIREMENTS §5 (FR-30 à FR-39) : lecture mobile, plein écran, qualité adaptative et mode économie de données, reprise (sur l'appareil pour les visiteurs), gestion des erreurs — sur vidéo de démonstration HLS.
+- **Lecteur vertical en défilement continu** selon PRODUCT_REQUIREMENTS §5 (FR-30 à FR-44), conforme à la maquette validée : glisser haut/bas, enchaînement automatique, reprise (sur l'appareil pour les visiteurs), formats vertical et horizontal sans déformation, plein écran, qualité adaptative et économie de données, diapositives « verrouillé » / « bientôt » / fin de saison, gestion des erreurs — sur vidéos de démonstration HLS. Les cinq couches (interface, moteur, droits, progression, séquenceur) sont séparées (TECHNICAL_ARCHITECTURE §6.4).
 - Accueil (bannière, rangées « Disponible » / « Bientôt »), catalogue, fiche série, saisons, liste d'épisodes avec badges d'accès et prix.
 - Prix affichés pour le pays d'affichage : estimé par IP, **Bénin par défaut** avec la mention « Prix indicatifs — modifiables selon votre pays » (D-21), sélecteur de pays.
 - Format d'affichage selon le réglage de la série (vertical ou horizontal).
 - Lecture des épisodes gratuits via `/api/playback` (simulateur vidéo : vidéo de démonstration).
 - Navigation mobile (barre inférieure), images optimisées.
 
-**Tests automatisés** : lecteur (démarrage, plein écran, reprise, erreurs simulées : réseau coupé, lien expiré renouvelé, accès refusé) ; règles de visibilité (brouillon, programmé, publié, dépublié, série « bientôt ») ; `video_id` absent de toutes les données envoyées au navigateur ; prix affichés = grille du pays sélectionné ; parcours Playwright sur mobile (Android et iPhone émulés) et ordinateur ; budget de poids de page ; contrastes d'accessibilité.
+**Tests automatisés** : lecteur et défilement (glisser haut/bas, enchaînement automatique, arrêt devant un épisode verrouillé, reprise à la bonne position, vidéo horizontale non déformée, plein écran, erreurs simulées : réseau coupé, lien expiré renouvelé, accès refusé) ; séquenceur (ordre, états, fin de saison, épisodes programmés) ; règles de visibilité (brouillon, programmé, publié, dépublié, série « bientôt ») ; `video_id` absent de toutes les données envoyées au navigateur ; prix affichés = grille du pays sélectionné ; parcours Playwright sur mobile (Android et iPhone émulés) et ordinateur ; budget de poids de page ; contrastes d'accessibilité.
 
-**Validation fondateur** : 1) valider les maquettes du parcours complet ; 2) puis, sur le site, regarder l'épisode gratuit sur votre téléphone (plein écran, reprise, connexion lente), changer le pays d'affichage, vérifier les textes.
+**Validation fondateur** : 1) valider la maquette du lecteur vertical puis les maquettes du parcours complet ; 2) puis, sur le site, enchaîner les épisodes en faisant défiler sur votre téléphone (plein écran, reprise, connexion lente), changer le pays d'affichage, vérifier les textes.
 
 **Sortie** : parcours visiteur fluide sur mobile, aucune donnée interne exposée.
 
-### Étape 3 — Comptes clients
+### Étape 3 — Comptes clients (Google, e-mail + mot de passe)
 
-**Préalable** : recommandation argumentée sur le PIN à 4 ou 6 chiffres (simplicité, sécurité, récupération de compte) présentée au fondateur, décision D-04 prise.
+**Prérequis** : projet Supabase de préproduction et identifiant Google OAuth (D-25) ; service d'e-mails de test (celui de Supabase suffit en préproduction).
 
-**Livrables** : inscription (numéro → code SMS → PIN), connexion, PIN oublié, changement de PIN, déconnexion de tous les appareils, page « Mon compte » ; retour au contexte d'origine après connexion ; Turnstile (clés de test) ; liste blanche des indicatifs pour les SMS.
+**Livrables** : « Continuer avec Google » ; inscription e-mail + mot de passe avec confirmation d'e-mail ; connexion ; mot de passe oublié ; « Mon compte » (nom, numéro facultatif non vérifié, méthodes de connexion liées, ajouter Google / définir un mot de passe, changer d'e-mail, déconnexion de tous les appareils) ; connexion par-dessus le lecteur sans perdre l'épisode ; reprise de lecture synchronisée pour les connectés ; Turnstile.
 
-**Tests automatisés** : SEC-01 à SEC-14 et SEC-25 — verrouillage après 5 et 10 échecs, limites par IP et par numéro, PIN interdits, messages neutres, code SMS à usage unique et expirant, suppression des sessions au changement de PIN, client bloqué déconnecté immédiatement, indicatif non autorisé refusé.
+**Tests automatisés** (SEC-01 à SEC-16, SEC-25) : compte non confirmé ne peut pas acheter ; **prise de contrôle anticipée** (compte e-mail non confirmé créé avec l'adresse d'un autre, puis connexion Google de la vraie personne) → aucun accès pour le tiers ; liaison Google ↔ e-mail conserve achats, bibliothèque et progression ; retrait de la dernière méthode refusé ; changement de mot de passe déconnecte les autres sessions ; client bloqué refusé même avec un jeton valide ; aucun client Supabase dans le navigateur ; numéro jamais utilisé pour se connecter.
 
-**Validation fondateur** : créer un compte, se déconnecter, se reconnecter, simuler un PIN oublié (les codes SMS apparaissent dans un journal de préproduction).
+**Validation fondateur** : créer un compte avec Google, un autre par e-mail, lier les deux méthodes, se déconnecter / se reconnecter, réinitialiser un mot de passe.
 
-**Sortie** : tous les tests de sécurité d'authentification passent.
+**Sortie** : tous les tests d'authentification et de liaison passent.
 
 ### Étape 4 — Administration du contenu
 
@@ -172,9 +172,9 @@ Le simulateur reproduit les scénarios réels : succès, échec, annulation, not
 
 ### Étape 10 — Pilote multi-pays
 
-**Prérequis** : réponses écrites et contrat live avec au moins un prestataire pour les pays du pilote, SMS réel, domaine, textes légaux, liste des testeurs (D-22).
+**Prérequis** : réponses écrites et contrat live avec au moins un prestataire pour les pays du pilote, service d'e-mails (D-24), domaine, textes légaux, liste des testeurs (D-22).
 
-**Déroulé** : pays concernés en statut `pilot` ; achats réels de faible montant par les testeurs dans plusieurs pays ; remboursement testé ; suivi des coûts (SMS, bande passante, commissions) et des taux de réussite par opérateur.
+**Déroulé** : pays concernés en statut `pilot` ; achats réels de faible montant par les testeurs dans plusieurs pays ; remboursement testé ; suivi des coûts (bande passante, commissions, e-mails) et des taux de réussite par opérateur.
 
 **Sortie** : paiements réels fiables dans au moins un pays ; liste des correctifs traitée.
 

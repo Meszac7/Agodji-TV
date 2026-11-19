@@ -12,13 +12,13 @@
 | Frontend + backend | **Next.js (App Router) + TypeScript**, un seul projet | SPA + API séparée (NestJS/Express) |
 | Hébergement de l'application | **Vercel** (plan Pro, usage commercial) | VPS auto-administré, Netlify |
 | Base de données | **Supabase Postgres** | Firebase (NoSQL, mauvais pour les transactions), MongoDB |
-| Authentification clients | **Sessions serveur maison** (numéro + PIN + OTP SMS gérés par notre serveur) — voir §7 | Supabase Auth avec couche PIN (contournable, voir §7) ; Clerk/Auth0 (pas de PIN, coût) |
+| Authentification clients | **Supabase Auth** : Google + e-mail/mot de passe (confirmation d'e-mail obligatoire), appelée côté serveur uniquement — voir §7 | Numéro + PIN + SMS (coût SMS, risques du PIN) ; Clerk/Auth0 (coût) |
 | Authentification admins | **Supabase Auth** e-mail + mot de passe + TOTP obligatoire | — |
 | Paiement | **CinetPay + FedaPay** derrière une interface commune, routage par pays et moyen de paiement configurable (§5) | Un seul prestataire (couverture insuffisante pour une plateforme panafricaine) |
 | Vidéo | **Bunny Stream** (encodage, HLS adaptatif, CDN, jetons signés) | Mux (plus cher), Cloudflare Stream, AWS (complexe) |
 | Images (affiches, vignettes) | **Supabase Storage** (bucket public en lecture) + optimisation d'images Next.js | Bunny Storage (à reconsidérer si coûts d'images élevés) |
 | Anti-robot | **Cloudflare Turnstile** | reCAPTCHA (plus intrusif) |
-| Envoi SMS (OTP) | Prestataire SMS appelé **directement par notre serveur** (international type Twilio/Vonage ou agrégateur local) **[D-16]** | Fournisseur « phone » de Supabase Auth (contournerait nos limites anti-fraude) |
+| E-mails d'authentification | Service **SMTP** branché sur Supabase Auth (offre gratuite à vérifier) **[D-24]** | Envoi intégré de Supabase (réservé aux tests) ; **aucun SMS** |
 | Suivi des erreurs | **Sentry** (offre gratuite au départ) | — |
 | Statistiques métier | **Requêtes SQL sur nos propres données** affichées dans l'admin | Outil BI externe |
 | Mesure d'audience | **Vercel Web Analytics** ou **Plausible** (léger, sans cookie) — P1 | Google Analytics (lourd, consentement) |
@@ -44,10 +44,10 @@
   Navigateur        │            Vercel — Next.js               │
   (mobile)  ───────►│  Pages publiques (SSR)  │  /admin          │
                     │  Routes serveur :                          │
-                    │   • /api/auth/*   (OTP, PIN, sessions)     │
+                    │   • /auth/*   (Google, e-mail, sessions)   │
                     │   • /api/checkout (création commande)      │
                     │   • /api/webhooks/<prestataire>/<compte>   │
-                    │   • /api/playback/:episode (jeton vidéo)   │
+                    │   • /api/feed, /api/playback, /api/progress│
                     │   • /api/webhooks/bunny (état encodage)    │
                     │   • /api/cron/reconcile (paiements)        │
                     └──────┬───────────────┬──────────────┬──────┘
@@ -64,7 +64,7 @@
                                                           Navigateur
 ```
 
-Le serveur appelle aussi le **prestataire SMS** (OTP), non représenté.
+Supabase Auth (Google, e-mail) est appelé par le serveur ; les e-mails partent via un service SMTP, non représenté.
 
 Principe : **le navigateur ne détient jamais de secret et ne parle jamais à la base**. Il ne reçoit que des données publiques, un cookie de session opaque, et des jetons vidéo de courte durée.
 
@@ -83,7 +83,7 @@ Principe : **le navigateur ne détient jamais de secret et ne parle jamais à la
 - **RLS activé sur toutes les tables sans aucune politique** pour les rôles `anon` et `authenticated` : même si la clé publique Supabase est utilisée (connexion admin), elle ne donne accès à aucune donnée. Droit d'exécution des fonctions SQL retiré à `PUBLIC`, `anon` et `authenticated`.
 - Région : choisir la même région pour Supabase et les fonctions Vercel, la plus proche de l'Afrique de l'Ouest/centrale disponible (probablement **Europe de l'Ouest, ex. Paris ou Francfort**) **[à vérifier : liste des régions Supabase/Vercel]**.
 - Publication programmée : pas de tâche planifiée nécessaire ; un contenu est visible si `status = 'published'` **ou** `status = 'scheduled' AND publish_at <= now()`.
-- Tâches planifiées (Vercel Cron) : réconciliation des paiements (§5.9), expiration des commandes, purge des tentatives de connexion, des OTP et des sessions expirés.
+- Tâches planifiées (Vercel Cron) : réconciliation des paiements (§5.9), expiration des commandes, purge des journaux techniques expirés.
 - Encodage vidéo : Bunny notifie `/api/webhooks/bunny` ; la notification sert seulement de **signal** — le serveur relit l'état de la vidéo via l'API Bunny avant de mettre à jour `video_status`. Bouton « actualiser l'état » dans l'admin en secours.
 
 ## 5. Paiements — architecture multi-prestataires et multi-marchés
@@ -198,7 +198,7 @@ Les comptes ci-dessus sont des **exemples** : le nombre réel de comptes dépend
 | Niveau | Qui en profite | Condition | Exemple |
 |---|---|---|---|
 | 1. Consultation | **Tout le monde, partout**, sans compte | Aucune — jamais bloquée par l'état des paiements | Catalogue, fiches, bandes-annonces, épisodes gratuits |
-| 2. Création de compte (OTP SMS) | Numéros des indicatifs pour lesquels l'envoi de SMS est activé (`markets.otp_enabled`) | Prestataire SMS fiable et budget validé pour ce pays | Un utilisateur du Gabon peut créer un compte même si le paiement n'y est pas encore ouvert |
+| 2. Création de compte | **Tout le monde, partout** (Google ou e-mail) | Aucune — ne dépend ni du pays ni d'un SMS | Un utilisateur du Gabon peut créer un compte même si le paiement n'y est pas encore ouvert |
 | 3. Achat | Pays de paiement au statut `pilot` (testeurs) ou `open` (tous), **et** au moins une route active pour le moyen choisi | A, B, C confirmés + paiement réel de contrôle (LAUNCH_CHECKLIST §9) | Bénin ouvert en Mobile Money, carte ajoutée plus tard |
 
 Statut de paiement d'un pays : `unavailable` (achat impossible, message « bientôt disponible ») → `pilot` (achat réservé aux comptes testeurs) → `open`. Les moyens s'activent **route par route** : un pays peut être ouvert en Mobile Money avant la carte.
@@ -287,7 +287,7 @@ La société est **béninoise** (information du fondateur). Rien n'est encore co
 
 Sujets juridiques associés (LAUNCH_CHECKLIST §4) : TVA sur les services numériques dans chaque pays ouvert, réglementation des changes (BCEAO, BEAC, Banque centrale du Congo, Banque centrale de Guinée), protection des données.
 
-**Principe retenu** : l'architecture est panafricaine dès le premier jour. Chaque pays passe à l'achat dès que A, B et C sont confirmés (✅) et qu'un paiement réel de contrôle a réussi. En attendant, il reste pleinement consultable (niveau 1) et, si les SMS y sont activés, les utilisateurs peuvent y créer un compte (niveau 2).
+**Principe retenu** : l'architecture est panafricaine dès le premier jour. Chaque pays passe à l'achat dès que A, B et C sont confirmés (✅) et qu'un paiement réel de contrôle a réussi. En attendant, il reste pleinement consultable (niveau 1) et les utilisateurs peuvent y créer un compte (niveau 2).
 
 ### 5.11 Échecs et remboursements
 - Paiement échoué/annulé : commande `failed`/`cancelled`, aucun droit. L'utilisateur peut recommencer (nouvelle commande, éventuellement avec un autre pays ou moyen).
@@ -326,47 +326,61 @@ Sujets juridiques associés (LAUNCH_CHECKLIST §4) : TVA sur les services numér
 - Un DRM complet (Widevine/FairPlay — Bunny propose une offre « MediaCage » **[à vérifier : prix et compatibilité]**) rend l'extraction des fichiers beaucoup plus difficile, mais n'empêche pas non plus l'enregistrement d'écran et ajoute coût et incompatibilités. **Reporté**, à réévaluer si du piratage est constaté.
 - Mesures dissuasives possibles plus tard : filigrane visible avec le numéro partiellement masqué de l'acheteur.
 
-### 6.4 Lecteur **[D-13]** — exigences techniques
+### 6.4 Lecteur vertical et défilement continu **[D-13 : lecteur sur mesure]**
 
-Le lecteur est une fonctionnalité centrale (PRODUCT_REQUIREMENTS §5). Exigences techniques, indépendantes de la solution :
+Exigences : PRODUCT_REQUIREMENTS §5. Décision : `docs/decisions/2026-11-20-comptes-google-email-lecteur-vertical.md`. Le lecteur intégré de Bunny (iframe) est écarté : il ne permet pas le défilement continu entre épisodes, la diapositive de déblocage ni la reprise fine.
 
-| Exigence | Mise en œuvre prévue |
-|---|---|
-| Streaming adaptatif | HLS ; lecture native sur Safari/iOS, **hls.js** (bibliothèque open source) sur les autres navigateurs |
-| Qualités | Paliers d'encodage incluant 240p/360p/480p/720p (1080p selon coût) — configuration Bunny à vérifier |
-| Plafond « Économie de données » | Limitation du niveau de qualité maximal côté lecteur |
-| Accès signé | URL HLS signée (jeton CDN Bunny) émise par `/api/playback` ; renouvellement avant expiration sans interrompre la lecture |
-| Reprise | Table `playback_progress (user_id, episode_id, position_seconds, completed, updated_at)` ; envoi groupé, limité en fréquence |
-| Erreurs | Classification des erreurs (réseau, accès, média, inconnu), nouvelles tentatives automatiques avec délai croissant, remontée Sentry |
-| Mesures | Temps jusqu'à la première image, interruptions, erreurs (FR-32) |
-| Tests | Playwright sur viewports mobiles (lecture, plein écran, reprise, erreurs simulées : réseau coupé, jeton expiré, accès refusé) ; tests manuels sur appareils réels |
+#### Cinq responsabilités séparées
 
-**Recommandation révisée pour D-13** (à valider avant l'intégration du lecteur à l'étape 2) : un **lecteur sur mesure** construit sur hls.js (avec l'interface aux couleurs d'Agodjié TV), plutôt que le lecteur intégré Bunny en iframe. Raisons :
-- la **reprise de lecture**, l'enchaînement avec l'**achat dans le lecteur**, le mode **économie de données** et la **gestion fine des erreurs** demandent un contrôle total que l'iframe ne garantit pas (les possibilités d'interaction avec le lecteur Bunny en iframe sont **à vérifier**) ;
-- le lecteur reste indépendant de l'hébergeur vidéo (`VideoProvider`) : changer d'hébergeur ne change pas l'expérience ;
-- coût : plus de développement et de tests (contrôles, accessibilité, compatibilité navigateurs), réduit en s'appuyant sur hls.js plutôt qu'en partant de zéro.
+```
+┌──────────────────────── Navigateur ────────────────────────┐   ┌──────────── Serveur ────────────┐
+│ 1. Interface du lecteur (FeedView, Slide, Controls)        │   │ 3. Droits d'accès               │
+│    gestes, commandes, diapositives, panneau « Épisodes »   │   │    has_episode_access + lien    │
+│                 │ affiche                                   │   │    signé court (POST /api/      │
+│ 2. Moteur de diffusion (PlaybackEngine)                    │◄──┤    playback/:episodeId)         │
+│    hls.js / HLS natif, qualité adaptative, préchargement,  │   │ 4. Progression                  │
+│    renouvellement du lien, reprise sur erreur réseau       │──►│    PUT /api/progress            │
+│                 ▲ ordre et états                           │   │ 5. Séquenceur (calcul)          │
+│ 5. Séquenceur (côté affichage) : diapositive courante,     │◄──┤    GET /api/feed/:serie?saison= │
+│    enchaînement, arrêt devant un épisode verrouillé        │   │    → diapositives + états       │
+└────────────────────────────────────────────────────────────┘   └─────────────────────────────────┘
+```
 
-Alternative si le fondateur préfère aller plus vite : lecteur intégré Bunny, en acceptant des limites sur la reprise, l'achat dans le lecteur et la personnalisation.
+| Couche | Responsabilité | Ne fait jamais |
+|---|---|---|
+| 1. Interface | Affichage plein écran, gestes (glisser, toucher), commandes discrètes, fond flou, diapositives de déblocage / bientôt / fin de saison | Décider d'un droit d'accès |
+| 2. Moteur de diffusion | Lecture HLS adaptative (natif Safari/iOS, **hls.js** ailleurs), plafond de qualité (économie de données), préchargement du suivant, renouvellement du lien signé avant expiration, nouvelles tentatives réseau | Connaître le prix ou les achats |
+| 3. Droits d'accès (serveur) | `has_episode_access` (DATABASE_SCHEMA §4), statut du client, émission du lien signé à durée courte | Être appelé depuis le navigateur autrement que via `/api/playback` |
+| 4. Progression | Position par épisode, « vu » (> 95 %), « continuer à regarder » ; serveur (`playback_progress`) si connecté, stockage local de l'appareil sinon | Accorder un accès |
+| 5. Séquenceur | Construit l'ordre des diapositives d'une saison : épisodes publiés (lecture ou déblocage), épisodes programmés (« bientôt »), carte de fin de saison (saison suivante et son état d'accès) ; règle d'enchaînement (jamais vers un contenu verrouillé) | Contourner les droits : il **décrit** l'état, le serveur le **vérifie** à chaque lecture |
+
+#### Points techniques
+- **API** : `GET /api/feed/:serieSlug?saison=N` renvoie les diapositives et leur état pour l'utilisateur courant (sans `video_id`) ; `POST /api/playback/:episodeId` renvoie le lien signé si l'accès est confirmé ; `PUT /api/progress` enregistre la position (limité en fréquence).
+- **Mémoire sur téléphones modestes** : au plus **3 éléments vidéo** montés (précédent, courant, suivant) ; les autres diapositives n'affichent qu'une image.
+- **Préchargement** : uniquement le manifeste et le premier segment de l'épisode suivant (si accessible), pour démarrer sans attente sans gaspiller la data.
+- **Son** : l'entrée dans le lecteur par un toucher autorise la lecture avec son ; l'enchaînement conserve le choix de l'utilisateur. Si le navigateur l'impose, démarrage en sourdine avec un bouton « Activer le son » visible.
+- **Format** : `object-fit: contain` (jamais de déformation ni de recadrage) ; fond flou généré à partir de la vignette ; plein écran paysage pour les séries horizontales (`screen.orientation.lock` si disponible).
+- **Déblocage dans le flux** : après confirmation d'un achat, le séquenceur recharge les états (`/api/feed`) et déverrouille les diapositives couvertes sans recharger la page.
+- **Tests** : Playwright en formats mobiles — glisser haut/bas, enchaînement automatique, arrêt devant un épisode verrouillé, reprise à la bonne position, déblocage par pass, carte de fin de saison, vidéo horizontale non déformée, erreurs simulées (réseau coupé, lien expiré renouvelé, accès refusé) ; tests manuels sur téléphones réels (étape 9).
 
 ## 7. Authentification (résumé)
 
-Détails et justification : SECURITY_REQUIREMENTS §3.
+Décision : `docs/decisions/2026-11-20-comptes-google-email-lecteur-vertical.md` ; règles : SECURITY_REQUIREMENTS §3.
 
-### 7.1 Clients : sessions serveur maison
+### 7.1 Clients : Supabase Auth (Google, e-mail + mot de passe)
+- **Méthodes au lancement** : Google (OAuth, flux PKCE) et e-mail + mot de passe avec **confirmation d'e-mail obligatoire**. Aucune dépendance à un SMS. La connexion par numéro + PIN n'est pas développée.
+- **Côté serveur uniquement** : les appels à Supabase Auth passent par nos actions serveur ; le retour Google arrive sur `/auth/callback` qui échange le code ; la session est stockée dans des cookies `httpOnly`. Aucun client Supabase dans le navigateur (le navigateur ne parle jamais à la base).
+- **Identifiant stable** : `customers.id` = `auth.users.id`. Un profil `customers` est créé à la première connexion. Commandes, droits, bibliothèque et progression référencent cet identifiant.
+- **Liaison** : automatique entre identités à e-mail vérifié (comportement Supabase à tester) ; manuelle depuis « Mon compte » (ajouter Google, définir un mot de passe) ; transfert d'achats par un administrateur en dernier recours.
+- **Anti-robot** : Turnstile sur inscription, connexion, réinitialisation.
+- **E-mails** (confirmation, réinitialisation, changement d'adresse) : envoyés par Supabase via un **service SMTP** configuré avec notre domaine **[D-24]** ; l'envoi intégré de Supabase ne sert qu'au développement.
+- **Blocage** : bannissement Supabase + révocation des sessions + contrôle de `customers.status` par notre serveur à chaque action sensible.
+- **Numéro de téléphone** : simple champ de profil facultatif, non vérifié.
 
-**Pourquoi pas Supabase Auth pour les clients ?** Supabase Auth ne connaît pas le PIN. L'idée initiale (mot de passe interne dérivé, PIN vérifié par notre serveur) a été écartée après revue : les points d'accès publics de Supabase Auth (connexion par OTP SMS, changement de mot de passe ou de numéro depuis le navigateur) permettraient de **contourner le PIN** et nos limites anti-fraude SMS, et la fuite d'un seul secret de dérivation exposerait tous les comptes.
-
-**Conception retenue (simple et maîtrisée) :**
-- Table `customers` (numéro, statut) et `pin_credentials` (PIN haché **Argon2id + poivre**) dans notre base.
-- **OTP SMS** : code généré par notre serveur, stocké **haché** avec expiration (`otp_challenges`), envoyé via le prestataire SMS ; limites SEC-11 à SEC-14 appliquées avant tout envoi.
-- **Session** : à la connexion réussie, le serveur génère un jeton aléatoire de 256 bits, en stocke le **hachage** dans `customer_sessions`, et place le jeton dans un cookie `httpOnly`, `Secure`, `SameSite=Lax`. Chaque requête authentifiée vérifie la session **et** le statut du client.
-- Conséquences directes : blocage d'un compte, changement de PIN ou « déconnexion de tous les appareils » = **suppression immédiate des sessions en base**, effet instantané.
-- Code d'authentification limité, testé intégralement (étape 3 de la feuille de route), sans bibliothèque cryptographique maison : Argon2id via une bibliothèque reconnue, aléa cryptographique du système.
-
-### 7.2 Administrateurs : Supabase Auth
-- Comptes **séparés** des clients, e-mail + mot de passe fort + **TOTP obligatoire** **[D-06]**.
-- Chaque action admin vérifie côté serveur : session Supabase valide, **niveau MFA `aal2`**, rôle dans `staff_roles`.
-- Configuration Supabase Auth durcie : inscriptions publiques **désactivées** (admins créés manuellement), fournisseur « phone » **désactivé**, changement de mot de passe sécurisé, limites de débit d'Auth actives (LAUNCH_CHECKLIST).
+### 7.2 Administrateurs : Supabase Auth + TOTP
+- Comptes administrateurs : e-mail + mot de passe fort + **TOTP obligatoire** **[D-06]**.
+- Chaque action admin vérifie côté serveur : session valide, niveau MFA **`aal2`**, rôle dans `staff_roles`.
+- Configuration Supabase Auth durcie : fournisseurs non utilisés **désactivés** (téléphone, autres réseaux), URL de redirection limitées au domaine, changement d'e-mail et de mot de passe sécurisés, limites de débit actives (LAUNCH_CHECKLIST).
 
 ## 8. Environnements et configuration
 
@@ -383,14 +397,14 @@ Variables d'environnement (noms indicatifs, aucune valeur dans le dépôt) :
 | `NEXT_PUBLIC_SUPABASE_URL` | public | URL du projet |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | public | Utilisée uniquement pour la connexion admin ; ne donne accès à aucune donnée (RLS sans politique) |
 | `SUPABASE_SERVICE_ROLE_KEY` | **serveur** | Accès complet — jamais au navigateur |
-| `PIN_PEPPER` | **serveur** | Secret ajouté au hachage des PIN |
+| `SUPABASE_AUTH_*` (aucune valeur dans l'application) | Supabase | Identifiant Google OAuth et SMTP saisis **dans le tableau de bord Supabase**, pas dans le code |
 | `HASH_SECRET` | **serveur** | HMAC des numéros/IP dans les journaux |
 | `PAYACCT_<CODE>_*` (ex. `PAYACCT_CINETPAY_XOF_API_KEY`, `…_SITE_ID`, `…_SECRET_KEY` ; `PAYACCT_FEDAPAY_XOF_SECRET_KEY`, `…_WEBHOOK_SECRET`) | **serveur** | Identifiants **par compte de paiement** ; la base ne stocke que le code du compte (`credentials_ref`), jamais les clés |
 | `BUNNY_STREAM_LIBRARY_ID` | serveur | Bibliothèque vidéo |
 | `BUNNY_STREAM_API_KEY` | **serveur** | Gestion des vidéos |
 | `BUNNY_TOKEN_SECURITY_KEY` / `BUNNY_CDN_TOKEN_KEY` | **serveur** | Signature des URL |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (public) / `TURNSTILE_SECRET_KEY` (serveur) | mixte | Anti-robot |
-| `SMS_PROVIDER_*` | **serveur** | Envoi OTP |
+| `APP_AUTH_REDIRECT_URL` | serveur | URL de retour OAuth (`/auth/callback`) |
 | `BUNNY_WEBHOOK_*` | **serveur** | Selon le mécanisme d'authentification proposé par Bunny **[à vérifier]** |
 | `NEXT_PUBLIC_SENTRY_DSN` | public | Remontée d'erreurs (identifiant non secret) |
 | `CRON_SECRET` | **serveur** | Protection des routes cron |
@@ -401,8 +415,8 @@ Un fichier `.env.example` (sans valeurs) sera créé au début du développement
 ## 9. Observabilité
 - **Sentry** : erreurs serveur et navigateur, sans données personnelles (numéros masqués).
 - **Journal applicatif** des paiements : chaque événement prestataire est conservé (table `payment_events`).
-- **Alertes P0 (dès le lancement)**, via les alertes e-mail de Sentry (aucun service supplémentaire) : commande `needs_review`, paiement en double (`is_duplicate_payment`), dépassement du budget SMS quotidien, erreurs du webhook de paiement.
-- Alertes P1 : taux d'échec de paiement anormal, pic de tentatives de PIN, comptes verrouillés à répétition.
+- **Alertes P0 (dès le lancement)**, via les alertes e-mail de Sentry (aucun service supplémentaire) : commande `needs_review`, paiement en double (`is_duplicate_payment`), erreurs du webhook de paiement.
+- Alertes P1 : taux d'échec de paiement anormal, pic d'échecs de connexion, volume anormal d'e-mails de réinitialisation.
 
 ## 10. Coûts mensuels indicatifs (à confirmer) **[D-12]**
 
@@ -412,7 +426,7 @@ Un fichier `.env.example` (sans valeurs) sera créé au début du développement
 | Supabase Pro | ~25 $/mois (le plan gratuit met en pause les projets inactifs : inadapté à la production) |
 | Bunny Stream | à la consommation (stockage + diffusion), quelques $ à quelques dizaines de $ au départ |
 | Sentry | gratuit au départ |
-| SMS OTP | **variable et potentiellement important** : prix par SMS selon pays/opérateur ; à chiffrer **[D-16]** |
+| E-mails d'authentification | gratuit dans la limite d'une offre gratuite SMTP **[à vérifier, D-24]** ; **aucun SMS** |
 | Prestataires de paiement | commission par transaction, variable selon pays/opérateur ; éventuels frais de compte ou d'abonnement par compte marchand **[à vérifier]** |
 | Nom de domaine | ~10–20 $/an |
 
@@ -422,7 +436,7 @@ Un fichier `.env.example` (sans valeurs) sera créé au début du développement
 |---|---|---|
 | Erreur dans le code d'authentification maison | Comptes compromis | Périmètre réduit, tests exhaustifs à l'étape 3, revue de sécurité indépendante |
 | Webhooks perdus ou retardés | Client payé sans accès | Réconciliation automatique + revérification manuelle admin |
-| Coût SMS / fraude au SMS (« SMS pumping ») | Facture élevée | Turnstile, limites par numéro/IP/pays, liste blanche des indicatifs pays |
+| Abus d'inscription (robots) | Comptes factices, envois d'e-mails | Turnstile, confirmation d'e-mail, limites Supabase |
 | Couverture réelle des opérateurs différente des pages publiques | Paiements impossibles dans un pays | Vérification écrite auprès du prestataire et paiement réel de test avant d'ouvrir un marché |
 | Conditions d'accès d'une société béninoise hors zone XOF inconnues | Certains pays non monétisables à court terme | Questions écrites envoyées tôt (§5.10) ; pays consultables en attendant ; partenaire local ou prestataire supplémentaire branchable via un nouvel adaptateur |
 | Complexité de plusieurs prestataires et comptes | Plus de tests et de support | Interface commune, tests de contrat par adaptateur, sandbox par compte, routes désactivables |
@@ -436,11 +450,11 @@ Pour que les réponses commerciales et administratives ne bloquent pas la constr
 | Interface | Simulateur | Adaptateurs réels | Réel nécessaire à partir de |
 |---|---|---|---|
 | `PaymentProvider` | `simulator` : page de paiement factice (choix « réussir / échouer / annuler »), notifications signées, scénarios de doublon, de retard, de perte et de montant erroné | `cinetpay`, `fedapay` | Étape 7 (sandbox), pilote (live) |
-| `SmsProvider` | Codes OTP écrits dans un journal de préproduction visible par l'équipe | Prestataire choisi (D-16) | Pilote |
+| (e-mails) | Boîte de réception de test de Supabase en développement | Service SMTP choisi (D-24) | Pilote |
 | `VideoProvider` | Vidéo de démonstration servie localement, jeton signé factice avec expiration | `bunny` | Étape 6 |
 
 Règles :
-- Le moteur (commandes, droits, sessions, lecture) est **identique** quel que soit l'adaptateur : il est testé une fois, puis chaque adaptateur doit passer la même **suite de tests de contrat**.
-- Les simulateurs sont **impossibles à activer en production** : l'application refuse de démarrer en production si un simulateur est configuré ou si un compte de paiement `simulator` est actif (SEC-44).
+- Le moteur (commandes, droits, lecture) est **identique** quel que soit l'adaptateur : il est testé une fois, puis chaque adaptateur doit passer la même **suite de tests de contrat**.
+- Les simulateurs sont **impossibles à activer en production** : l'application refuse de servir en production si un simulateur est configuré ou si un compte de paiement `simulator` est actif (SEC-44).
 - Le simulateur de paiement est un prestataire comme les autres dans la base (`payment_providers.code = 'simulator'`), ce qui permet de tester aussi le routage, les secours et la désactivation.
 

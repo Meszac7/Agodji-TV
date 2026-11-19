@@ -30,7 +30,7 @@ Le détail par pays, opérateur et niveau de preuve est dans TECHNICAL_ARCHITECT
 
 **Activation progressive** (TECHNICAL_ARCHITECTURE §5.6) :
 1. **Consultation** (catalogue, épisodes gratuits) : ouverte à tous, partout, sans compte — jamais bloquée par l'état des paiements.
-2. **Création de compte** : possible dès que l'envoi de SMS est activé pour l'indicatif du numéro.
+2. **Création de compte** : possible pour tout le monde, partout, avec **Google** ou **e-mail + mot de passe** — aucun SMS.
 3. **Achat** : pays par pays et moyen par moyen, dès que trois points sont confirmés par écrit — **A** disponibilité technique, **B** accès pour notre société béninoise, **C** reversement des fonds — puis un paiement réel de contrôle.
 
 **Points d'attention majeurs** :
@@ -73,6 +73,10 @@ Le détail par pays, opérateur et niveau de preuve est dans TECHNICAL_ARCHITECT
 
 Contexte d'usage supposé **[HYPOTHÈSE H-02]** : majorité de smartphones Android d'entrée/milieu de gamme, connexion 3G/4G variable, forfaits data coûteux. Conséquence : poids des pages réduit, vidéo adaptative avec qualités basses disponibles.
 
+**[HYPOTHÈSE H-03]** : la grande majorité des utilisateurs Android ont déjà un compte Google (nécessaire pour utiliser Play Store), ce qui rend la connexion Google simple et sans coût. Les utilisateurs sans compte Google peuvent utiliser une adresse e-mail. À surveiller après le lancement : part des visiteurs qui abandonnent faute d'e-mail (pourrait justifier plus tard une connexion par téléphone).
+
+**Visionnage** : expérience verticale en défilement continu entre épisodes (D-27), inspirée des vidéos courtes mais adaptée aux séries.
+
 ## 6. Principes directeurs
 
 1. **Une V1 réaliste** : uniquement les 13 fonctions essentielles (voir PRODUCT_REQUIREMENTS).
@@ -96,25 +100,30 @@ Colonne « Nécessaire avant » : moment où la décision devient réellement n�
 | D-01 | Prestataires de paiement | **CinetPay + FedaPay**, intégrations **modulaires** (un adaptateur par prestataire derrière une interface commune, activable/désactivable). Les réponses commerciales n'empêchent pas de construire le reste : un **simulateur de paiement** sert au développement et aux tests | **Validé** | — |
 | D-02 | Pays | **Panafricain**, activation progressive : consultation partout, achat pays par pays et moyen par moyen dès confirmation A/B/C | **Validé** | — |
 | D-03 | Grilles tarifaires | **XOF : 300 FCFA / épisode, 1 500 FCFA / saison** (prix indicatifs validés, modifiables dans l'admin). Autres monnaies (XAF, GNF, CDF/USD) : **grilles indépendantes**, montants à saisir le moment venu ; **aucune conversion automatique** | **Validé** pour XOF ; autres montants en attente | Ouverture d'un pays hors XOF |
-| D-04 | Longueur du PIN | **Non tranchée** : recommandation argumentée (simplicité, sécurité, récupération de compte) présentée au fondateur **avant l'étape 3**. Techniquement, la longueur est un réglage (4 ou 6) | En attente | **Avant l'étape 3** |
-| D-05 | Vérification du numéro par SMS (OTP) | Obligatoire à l'inscription et pour réinitialiser le PIN | Recommandation par défaut | Étape 3 |
+| D-04 | Longueur du PIN | **Sans objet** : la connexion par numéro + PIN n'est pas développée (décision du fondateur, 2026-11-20) | Clos | — |
+| D-05 | Vérification du numéro par SMS | **Sans objet** : aucun SMS ; le numéro est facultatif et non vérifié | Clos | — |
 | D-06 | Authentification des administrateurs | E-mail + mot de passe fort + double authentification (TOTP) obligatoire | À confirmer | **Étape 4** |
-| D-07 | Format vidéo et durée moyenne | Le format est un **réglage par série** (vertical 9:16 ou horizontal 16:9) : l'interface s'adapte, rien n'est figé. Merci d'indiquer le format de la première série et une durée moyenne | Information attendue | Étape 2 (maquettes) — non bloquant |
+| D-07 | Format vidéo | **Vertical 9:16 privilégié**, horizontal 16:9 accepté, réglé **par série** ; jamais de déformation ni de recadrage abusif. Durée moyenne des épisodes : information attendue (coûts de diffusion) | **Validé** (format) ; durée attendue | Étape 2 |
 | D-08 | Politiques commerciales et éditoriales | Comportements techniques par défaut déjà définis (RM-06 à RM-10) ; textes définitifs (remboursement, retrait de contenu, classification d'âge) à valider | En attente | Pilote |
 | D-09 | Stratégie d'encaissement par zone monétaire | Société **béninoise**. Hors zone XOF : selon les réponses des prestataires et d'un juriste | En attente des réponses écrites | Ouverture à l'achat des pays concernés |
 | D-10 | Mention « contenu créé avec l'IA » | Mention discrète sur la fiche série (champ déjà prévu) | En attente | Pilote |
 | D-11 | Nom de domaine | À fournir | En attente | Pilote |
 | D-12 | Budget mensuel d'infrastructure | Estimation indicative dans TECHNICAL_ARCHITECTURE §10 | En attente | Création des comptes payants |
-| D-13 | Lecteur vidéo V1 | Fonctionnalité centrale. **Recommandation révisée : lecteur sur mesure sur hls.js** (reprise, achat dans le lecteur, économie de données, gestion des erreurs) ; alternative : lecteur intégré Bunny. Voir TECHNICAL_ARCHITECTURE §6.4 | En attente | Étape 2 (intégration du lecteur) |
+| D-13 | Lecteur vidéo | **Lecteur sur mesure** (hls.js) en défilement vertical continu ; le lecteur intégré Bunny est écarté (incompatible avec le défilement entre épisodes) | **Validé** (exigences du fondateur) ; interface à valider sur maquette | Étape 2 |
 | D-14 | Identité de marque | Logotype texte provisoire ; logo officiel intégré dès réception | En attente | Lancement public |
 | D-15 | Langue | Français en V1, textes centralisés | Recommandation par défaut | — |
-| D-16 | Prestataire SMS | Interface `SmsProvider` ; simulateur en développement ; prestataire réel choisi sur comparaison des tarifs par pays | En attente | Pilote (tests réels en préproduction pendant l'étape 9) |
+| D-16 | Prestataire SMS | **Supprimé** : aucun service SMS payant | Clos | — |
 | D-17 | Choix du pays de paiement | Pays **confirmé par l'utilisateur** au premier achat, mémorisé ; l'indicatif et l'IP ne sont que des suggestions | **Principe validé** ; écrans à valider | Étape 5 |
 | D-18 | Prestataire principal par pays en zone XOF | Selon les frais réels ; l'autre en secours | En attente des grilles tarifaires | Pilote |
 | D-19 | Gabon, Congo, Tchad, Centrafrique, Guinée équatoriale, Guinée-Bissau | Pas d'exclusion ; questions écrites ; consultation ouverte en attendant | En attente des réponses | Ouverture de ces pays |
 | D-20 | Questions écrites aux prestataires | Envoyer [docs/questions-prestataires-paiement.md](docs/questions-prestataires-paiement.md) | **Action du fondateur** (à lancer maintenant : délais de réponse) | Pilote |
 | D-21 | Pays affiché par défaut | **Bénin** (grille XOF) pour les visiteurs dont le pays est inconnu, avec la mention claire « Prix indicatifs — modifiables selon votre pays » | **Validé** | — |
 | D-22 | Programme pilote | **Petit groupe de testeurs répartis dans plusieurs pays**, achats réels en statut `pilot` ; la composition du groupe **ne bloque pas** le développement | **Principe validé** ; liste des testeurs à fournir | Étape 10 (pilote) |
+| D-23 | Méthodes de connexion clients | **Google** et **e-mail + mot de passe** (Supabase Auth), confirmation d'e-mail obligatoire ; numéro de téléphone facultatif et non vérifié ; pas de connexion par numéro + PIN au lancement | **Validé** (2026-11-20) | Étape 3 |
+| D-24 | Service d'envoi d'e-mails (confirmation, réinitialisation) | Service SMTP avec offre gratuite (volumes limités) branché sur Supabase, domaine authentifié (SPF/DKIM) ; choix après vérification des offres | En attente | Pilote (développement possible sans) |
+| D-25 | Connexion Google | Projet Google Cloud du fondateur (gratuit) : identifiant OAuth + écran de consentement au nom d'Agodjié TV ; création guidée | Action du fondateur | Étape 3 (préproduction) |
+| D-26 | Liaison des comptes | Un compte = un identifiant stable ; liaison automatique entre identités à e-mail vérifié, liaison manuelle depuis « Mon compte », transfert d'achats par un admin en dernier recours | **Principe validé** (exigence du fondateur) ; détails techniques testés à l'étape 3 | Étape 3 |
+| D-27 | Visionnage en défilement continu | Défilement vertical entre épisodes, enchaînement automatique (jamais vers un contenu payant), reprise exacte, déblocage dans le lecteur, fin de saison explicite | **Principe validé** ; maquette `/maquettes/lecteur` à valider | Étape 2 |
 
 ## 9. Index des documents
 
