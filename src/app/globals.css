@@ -1,0 +1,126 @@
+@import "tailwindcss";
+@import "@fontsource-variable/figtree";
+@import "@fontsource/roboto/400.css";
+@import "@fontsource/roboto/500.css";
+@import "@fontsource/roboto/700.css";
+
+/*
+ * Jetons de design Agodjié TV — DESIGN_GUIDELINES §2.
+ * Toutes les couleurs de l'interface passent par ces variables : aucune couleur en dur dans les composants.
+ * Thème sombre par défaut ; thème clair via data-theme="light" sur <html>.
+ */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0b0b0f;
+  --surface: #16161d;
+  --surface-raised: #20202a;
+  --surface-sunken: #101015;
+  --border: #2a2a35;
+  --text: #f5f3ee;
+  --text-muted: #a8a5b3;
+  --primary: #f5b800;
+  --on-primary: #14110a;
+  --primary-hover: #ffc933;
+  --primary-text: #f5b800;
+  --danger: #ff5a5f;
+  --danger-solid: #d92d35;
+  --on-danger: #ffffff;
+  --success: #3dd68c;
+  --overlay: rgb(11 11 15 / 0.72);
+  --hero-fade: linear-gradient(180deg, rgb(11 11 15 / 0) 0%, rgb(11 11 15 / 0.55) 55%, #0b0b0f 100%);
+  --shadow-raised: 0 12px 32px rgb(0 0 0 / 0.45);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #faf8f4;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f3f0ea;
+  --border: #e4e0d8;
+  --text: #15141a;
+  --text-muted: #5c5966;
+  --primary: #f5b800;
+  --on-primary: #14110a;
+  --primary-hover: #ffc933;
+  --primary-text: #8a6400;
+  --danger: #b42318;
+  --danger-solid: #b42318;
+  --on-danger: #ffffff;
+  --success: #1a7f4b;
+  --overlay: rgb(250 248 244 / 0.8);
+  --hero-fade: linear-gradient(180deg, rgb(250 248 244 / 0) 0%, rgb(250 248 244 / 0.6) 55%, #faf8f4 100%);
+  --shadow-raised: 0 12px 32px rgb(21 20 26 / 0.12);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-text: var(--primary-text);
+  --color-danger: var(--danger);
+  --color-danger-solid: var(--danger-solid);
+  --color-on-danger: var(--on-danger);
+  --color-success: var(--success);
+  --color-overlay: var(--overlay);
+
+  --font-display: "Figtree Variable", "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Roboto", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-sheet: 16px;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (min-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
