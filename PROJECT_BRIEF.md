@@ -84,9 +84,9 @@ Ce registre est la **source unique** des décisions à valider. Les autres docum
 | D-03 | Prix par devise | XOF : 300 / 1 500. XAF : 300 / 1 500 (parité). RDC : prix en USD ou CDF à définir | En attente |
 | D-04 | Longueur du PIN | PIN **4 chiffres accepté** à condition d'appliquer toutes les protections de SECURITY_REQUIREMENTS §3 ; 6 chiffres en option si le fondateur le souhaite | En attente |
 | D-05 | Vérification du numéro par SMS (OTP) | **Obligatoire** à l'inscription et pour réinitialiser le PIN | En attente |
-| D-06 | Authentification des administrateurs | E-mail + mot de passe fort + **double authentification (TOTP)**, séparée du PIN client | En attente |
+| D-06 | Authentification des administrateurs | E-mail + mot de passe fort + **double authentification (TOTP)** obligatoire, séparée du PIN client (les admins auront donc besoin d'une adresse e-mail et d'une application d'authentification sur leur téléphone) | En attente |
 | D-07 | Format vidéo (vertical 9:16 ou horizontal 16:9) et durée moyenne | Information à fournir par le fondateur | En attente |
-| D-08 | Politiques commerciales : remboursement, retrait d'un contenu acheté, pass après épisodes, taille d'une saison | Voir PRODUCT_REQUIREMENTS §8 | En attente |
+| D-08 | Politiques commerciales et éditoriales : remboursement, retrait d'un contenu acheté, pass après épisodes, taille d'une saison, classification d'âge | Voir PRODUCT_REQUIREMENTS §8 | En attente |
 | D-09 | Entité juridique et pays d'enregistrement du marchand | Nécessaire pour ouvrir les comptes de paiement | En attente |
 | D-10 | Mention « contenu créé avec l'IA » | Recommandé : mention discrète sur la fiche série | En attente |
 | D-11 | Nom de domaine | À fournir | En attente |

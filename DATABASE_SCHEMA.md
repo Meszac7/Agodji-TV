@@ -19,14 +19,17 @@
 ## 2. Schéma relationnel
 
 ```
-auth.users (Supabase) 1──1 profiles 1──1 pin_credentials
-                              │
+customers 1──1 pin_credentials
+    │ 1──* customer_sessions
+    │ (otp_challenges : par numéro, avant même la création du compte)
+    │
                               ├──* orders *──1 (episode | season)
                               │       │
                               │       └──* payment_events
                               │
-                              ├──* entitlements ──1 (episode | season)
-                              └──0..1 staff_roles
+                              └──* entitlements ──1 (episode | season)
+
+auth.users (Supabase, admins uniquement) 1──1 staff_roles
 
 series 1──* seasons 1──* episodes
    seasons 1──* season_prices          (prix par devise)
@@ -40,15 +43,17 @@ auth_attempts, audit_logs, playback_sessions (journaux)
 
 ### 3.1 Utilisateurs
 
-**`profiles`** — un enregistrement par utilisateur (même `id` que `auth.users`).
+Les clients ne sont **pas** des utilisateurs Supabase Auth (voir TECHNICAL_ARCHITECTURE §7). Seuls les administrateurs le sont.
+
+**`customers`** — un enregistrement par client.
 
 | Colonne | Type | Notes |
 |---|---|---|
-| id | uuid PK | = `auth.users.id` |
+| id | uuid PK | généré par la base |
 | phone_e164 | text UNIQUE NOT NULL | ex. `+22990000000` ; vérifié par OTP |
 | phone_verified_at | timestamptz | |
 | display_name | text NULL | facultatif |
-| country_code | text NOT NULL | ISO 3166-1 alpha-2, déduit de l'indicatif |
+| country_code | text NOT NULL | ISO 3166-1 alpha-2, **déduit par le serveur** de l'indicatif vérifié ; détermine la devise — jamais modifiable par le client |
 | status | text | `active` \| `blocked` \| `deleted` |
 | terms_version | text | version des CGU acceptée |
 | terms_accepted_at | timestamptz | |
@@ -58,12 +63,36 @@ auth_attempts, audit_logs, playback_sessions (journaux)
 
 | Colonne | Type | Notes |
 |---|---|---|
-| user_id | uuid PK FK profiles | |
+| user_id | uuid PK FK customers | |
 | pin_hash | text NOT NULL | Argon2id + poivre (voir SECURITY_REQUIREMENTS §3) |
 | pin_updated_at | timestamptz | |
 | failed_count | int DEFAULT 0 | échecs consécutifs |
 | locked_until | timestamptz NULL | verrouillage temporaire |
 | hard_locked | boolean DEFAULT false | verrouillage nécessitant une réinitialisation par OTP |
+
+**`customer_sessions`** — sessions de connexion des clients.
+
+| Colonne | Type | Notes |
+|---|---|---|
+| id | uuid PK | |
+| user_id | uuid FK customers | |
+| token_hash | text UNIQUE | SHA-256 du jeton du cookie (le jeton lui-même n'est jamais stocké) |
+| created_at, last_seen_at | timestamptz | |
+| expires_at | timestamptz | ~90 jours glissants **[à valider]** |
+| user_agent_summary | text | ex. « Android · Chrome », affiché dans « mes appareils » |
+
+**`otp_challenges`** — codes SMS en cours.
+
+| Colonne | Type | Notes |
+|---|---|---|
+| id | uuid PK | |
+| phone_e164 | text | |
+| purpose | text | `signup` \| `pin_reset` |
+| code_hash | text | haché, jamais en clair |
+| attempts | int DEFAULT 0 | max 5 |
+| expires_at | timestamptz | ~5 min |
+| consumed_at | timestamptz NULL | usage unique |
+| created_at | timestamptz | |
 
 **`auth_attempts`** — **serveur uniquement**, sert à la limitation de débit.
 
@@ -80,7 +109,7 @@ auth_attempts, audit_logs, playback_sessions (journaux)
 
 | Colonne | Type | Notes |
 |---|---|---|
-| user_id | uuid PK FK auth.users | compte admin distinct d'un compte client |
+| user_id | uuid PK FK auth.users | compte admin Supabase Auth, distinct des clients |
 | role | text | `admin` \| `editor` |
 | created_at, created_by | | |
 
@@ -130,6 +159,7 @@ auth_attempts, audit_logs, playback_sessions (journaux)
 | access_type | text | `free` \| `paid` |
 | status | text | `draft` \| `scheduled` \| `published` \| `unpublished` |
 | publish_at | timestamptz NULL | requis si `scheduled` |
+| first_published_at | timestamptz NULL | date de première mise en ligne effective (sert à RM-07) |
 | video_provider | text | `bunny` |
 | video_id | text NULL | identifiant Bunny — **jamais exposé publiquement** |
 | video_status | text | `none` \| `uploading` \| `processing` \| `ready` \| `error` |
@@ -166,7 +196,7 @@ Visibilité publique d'un épisode : série `published`, saison `published`, et 
 | currency | text | |
 | price | int NOT NULL CHECK > 0 | |
 
-Règle : prix d'un épisode = override s'il existe, sinon `season_prices.episode_price`. Un épisode payant sans prix dans la devise de l'utilisateur **n'est pas achetable** (et ne peut pas être publié, FR-55).
+Règle : prix d'un épisode = override s'il existe, sinon `season_prices.episode_price`. Un épisode payant ou une saison sans prix dans **chaque devise des marchés ouverts** ne peut pas être publié (FR-55). L'ouverture d'un nouveau marché (`is_enabled = true`) est refusée tant que des contenus payants publiés n'ont pas de prix dans sa devise.
 
 ### 3.4 Commandes, paiements, droits
 
@@ -176,7 +206,7 @@ Règle : prix d'un épisode = override s'il existe, sinon `season_prices.episode
 |---|---|---|
 | id | uuid PK | |
 | reference | text UNIQUE | référence envoyée au prestataire (aléatoire, non devinable) |
-| user_id | uuid FK profiles | |
+| user_id | uuid FK customers | |
 | product_type | text | `episode` \| `season_pass` |
 | episode_id | uuid NULL FK | |
 | season_id | uuid NULL FK | |
@@ -186,12 +216,17 @@ Règle : prix d'un épisode = override s'il existe, sinon `season_prices.episode
 | provider_transaction_id | text NULL | UNIQUE (provider, provider_transaction_id) |
 | status | text | `pending` \| `paid` \| `failed` \| `cancelled` \| `expired` \| `needs_review` \| `refunded` |
 | status_reason | text NULL | |
-| is_duplicate_payment | boolean DEFAULT false | payé alors que le droit existait déjà → à rembourser |
-| created_at, paid_at, updated_at | timestamptz | |
+| is_duplicate_payment | boolean DEFAULT false | payé alors que le contenu était **déjà couvert** (épisode possédé, ou pass de la saison possédé) → à rembourser |
+| created_at, paid_at, last_checked_at, updated_at | timestamptz | |
 
 Contraintes :
 - `CHECK` : exactement un de `episode_id` / `season_id` selon `product_type`.
-- Transitions autorisées uniquement : `pending → paid | failed | cancelled | expired | needs_review` ; `expired → paid` (paiement tardif vérifié) ; `paid → refunded` ; `needs_review → paid | failed | refunded`. Appliquées par une fonction SQL, pas par le client.
+- Transitions autorisées uniquement (appliquées par une fonction SQL, jamais par le client) :
+  - `pending → paid | failed | cancelled | expired | needs_review`
+  - `failed | cancelled | expired → paid | needs_review` — **le prestataire a le dernier mot** : si son API confirme un paiement, la commande est créditée
+  - `needs_review → paid | failed | refunded` (décision admin)
+  - `paid → refunded`
+- `expired` est posé par la tâche planifiée après 60 min sans paiement ; ces commandes restent revérifiées pendant 72 h (TECHNICAL_ARCHITECTURE §5.3).
 
 **`payment_events`** — journal brut de chaque notification reçue.
 
@@ -199,12 +234,12 @@ Contraintes :
 |---|---|---|
 | id | bigint PK | |
 | provider | text | |
-| event_key | text | identifiant de l'événement ou hachage du corps ; UNIQUE (provider, event_key) |
+| event_key | text | identifiant de l'événement ou hachage du corps (indexé, **non unique** : une notification répétée est journalisée et retraitée sans effet de bord) |
 | order_id | uuid NULL FK | |
 | signature_valid | boolean | |
 | payload | jsonb | corps reçu (sans données de carte — les prestataires n'en envoient pas) |
 | verified_status | text NULL | statut obtenu par l'API de vérification |
-| processing_result | text | `granted` \| `ignored_duplicate` \| `amount_mismatch` \| `invalid_signature` \| … |
+| processing_result | text | `granted` \| `already_paid` \| `not_paid` \| `amount_mismatch` \| `invalid_signature` \| `error` … |
 | received_at, processed_at | timestamptz | |
 
 **`entitlements`** — ce que l'utilisateur possède.
@@ -212,7 +247,7 @@ Contraintes :
 | Colonne | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
-| user_id | uuid FK profiles | |
+| user_id | uuid FK customers | |
 | episode_id | uuid NULL FK | |
 | season_id | uuid NULL FK | |
 | source | text | `purchase` \| `admin_grant` |
@@ -226,6 +261,7 @@ Contraintes :
 Contraintes :
 - `CHECK` : exactement un de `episode_id` / `season_id`.
 - Index uniques partiels : `(user_id, episode_id) WHERE revoked_at IS NULL` et `(user_id, season_id) WHERE revoked_at IS NULL`. **Ce sont eux qui empêchent un double droit**, même si deux notifications arrivent en même temps.
+- Remboursement d'une commande : seul le droit dont `order_id` = cette commande est révoqué. Une commande en double n'a pas de droit propre : son remboursement ne retire rien.
 
 ### 3.5 Journaux
 
@@ -247,32 +283,30 @@ Contraintes :
 
 | Fonction | Rôle | Appelée par |
 |---|---|---|
-| `has_episode_access(user_id, episode_id) → boolean` | RM-01 : gratuit, ou droit épisode actif, ou droit saison actif sur la saison de l'épisode | `/api/playback`, bibliothèque, listes |
+| `has_episode_access(user_id, episode_id) → boolean` | Voir définition ci-dessous | `/api/playback`, bibliothèque, listes |
 | `episode_price(episode_id, currency) → int` | override sinon prix saison | checkout |
 | `create_order(user_id, product_type, product_id, currency)` | vérifie FR-21, fige le prix, réutilise une commande `pending` récente identique | `/api/checkout` |
-| `confirm_order_payment(order_id, provider_tx_id, amount, currency)` | **transaction atomique** : vérifie montant/devise, transition `pending/expired → paid`, insère le droit `ON CONFLICT DO NOTHING`, marque `is_duplicate_payment` si le droit existait | webhook + réconciliation |
-| `user_library(user_id)` | passes + épisodes possédés + épisodes publiés des saisons possédées | page bibliothèque |
+| `confirm_order_payment(order_id, provider_tx_id, amount, currency)` | **transaction atomique** avec verrou sur la commande : vérifie montant/devise (sinon `needs_review`), transition vers `paid` depuis un état autorisé (déjà `paid` → aucun effet), insère le droit `ON CONFLICT DO NOTHING`, marque `is_duplicate_payment` si le contenu était **déjà couvert** (même logique que `has_episode_access`, pas seulement une ligne identique) | webhook + réconciliation |
+| `user_library(user_id)` | passes + épisodes possédés + épisodes accessibles des saisons possédées | page bibliothèque |
 
-Ces fonctions s'exécutent avec les droits du serveur ; elles ne sont pas exposées au rôle anonyme.
+**Définition de `has_episode_access`** (un client peut lire un épisode si) :
+1. l'épisode est **visible publiquement** (série, saison et épisode publiés, ou épisode programmé dont la date est passée) **et** (il est gratuit **ou** le client a un droit actif sur l'épisode **ou** sur sa saison) ; **ou**
+2. l'épisode a été dépublié **après** avoir été mis en ligne (`first_published_at` non nul) **et** le client a un droit actif sur l'épisode ou sa saison (RM-07 : les acheteurs conservent l'accès).
+
+Un brouillon ou un épisode programmé non encore sorti n'est **jamais** lisible, même par un détenteur de pass. Un client bloqué n'a accès à rien.
+
+Sécurité des fonctions : droit d'exécution **retiré** à `PUBLIC`, `anon` et `authenticated` ; `SECURITY DEFINER` uniquement si nécessaire, avec `search_path` fixé. Appelées uniquement par le serveur.
 
 ## 5. Règles d'accès (Row Level Security)
 
-RLS **activé sur toutes les tables**. Par défaut : tout refusé.
+**Principe : le navigateur ne parle jamais à la base.** Toutes les données passent par le serveur Next.js, qui applique les règles (session, statut du client, propriété des données, rôle admin).
 
-| Table | Anonyme | Utilisateur connecté | Serveur (clé service) |
-|---|---|---|---|
-| series / seasons / episodes | Lecture des lignes publiées uniquement, **sans** `video_id` (vue publique dédiée) | idem | Tout |
-| season_prices / episode_price_overrides / markets | Lecture | Lecture | Tout |
-| profiles | — | Lecture de **sa** ligne ; modification de `display_name` uniquement | Tout |
-| pin_credentials, auth_attempts | — | — | Tout |
-| orders | — | Lecture de **ses** commandes | Tout |
-| entitlements | — | Lecture de **ses** droits | Tout |
-| payment_events, audit_logs, playback_sessions, staff_roles | — | — | Tout |
-
-- Aucune écriture client sur `orders`, `entitlements`, `payment_events` : elles passent toutes par le serveur.
-- L'admin utilise des routes serveur qui vérifient `staff_roles` avant chaque action ; l'admin n'utilise pas de politique RLS « permissive » côté navigateur.
-- Le `video_id` est exclu des vues publiques (protection contre la construction d'URL directes).
-- **Tests obligatoires** : chaque politique est couverte par un test automatisé (anonyme, utilisateur A lisant les données de B, etc.).
+- RLS **activé sur toutes les tables**, **aucune politique** pour les rôles `anon` et `authenticated` → la clé publique Supabase ne donne accès à **rien**, même si quelqu'un l'extrait du site (elle n'est utilisée que pour la connexion des admins).
+- Privilèges `SELECT/INSERT/UPDATE/DELETE` et `EXECUTE` révoqués pour `anon` et `authenticated` sur le schéma applicatif (double protection).
+- Le serveur utilise la clé de service. Chaque module serveur filtre explicitement par `user_id` de la session (ex. « mes commandes ») ; ce filtrage est **testé**.
+- Le `video_id` n'est jamais renvoyé dans les données du catalogue envoyées au navigateur.
+- Les routes admin vérifient session Supabase + MFA `aal2` + `staff_roles` avant chaque action.
+- **Tests obligatoires** : avec la clé publique, aucune table ni fonction n'est accessible ; client A ne voit jamais les données de B ; éditeur sans accès aux transactions ni aux données clients.
 
 ## 6. Statistiques (vues SQL)
 

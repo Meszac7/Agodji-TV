@@ -121,7 +121,7 @@ Interface web réservée aux administrateurs, accessible sous `/admin`, sur le m
 - **FR-52** Créer / modifier un épisode : numéro, titre, résumé, vignette, durée, gratuit/payant, prix (par défaut celui de la saison, modifiable par épisode), statut, date de publication programmée.
 - **FR-53** Vidéo : téléversement direct vers l'hébergeur vidéo depuis l'admin, **ou** association d'une vidéo déjà présente (identifiant). Affichage de l'état d'encodage.
 - **FR-54** Publication programmée : un épisode « programmé » devient visible automatiquement à la date choisie.
-- **FR-55** Garde-fous : impossible de publier un épisode payant sans prix, sans vidéo encodée ou sans vignette. Avertissement avant de dépublier un contenu déjà acheté.
+- **FR-55** Garde-fous : impossible de publier un épisode payant (ou une saison) sans prix dans **chaque devise des marchés ouverts**, sans vidéo encodée ou sans vignette. Impossible d'ouvrir un nouveau marché tant que des contenus payants publiés n'ont pas de prix dans sa devise. Avertissement avant de dépublier un contenu déjà acheté.
 
 ### 7.2 Utilisateurs
 - **FR-60** Liste des utilisateurs (numéro partiellement masqué par défaut, date d'inscription, nombre d'achats).
@@ -129,9 +129,10 @@ Interface web réservée aux administrateurs, accessible sous `/admin`, sur le m
 - **FR-62** Actions : bloquer / débloquer un compte, forcer la déconnexion, **accorder manuellement un accès** (geste commercial ou litige), avec motif obligatoire et journalisation.
 
 ### 7.3 Transactions
-- **FR-70** Liste filtrable des paiements : statut (`en attente`, `réussi`, `échoué`, `annulé`, `remboursé`), prestataire, montant, devise, date, utilisateur, contenu.
+- **FR-70** Liste filtrable des paiements : statut (`en attente`, `réussi`, `échoué`, `annulé`, `expiré`, `à examiner`, `remboursé`), prestataire, montant, devise, date, utilisateur, contenu.
 - **FR-71** Détail d'un paiement : références prestataire, historique des notifications reçues.
-- **FR-72** Bouton « Revérifier auprès du prestataire » pour un paiement en attente.
+- **FR-72** Bouton « Revérifier auprès du prestataire » pour un paiement non réussi.
+- **FR-73** File « À traiter » : paiements `à examiner` (montant incohérent) et paiements en double à rembourser, avec actions « valider », « refuser », « marquer remboursé ». Ces cas déclenchent aussi une **alerte e-mail** dès le lancement.
 
 ### 7.4 Statistiques (simples)
 - **FR-80** Chiffre d'affaires et nombre d'achats (jour / 7 jours / 30 jours / total), par devise.
@@ -153,7 +154,7 @@ Interface web réservée aux administrateurs, accessible sous `/admin`, sur le m
 | RM-04 | Le prix appliqué est celui en vigueur au moment de la création de la commande ; il est figé dans la commande. | Recommandé |
 | RM-05 | Un changement de prix n'affecte jamais les achats passés. | Recommandé |
 | RM-06 | Pass après achats à l'unité : prix plein, avec avertissement (pas de déduction en V1). | **[D-08]** |
-| RM-07 | Dépublication d'un contenu acheté : les acheteurs conservent l'accès sauf retrait pour raison légale. | **[D-08]** |
+| RM-07 | Dépublication d'un contenu acheté : les acheteurs conservent l'accès sauf retrait pour raison légale. Un brouillon ou un épisode pas encore sorti n'est jamais lisible, même avec un pass. | **[D-08]** |
 | RM-08 | Remboursement : manuel, au cas par cas, via le prestataire ; le droit d'accès est alors révoqué. | **[D-08]** |
 | RM-09 | Taille d'une saison : nombre d'épisodes prévu affiché à l'achat du pass. | **[D-08]** |
 | RM-10 | Un épisode payant passé en gratuit reste dans la bibliothèque de ceux qui l'ont acheté. | Recommandé |

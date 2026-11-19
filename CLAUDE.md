@@ -26,7 +26,7 @@ Si le code et ces documents divergent, **signaler l'écart** et mettre à jour l
 
 ## Pile prévue (sous réserve des prototypes de l'étape 0)
 
-Next.js (App Router) + TypeScript · Tailwind · Supabase (Postgres, Auth, Storage, RLS) · Bunny Stream · CinetPay (FedaPay plus tard, via interface `PaymentProvider`) · Vercel · Sentry · Turnstile · Zod · Vitest · Playwright.
+Next.js (App Router) + TypeScript · Tailwind · Supabase (Postgres, Storage, RLS ; Auth **pour les admins uniquement**) · auth client maison (numéro + PIN + OTP, sessions en base) · Bunny Stream · CinetPay (FedaPay plus tard, via interface `PaymentProvider`) · Vercel · Sentry · Turnstile · Zod · Vitest · Playwright.
 
 ## Règles non négociables
 
@@ -34,11 +34,12 @@ Next.js (App Router) + TypeScript · Tailwind · Supabase (Postgres, Auth, Stora
 2. **Prix et règles d'accès en base**, jamais codés en dur. Montants en entiers, par devise.
 3. **Aucun droit d'accès accordé sur la foi du navigateur.** Uniquement après notification authentifiée **et** vérification via l'API du prestataire, dans `confirm_order_payment` (transaction atomique, idempotente).
 4. **Le prix est toujours recalculé côté serveur.**
-5. **RLS activé sur toutes les tables**, refus par défaut ; écritures sensibles (commandes, droits, paiements, PIN, rôles) uniquement côté serveur.
-6. **Vidéos payantes** : jamais d'URL permanente ; jeton court émis après `has_episode_access`. Ne jamais exposer `video_id` ni la clé de signature.
-7. **PIN** : Argon2id + poivre, vérification serveur uniquement, verrouillages et limites SEC-03 à SEC-05.
-8. **Admin** : contrôle de rôle côté serveur sur chaque route/action ; actions sensibles dans `audit_logs`.
-9. Ne pas inventer de capacités, tarifs ou formats d'API des prestataires : vérifier dans la documentation officielle et noter la source.
+5. **Le navigateur ne parle jamais à la base.** RLS activé sur toutes les tables sans politique pour `anon`/`authenticated` ; tout passe par le serveur, qui filtre par client de la session.
+6. **Vidéos payantes** : jamais d'URL permanente ; jeton court émis après `has_episode_access`. Clé de signature jamais exposée ; `video_id` absent des données de catalogue.
+7. **PIN** : Argon2id + poivre, vérification serveur uniquement, verrouillages et limites SEC-03 à SEC-05. Aucun autre moyen d'ouvrir une session client (fournisseur « phone » de Supabase désactivé).
+8. **Admin** : session Supabase + MFA `aal2` + rôle `staff_roles` vérifiés côté serveur sur chaque route/action ; actions sensibles dans `audit_logs`.
+9. **Webhooks de paiement** : 200 seulement après traitement ; 500 en cas d'erreur temporaire ; notifications répétées retraitées sans effet de bord.
+10. Ne pas inventer de capacités, tarifs ou formats d'API des prestataires : vérifier dans la documentation officielle et noter la source.
 
 ## Méthode de travail
 

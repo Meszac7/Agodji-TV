@@ -27,9 +27,9 @@ Objectif : **lever les trois incertitudes majeures avant de construire**. Code j
 
 | Prototype | Question | Critère de réussite |
 |---|---|---|
-| S1 — PIN + Supabase Auth | La couche PIN avec mot de passe interne dérivé fonctionne-t-elle proprement (sessions, rafraîchissement, réinitialisation, inscription directe neutralisée) ? | Parcours complet en local + tests ; sinon bascule sur le plan B (TECHNICAL_ARCHITECTURE §7) |
-| S2 — Jetons Bunny | Un lien de lecture copié est-il refusé après expiration et depuis un autre domaine ? Le lecteur intégré fonctionne-t-il sur Android/iOS ? | Démonstration enregistrée + résultat documenté |
-| S3 — Paiement sandbox | Création de paiement, notification, vérification par API, notifications répétées, échec, annulation | Journal des appels sandbox + doc des formats réels (HMAC, statuts) |
+| S1 — Auth client maison | Inscription OTP, connexion PIN, sessions en base, verrouillages, réinitialisation, déconnexion globale : le module est-il simple, robuste et entièrement testable ? Choix et paramétrage d'Argon2id sur Vercel. | Parcours complet en local + tests automatisés des verrouillages et limites |
+| S2 — Jetons Bunny | Un lien de lecture copié est-il refusé après expiration et depuis un autre domaine ? Un épisode entier se lit-il jusqu'au bout avec un jeton court ? Le lecteur intégré fonctionne-t-il sur Android/iOS ? Webhook d'encodage Bunny : format et authentification. | Démonstration enregistrée + résultat documenté |
+| S3 — Paiement sandbox | Création de paiement, notification, vérification par API, notifications répétées, échec puis nouvel essai réussi sur la même commande, annulation | Journal des appels sandbox + doc des formats réels (HMAC, statuts) |
 
 Sortie : note de décision dans `docs/decisions/` pour chaque prototype.
 
@@ -58,7 +58,7 @@ Sortie : note de décision dans `docs/decisions/` pour chaque prototype.
 - Limites de tentatives, PIN interdits, Turnstile, liste blanche des indicatifs.
 - Retour au contexte d'origine après connexion.
 
-**Sortie** : tests automatisés de SEC-01 à SEC-14 (verrouillages, limites, messages neutres).
+**Sortie** : tests automatisés de SEC-01 à SEC-14 et SEC-25 (verrouillages, limites, messages neutres, suppression des sessions, client bloqué).
 
 ## Étape 4 — Achat et paiement
 
@@ -69,10 +69,14 @@ Sortie : note de décision dans `docs/decisions/` pour chaque prototype.
 **Sortie** — tests obligatoires :
 - notification valide → un droit ;
 - même notification ×5, et en parallèle → toujours un seul droit ;
+- traitement interrompu (API prestataire en panne) → réponse 500, la relance suivante accorde le droit ;
 - notification falsifiée → rejetée ;
-- montant modifié → `needs_review` ;
+- montant modifié → `needs_review` + alerte ;
 - retour navigateur « succès » sans paiement → aucun droit ;
 - webhook perdu → récupéré par la réconciliation ;
+- commande `failed`/`expired` finalement payée → créditée ;
+- épisode et pass de la même saison payés en même temps → doublon signalé ;
+- remboursement d'un doublon → le droit d'origine est conservé ;
 - achat d'un contenu déjà possédé → refusé.
 
 ## Étape 5 — Lecture protégée et bibliothèque
@@ -80,14 +84,14 @@ Sortie : note de décision dans `docs/decisions/` pour chaque prototype.
 - `has_episode_access` appliqué à la lecture ; jetons courts ; limites d'émission.
 - Bibliothèque : passes + épisodes ; nouvel épisode d'une saison possédée visible automatiquement.
 
-**Sortie** : tests d'accès (sans droit / épisode / pass / pass + nouvel épisode / droit révoqué) ; test manuel de copie de lien (SEC-55).
+**Sortie** : tests d'accès (sans droit / épisode / pass / pass + nouvel épisode / pass + brouillon ou épisode non sorti → refusé / épisode dépublié après achat → conservé / droit révoqué / client bloqué) ; test manuel de copie de lien (SEC-55).
 
 ## Étape 6 — Administration
 
 - Accès admin séparé + TOTP ; contrôle de rôle serveur sur chaque action.
 - Séries, saisons, épisodes, prix par devise, publication programmée, téléversement vidéo vers Bunny, état d'encodage, garde-fous de publication.
 - Utilisateurs (masquage des numéros), bibliothèque, accès manuel motivé, blocage.
-- Transactions : liste, détail, revérification.
+- Transactions : liste, détail, revérification, file « À traiter » (FR-73).
 - Journal d'audit.
 
 **Sortie** : le fondateur crée seul une série complète en préproduction, sans assistance technique.

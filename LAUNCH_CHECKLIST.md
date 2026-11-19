@@ -64,7 +64,7 @@ Le fondateur crée les comptes à son nom (ou celui de la société) et active l
 ### SMS
 - [ ] Prix par SMS et taux de délivrabilité par pays et opérateur.
 - [ ] Enregistrement de l'identifiant d'expéditeur (obligatoire dans certains pays).
-- [ ] Compatibilité avec Supabase (fournisseur natif ou *Send SMS Hook*).
+- [ ] API d'envoi utilisable depuis notre serveur (HTTP), accusés de réception de livraison.
 
 ### Hébergement
 - [ ] Régions Supabase/Vercel les plus proches des pays cibles.
@@ -104,6 +104,9 @@ Le fondateur crée les comptes à son nom (ou celui de la société) et active l
 - [ ] Domaines autorisés Bunny = domaine de production.
 - [ ] Indicatifs pays OTP limités aux pays ouverts.
 - [ ] Comptes admin avec TOTP ; aucun compte de test admin en production.
+- [ ] Configuration Supabase Auth durcie : inscriptions publiques désactivées, fournisseur « phone » désactivé, changement de mot de passe sécurisé, MFA `aal2` exigé par l'application, limites de débit actives.
+- [ ] Test : avec la clé publique Supabase, aucune table ni fonction n'est accessible.
+- [ ] Alertes e-mail actives (paiement à examiner, doublon, budget SMS, erreurs webhook).
 - [ ] Données de test absentes de la production.
 
 ## 7. Opérations

@@ -62,13 +62,13 @@ Avec 10 essais maximum avant verrouillage dur et les PIN faibles interdits, la p
 | ID | Règle |
 |---|---|
 | SEC-01 | Inscription et réinitialisation du PIN uniquement après **OTP SMS** valide envoyé au numéro. |
-| SEC-02 | PIN haché avec **Argon2id** (paramètres recommandés OWASP au moment de l'implémentation) + **poivre** secret stocké hors base (variable d'environnement). Jamais stocké ni journalisé en clair. Vérification uniquement côté serveur. Le mot de passe interne Supabase est dérivé d'un secret serveur (TECHNICAL_ARCHITECTURE §7), donc inutilisable pour deviner le PIN. |
-| SEC-03 | Par compte : après **5 échecs** consécutifs → verrouillage **15 min** ; après **10 échecs** sur 24 h → verrouillage dur, déblocage uniquement par réinitialisation via OTP. Remise à zéro au succès. |
+| SEC-02 | PIN haché avec **Argon2id** (paramètres recommandés OWASP au moment de l'implémentation) + **poivre** secret stocké hors base (variable d'environnement). Jamais stocké ni journalisé en clair. Vérification uniquement par notre serveur : il n'existe **aucun autre point d'entrée** permettant d'ouvrir une session client (pas de Supabase Auth pour les clients, TECHNICAL_ARCHITECTURE §7). |
+| SEC-03 | Par compte : après **5 échecs** consécutifs → verrouillage **15 min** ; après **10 échecs** depuis la dernière connexion réussie → verrouillage dur, déblocage uniquement par réinitialisation via OTP. Remise à zéro au succès. **Compromis assumé** : un tiers connaissant un numéro peut volontairement verrouiller ce compte ; le titulaire se débloque avec un SMS (coût borné par SEC-12). Sans verrouillage dur, une attaque lente et répétée finirait par deviner un PIN à 4 chiffres. Un compte verrouillé à répétition déclenche une alerte (P1). |
 | SEC-04 | Par IP (hachée) : au-delà de ~20 tentatives de connexion/heure → **Cloudflare Turnstile** obligatoire ; au-delà de ~50/heure → blocage temporaire. Seuils ajustables. Surveillance d'un taux d'échec global anormal (attaque répartie). |
 | SEC-05 | PIN refusés : chiffres identiques (`0000`…), suites (`1234`, `4321`, `0123`…), les ~50 PIN les plus courants, années `19xx`/`20xx` récentes (6 chiffres : liste équivalente). |
 | SEC-06 | Messages d'erreur neutres : « Numéro ou PIN incorrect » — ne pas révéler si le numéro existe. Temps de réponse homogène. |
-| SEC-07 | Sessions : cookies `httpOnly`, `Secure`, `SameSite=Lax` ; jeton d'accès court (~1 h) + jeton de rafraîchissement **à rotation** ; expiration après ~90 jours d'inactivité **[à confirmer dans la configuration Supabase]**. |
-| SEC-08 | Changement / réinitialisation du PIN → **révocation de toutes les autres sessions**. |
+| SEC-07 | Sessions : jeton aléatoire 256 bits dans un cookie `httpOnly`, `Secure`, `SameSite=Lax` ; seul son hachage est stocké (`customer_sessions`) ; expiration après ~90 jours d'inactivité **[à valider]** ; nouveau jeton à chaque connexion (pas de réutilisation d'un jeton antérieur). |
+| SEC-08 | Changement / réinitialisation du PIN → **suppression de toutes les autres sessions** en base (effet immédiat). |
 | SEC-09 | Bouton « Se déconnecter de tous les appareils ». |
 | SEC-10 | Événements de sécurité journalisés (connexion réussie/échouée, verrouillage, réinitialisation) sans le PIN ni le numéro en clair. |
 
@@ -82,7 +82,7 @@ Avec 10 essais maximum avant verrouillage dur et les PIN faibles interdits, la p
 
 | ID | Règle |
 |---|---|
-| SEC-11 | Code à 6 chiffres, validité ~5 min, 5 essais max par code. |
+| SEC-11 | Code à 6 chiffres généré et vérifié par **notre serveur**, stocké haché, validité ~5 min, 5 essais max, usage unique. Le fournisseur « phone » de Supabase Auth reste **désactivé** (il offrirait un envoi de SMS contournant SEC-12/13). |
 | SEC-12 | Envoi : max 3 SMS / numéro / heure et ~10 / jour ; limite par IP ; **Turnstile obligatoire avant tout envoi**. |
 | SEC-13 | Envoi uniquement vers les **indicatifs des pays ouverts** (`markets.is_enabled`) — protection principale contre la fraude au SMS vers des numéros surtaxés. |
 | SEC-14 | Alerte si le volume quotidien de SMS dépasse un seuil défini (budget). |
@@ -91,18 +91,20 @@ Avec 10 essais maximum avant verrouillage dur et les PIN faibles interdits, la p
 
 | ID | Règle |
 |---|---|
-| SEC-15 | Comptes admin **séparés** des comptes clients, e-mail + mot de passe fort (≥ 12 caractères) + **TOTP obligatoire** **[D-06]**. |
+| SEC-15 | Comptes admin **séparés** des comptes clients (Supabase Auth), e-mail + mot de passe fort (≥ 12 caractères) + **TOTP obligatoire** **[D-06]**. Chaque action admin exige une session de niveau MFA **`aal2`** : un mot de passe deviné ou volé ne suffit pas. Inscriptions publiques Supabase désactivées. |
 | SEC-16 | Nombre d'admins minimal ; rôle `editor` sans accès aux données personnelles ni aux transactions. |
 
 ## 4. Accès aux données
 
 | ID | Règle |
 |---|---|
-| SEC-20 | **RLS activé sur toutes les tables**, refus par défaut (DATABASE_SCHEMA §5). |
-| SEC-21 | Le navigateur n'écrit jamais dans `orders`, `entitlements`, `payment_events`, `pin_credentials`, `staff_roles`. |
+| SEC-20 | **Le navigateur ne parle jamais à la base.** RLS activé sur toutes les tables **sans politique** pour `anon`/`authenticated` ; privilèges de table et d'exécution de fonctions révoqués pour ces rôles (DATABASE_SCHEMA §5). |
+| SEC-21 | Le serveur filtre systématiquement par l'identifiant du client de la session ; aucune donnée d'un autre client n'est jamais renvoyée. |
 | SEC-22 | La clé `service_role` n'existe que côté serveur ; jamais dans une variable `NEXT_PUBLIC_*`. |
-| SEC-23 | Les vues publiques n'exposent pas `video_id` ni les champs internes. |
-| SEC-24 | Tests automatisés : anonyme, utilisateur A vs données de B, éditeur vs transactions. |
+| SEC-23 | Les données de catalogue envoyées au navigateur n'incluent ni `video_id` ni champs internes ; l'identifiant vidéo n'apparaît que dans l'URL de lecture signée, une fois l'accès autorisé. |
+| SEC-24 | Tests automatisés : clé publique sans aucun accès, client A vs données de B, éditeur vs transactions, client bloqué. |
+| SEC-25 | Un client **bloqué** perd immédiatement l'accès : ses sessions sont supprimées et le statut est vérifié à chaque requête authentifiée (lecture, achat). |
+| SEC-26 | Le pays et la devise d'un client sont déduits par le serveur de son numéro vérifié ; jamais modifiables par le client. |
 
 ## 5. Paiements
 
@@ -113,19 +115,20 @@ Avec 10 essais maximum avant verrouillage dur et les PIN faibles interdits, la p
 | SEC-32 | Chaque notification est **authentifiée** : CinetPay → vérification du jeton HMAC `x-token` ; FedaPay → signature `X-FEDAPAY-SIGNATURE` avec le secret de l'endpoint. Comparaison à temps constant. Format exact à confirmer dans la documentation officielle au moment de l'implémentation. |
 | SEC-33 | Même authentifiée, une notification **déclenche une vérification par l'API du prestataire** (statut, montant, devise, référence). C'est le résultat de cette vérification qui fait foi. |
 | SEC-34 | Montant ou devise différents de la commande → `needs_review`, pas de droit, alerte admin. |
-| SEC-35 | **Idempotence** : unicité `(provider, event_key)` sur les événements, `(provider, provider_transaction_id)` sur les commandes, transition `pending → paid` atomique, index uniques partiels sur les droits. Deux notifications simultanées produisent **un seul** droit. |
+| SEC-35 | **Idempotence** : unicité `(provider, provider_transaction_id)` sur les commandes, transition vers `paid` atomique avec verrou sur la commande, index uniques partiels sur les droits. Deux notifications simultanées produisent **un seul** droit. Les notifications répétées ne sont **pas rejetées** mais retraitées sans effet de bord, pour qu'un traitement interrompu ne soit jamais perdu. |
 | SEC-36 | Référence de commande aléatoire et non devinable. |
 | SEC-37 | Anti double-clic : une commande `pending` récente identique est réutilisée. Un second paiement effectif pour un droit déjà existant est marqué `is_duplicate_payment` pour remboursement. |
-| SEC-38 | Réconciliation automatique des commandes `pending` + revérification manuelle depuis l'admin. |
+| SEC-38 | Réconciliation automatique des commandes `pending`, et des `expired`/`failed`/`cancelled` de moins de 72 h (le prestataire a le dernier mot) + revérification manuelle depuis l'admin. |
 | SEC-39 | Les secrets live et sandbox sont différents et ne sont jamais mélangés entre environnements. |
-| SEC-40 | Le webhook répond vite (200) et ne renvoie aucune information interne. Les erreurs sont journalisées côté serveur. |
+| SEC-40 | Le webhook ne répond 200 qu'**après** traitement complet ; en cas d'erreur temporaire il répond 500 pour provoquer une nouvelle tentative du prestataire. Aucune information interne dans la réponse ; erreurs journalisées et remontées (alerte P0). |
+| SEC-41 | Remboursement : seul le droit lié à la commande remboursée est révoqué. |
 
 ## 6. Vidéos protégées
 
 | ID | Règle |
 |---|---|
 | SEC-50 | Aucune URL vidéo permanente ou publique pour un épisode payant. |
-| SEC-51 | Jeton de lecture émis par le serveur **après** vérification de `has_episode_access` ; validité de quelques minutes. |
+| SEC-51 | Jeton de lecture émis par le serveur **après** vérification de `has_episode_access` (qui exclut brouillons et épisodes non sortis) ; validité de quelques minutes, compatible avec la lecture complète d'un épisode (vérifié en S2). |
 | SEC-52 | Authentification par jeton activée sur le lecteur intégré **et** sur le CDN (playlists et segments HLS) ; domaines référents restreints ; repli MP4 désactivé si possible. |
 | SEC-53 | Clé de signature Bunny uniquement côté serveur. |
 | SEC-54 | Limite d'émission de jetons par utilisateur/IP (ex. 60/heure) pour détecter le partage de compte massif ou le scraping. |
@@ -137,7 +140,7 @@ Avec 10 essais maximum avant verrouillage dur et les PIN faibles interdits, la p
 
 | ID | Règle |
 |---|---|
-| SEC-60 | Chaque route et action admin vérifie **côté serveur** le rôle dans `staff_roles` ; masquer un bouton n'est pas une protection. |
+| SEC-60 | Chaque route et action admin vérifie **côté serveur** : session admin valide, niveau MFA `aal2`, rôle dans `staff_roles`. Masquer un bouton n'est pas une protection. |
 | SEC-61 | Actions sensibles (prix, accès manuel, blocage, remboursement, dépublication) journalisées dans `audit_logs`. |
 | SEC-62 | Numéros de téléphone masqués par défaut dans l'admin (`+229 90 •• •• 12`), affichage complet sur action explicite journalisée. |
 | SEC-63 | Téléversements admin : types (JPEG/PNG/WebP pour les images) et tailles limités, noms de fichiers régénérés. |
