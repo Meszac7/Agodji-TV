@@ -1,0 +1,59 @@
+# CLAUDE.md — Règles du projet Agodjié TV
+
+Plateforme de streaming TVOD de séries dramatiques africaines (dont productions IA), mobile d'abord, paiement Mobile Money.
+Fondateur **non développeur** : explications en français, claires, sans jargon inutile. Ne jamais lui demander d'utiliser le terminal.
+
+## Documents de référence (à lire avant toute tâche)
+
+| Fichier | Rôle |
+|---|---|
+| `PROJECT_BRIEF.md` | Vision, modèle économique, **registre des décisions D-xx** (source unique) |
+| `PRODUCT_REQUIREMENTS.md` | Exigences FR-xx, règles métier RM-xx, périmètre V1 et reports |
+| `TECHNICAL_ARCHITECTURE.md` | Pile technique, flux de paiement, vidéo, variables d'environnement |
+| `DATABASE_SCHEMA.md` | Modèle de données, fonctions SQL, RLS |
+| `SECURITY_REQUIREMENTS.md` | Règles SEC-xx (non négociables) |
+| `DESIGN_GUIDELINES.md` | Jetons de design, composants |
+| `DEVELOPMENT_ROADMAP.md` | Étapes et critères de sortie |
+| `LAUNCH_CHECKLIST.md` | Prérequis de lancement, dépendances externes |
+
+Si le code et ces documents divergent, **signaler l'écart** et mettre à jour le document après validation — ne pas laisser dériver silencieusement.
+
+## État du projet
+
+- Phase 1 (cadrage) : documents rédigés, **décisions D-01 à D-16 en attente** du fondateur.
+- Aucun code applicatif. Ne pas commencer une étape de la feuille de route sans instruction explicite.
+- Ne jamais présenter une décision en attente comme validée.
+
+## Pile prévue (sous réserve des prototypes de l'étape 0)
+
+Next.js (App Router) + TypeScript · Tailwind · Supabase (Postgres, Auth, Storage, RLS) · Bunny Stream · CinetPay (FedaPay plus tard, via interface `PaymentProvider`) · Vercel · Sentry · Turnstile · Zod · Vitest · Playwright.
+
+## Règles non négociables
+
+1. **Aucun secret** dans le dépôt, le code navigateur ou les journaux. Seul `.env.example` (sans valeurs) est versionné. Rien de secret dans une variable `NEXT_PUBLIC_*`.
+2. **Prix et règles d'accès en base**, jamais codés en dur. Montants en entiers, par devise.
+3. **Aucun droit d'accès accordé sur la foi du navigateur.** Uniquement après notification authentifiée **et** vérification via l'API du prestataire, dans `confirm_order_payment` (transaction atomique, idempotente).
+4. **Le prix est toujours recalculé côté serveur.**
+5. **RLS activé sur toutes les tables**, refus par défaut ; écritures sensibles (commandes, droits, paiements, PIN, rôles) uniquement côté serveur.
+6. **Vidéos payantes** : jamais d'URL permanente ; jeton court émis après `has_episode_access`. Ne jamais exposer `video_id` ni la clé de signature.
+7. **PIN** : Argon2id + poivre, vérification serveur uniquement, verrouillages et limites SEC-03 à SEC-05.
+8. **Admin** : contrôle de rôle côté serveur sur chaque route/action ; actions sensibles dans `audit_logs`.
+9. Ne pas inventer de capacités, tarifs ou formats d'API des prestataires : vérifier dans la documentation officielle et noter la source.
+
+## Méthode de travail
+
+- Petites étapes vérifiables ; commit clair à chaque avancée ; push régulier sur la branche de travail.
+- Tests obligatoires pour : droits d'accès, paiements (idempotence, falsification, montants), auth (limites, verrouillages), RLS, protection vidéo.
+- **Ne jamais affirmer qu'un test passe sans l'avoir exécuté.** Rapporter les échecs tels quels.
+- Ne jamais déclarer une fonctionnalité « sécurisée » ou « terminée » sans preuve.
+- Données de test réalistes, uniquement hors production.
+- Décisions techniques importantes documentées dans `docs/decisions/AAAA-MM-JJ-titre.md`.
+- Quand un compte externe, une clé ou une approbation est nécessaire : expliquer précisément quoi, pourquoi, et où le fondateur doit le saisir (paramètres Vercel/Supabase), jamais par chat.
+
+## Conventions (à appliquer dès l'étape 1)
+
+- TypeScript strict ; validation Zod de toute entrée serveur.
+- Modules métier : `catalog`, `auth`, `orders`, `payments`, `entitlements`, `playback`, `admin`, `analytics`.
+- Schéma de base uniquement via migrations versionnées.
+- Couleurs uniquement via jetons CSS ; jaune royal = action principale, rouge = destructif/critique.
+- Textes d'interface en français, centralisés.
