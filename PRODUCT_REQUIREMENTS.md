@@ -58,7 +58,7 @@ Voir SECURITY_REQUIREMENTS §3 et la décision `docs/decisions/2026-11-20-compte
 
 **FR-11 — Inscription avec e-mail et mot de passe.**
 1. Adresse e-mail + mot de passe (au moins 10 caractères) + acceptation des CGU / politique de confidentialité.
-2. E-mail de confirmation avec lien. **Un compte non confirmé peut naviguer et regarder les épisodes gratuits, mais ne peut pas acheter** tant que l'adresse n'est pas confirmée.
+2. E-mail de confirmation avec lien. **Tant que l'adresse n'est pas confirmée, le compte ne peut pas se connecter** (sécurité, SEC-02) : l'utilisateur continue comme visiteur (épisodes gratuits) et peut renvoyer l'e-mail.
 3. Après confirmation, l'utilisateur revient exactement là où il était (ex. écran d'achat dans le lecteur).
 
 **FR-12 — Connexion par e-mail et mot de passe.** Session longue sur l'appareil (pas de reconnexion à chaque visite).

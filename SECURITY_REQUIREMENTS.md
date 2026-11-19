@@ -11,7 +11,7 @@
 |---|---|
 | Argent des clients et revenus | Un faux paiement accepté = contenu volé ; un vrai paiement non crédité = client lésé |
 | Droits d'accès (entitlements) | Cœur du modèle TVOD |
-| Comptes utilisateurs | Accès à la bibliothèque, données personnelles (numéro) |
+| Comptes utilisateurs | Accès à la bibliothèque et aux achats, données personnelles (e-mail, numéro facultatif) |
 | Vidéos payantes | Valeur commerciale |
 | Comptes administrateurs | Un admin compromis = contrôle total (prix, accès, données) |
 | Secrets (clés API) | Permettent d'agir au nom de la plateforme |
@@ -42,12 +42,12 @@ Décision : `docs/decisions/2026-11-20-comptes-google-email-lecteur-vertical.md`
 | ID | Règle |
 |---|---|
 | SEC-01 | Méthodes de connexion clients : **Google** (OAuth via Supabase, flux PKCE) et **e-mail + mot de passe**. Aucune autre méthode active (téléphone, lien magique, autres réseaux) ; les fournisseurs non utilisés sont **désactivés** dans Supabase. |
-| SEC-02 | **Confirmation d'e-mail obligatoire** pour les comptes e-mail + mot de passe. Un compte non confirmé ne peut ni acheter, ni être lié à une autre méthode, ni recevoir de droit d'accès. |
+| SEC-02 | **Confirmation d'e-mail obligatoire** (option Supabase « Confirm email » **activée**) : un compte e-mail + mot de passe non confirmé **ne peut pas se connecter** (aucune session), donc ni acheter, ni être lié, ni recevoir de droit. En attendant, l'utilisateur continue comme visiteur (épisodes gratuits). Notre serveur vérifie en plus `email_confirmed_at` avant tout achat. |
 | SEC-03 | Mot de passe : **au moins 10 caractères** ; détection des mots de passe divulgués activée si l'offre Supabase le permet **[à vérifier]** ; jamais stocké ni journalisé par notre application (géré par Supabase). |
 | SEC-04 | **Cloudflare Turnstile** sur l'inscription, la connexion et la demande de réinitialisation (protection anti-robot intégrée à Supabase Auth **[à vérifier : configuration]**) ; limites de débit de Supabase Auth actives. |
 | SEC-05 | Messages d'erreur neutres (« E-mail ou mot de passe incorrect ») ; la demande de réinitialisation répond toujours « Si un compte existe, un e-mail a été envoyé ». |
 | SEC-06 | Les appels d'authentification passent par **notre serveur** (actions serveur / routes) ; **aucun client Supabase n'est instancié dans le navigateur**. Retour OAuth sur une route serveur unique (`/auth/callback`) qui échange le code. URL de redirection autorisées limitées au domaine (liste blanche Supabase). |
-| SEC-07 | Sessions : jetons Supabase dans des cookies `httpOnly`, `Secure`, `SameSite=Lax`, rafraîchis côté serveur ; jeton d'accès court (~1 h) avec rotation du jeton de rafraîchissement ; durée d'inactivité maximale configurée **[à valider à l'étape 3]**. |
+| SEC-07 | Sessions : jetons Supabase dans des cookies `httpOnly`, `Secure`, `SameSite=Lax` **[option à vérifier]**, rafraîchis dans le middleware ; jeton d'accès court (~1 h) avec rotation du jeton de rafraîchissement ; durée d'inactivité maximale configurée **[à valider à l'étape 3]**. **Toute autorisation** vérifie le jeton auprès de Supabase (`getUser`) — jamais la simple lecture du cookie (`getSession`). |
 | SEC-08 | Changement de mot de passe ou réinitialisation → **déconnexion des autres sessions**. Changement d'e-mail → confirmation sur l'**ancienne et la nouvelle** adresse (option « secure email change »). Actions sensibles du compte (changer d'e-mail, retirer une méthode) → **réauthentification récente**. |
 | SEC-09 | Bouton « Se déconnecter de tous les appareils ». |
 | SEC-10 | Événements de sécurité (connexion, échec, réinitialisation, liaison/retrait de méthode, transfert d'achats) journalisés sans mot de passe ni jeton. |
@@ -57,9 +57,9 @@ Décision : `docs/decisions/2026-11-20-comptes-google-email-lecteur-vertical.md`
 | ID | Règle |
 |---|---|
 | SEC-11 | **Un client = un identifiant stable** (`auth.users.id` = `customers.id`). Commandes, droits, bibliothèque et progression référencent cet identifiant, jamais une méthode de connexion. |
-| SEC-12 | Liaison automatique uniquement entre identités dont l'**e-mail est vérifié** (comportement de Supabase **testé** à l'étape 3). Une identité e-mail **non confirmée** portant la même adresse qu'un compte Google ne doit jamais donner accès à ce compte ; le scénario de **prise de contrôle anticipée** (un tiers crée d'abord un compte avec l'adresse de la victime) est un **test obligatoire**. |
+| SEC-12 | Liaison automatique uniquement entre identités dont l'**e-mail est vérifié** (comportement de Supabase **à vérifier et tester** à l'étape 3). **Tests obligatoires dans les deux sens** : (a) un tiers crée d'abord un compte e-mail + mot de passe avec l'adresse de la victime, puis la victime se connecte avec Google → le tiers n'obtient aucun accès ; (b) la victime a un compte Google seulement, un tiers s'inscrit par e-mail + mot de passe avec la même adresse → la victime reçoit l'e-mail de confirmation, et **même si elle clique**, le mot de passe du tiers ne doit pas devenir une méthode de connexion de son compte. Si Supabase ne garantit pas (b), l'inscription par e-mail est **refusée par notre serveur** lorsqu'un compte existe déjà avec cette adresse (message neutre invitant à se connecter ou à réinitialiser). |
 | SEC-13 | Liaison manuelle (ajouter Google, définir un mot de passe) : uniquement pour un client **connecté** et récemment réauthentifié. Retrait d'une méthode : seulement s'il en reste au moins une. |
-| SEC-14 | Transfert d'achats entre deux comptes : **administrateur uniquement**, après vérification de la propriété des deux comptes, motif obligatoire, journal d'audit, opération transactionnelle (aucun droit perdu ni dupliqué). |
+| SEC-14 | Transfert d'achats entre deux comptes : demande faite **depuis le compte source** (réauthentification récente) et **confirmée depuis le compte cible**, puis approuvée par un administrateur (`admin`, jamais `editor`) avec motif et journal d'audit. Opération transactionnelle : droits recréés sur la cible avec `source = 'transfer'` (lien vers le transfert), révoqués à la source ; progression déplacée ; compte source **bloqué** ; commandes en attente du compte source revérifiées et, si payées ensuite, créditées au compte cible. Aucun droit perdu ni dupliqué. |
 
 ### 3.3 Numéro de téléphone
 
@@ -77,7 +77,7 @@ Décision : `docs/decisions/2026-11-20-comptes-google-email-lecteur-vertical.md`
 
 | ID | Règle |
 |---|---|
-| SEC-16 | Administrateurs : e-mail + mot de passe fort (≥ 12 caractères) + **TOTP obligatoire** ; chaque action admin exige une session de niveau **`aal2`** et un rôle dans `staff_roles` (attribué uniquement par un autre admin ou par migration). Un client ne peut jamais s'attribuer un rôle. Nombre d'admins minimal ; rôle `editor` sans accès aux données personnelles ni aux transactions **[D-06]**. |
+| SEC-16 | Administrateurs : **adresse e-mail dédiée** (jamais celle d'un compte client, jamais via Google — la connexion Google est refusée par notre serveur pour un compte `staff_roles`) + mot de passe fort (≥ 12 caractères) + **TOTP obligatoire** ; les actions de compte (e-mail, mot de passe, méthodes) exigent aussi `aal2` ; chaque action admin exige une session de niveau **`aal2`** et un rôle dans `staff_roles` (attribué uniquement par un autre admin ou par migration). Un client ne peut jamais s'attribuer un rôle. Nombre d'admins minimal ; rôle `editor` sans accès aux données personnelles ni aux transactions **[D-06]**. |
 
 ## 4. Accès aux données
 
@@ -109,7 +109,7 @@ Décision : `docs/decisions/2026-11-20-comptes-google-email-lecteur-vertical.md`
 | SEC-41 | Remboursement : seul le droit lié à la commande remboursée est révoqué. |
 | SEC-42 | Désactiver un prestataire ou un compte bloque les **nouveaux** paiements mais **jamais** la vérification des commandes en cours (webhooks et réconciliation restent actifs). |
 | SEC-43 | Modification des pays, grilles, comptes, routes de paiement et du statut testeur réservée au rôle `admin`, avec confirmation et journalisation. |
-| SEC-44 | Les simulateurs (paiement, SMS, vidéo) sont refusés en production : l'application ne démarre pas en production si un simulateur est configuré ou si un compte de paiement `simulator` est actif. Test automatisé obligatoire. |
+| SEC-44 | Les simulateurs (paiement, vidéo) sont refusés en production : l'application ne démarre pas en production si un simulateur est configuré ou si un compte de paiement `simulator` est actif. Test automatisé obligatoire. |
 
 ## 6. Vidéos protégées
 
@@ -117,9 +117,9 @@ Décision : `docs/decisions/2026-11-20-comptes-google-email-lecteur-vertical.md`
 |---|---|
 | SEC-50 | Aucune URL vidéo permanente ou publique pour un épisode payant. |
 | SEC-51 | Jeton de lecture émis par le serveur **après** vérification de `has_episode_access` (qui exclut brouillons et épisodes non sortis) ; validité de quelques minutes, compatible avec la lecture complète d'un épisode (vérifié à l'étape 6 de la feuille de route). |
-| SEC-52 | Authentification par jeton activée sur le lecteur intégré **et** sur le CDN (playlists et segments HLS) ; domaines référents restreints ; repli MP4 désactivé si possible. |
+| SEC-52 | Authentification par **jeton CDN** activée (playlists et segments HLS) ; domaines référents restreints ; repli MP4 désactivé si possible ; vignettes du catalogue servies depuis Supabase Storage, jamais depuis des URL Bunny. |
 | SEC-53 | Clé de signature Bunny uniquement côté serveur. |
-| SEC-54 | Limite d'émission de jetons par utilisateur/IP (ex. 60/heure) pour détecter le partage de compte massif ou le scraping. |
+| SEC-54 | Limite d'émission de jetons par utilisateur/IP pour détecter le partage de compte massif ou le scraping, en distinguant **nouvelles lectures** (ex. 60/heure) et **renouvellements / préchargements** (limite séparée, plus large) pour ne jamais gêner un spectateur qui enchaîne les épisodes. |
 | SEC-55 | **Test pré-lancement obligatoire** : un lien copié est refusé après expiration et depuis un autre domaine ; un utilisateur sans droit reçoit un refus. |
 
 **Limite assumée** : aucune protection n'empêche l'enregistrement d'écran. L'objectif est d'empêcher le **partage simple de liens** et l'accès sans paiement, pas de garantir l'impossibilité de copie (voir TECHNICAL_ARCHITECTURE §6.3).
@@ -164,8 +164,8 @@ Implémentation V1 : limites intégrées à Supabase Auth pour l'authentificatio
 | SEC-81 | Requêtes paramétrées uniquement (client Supabase / fonctions SQL) ; pas de SQL construit par concaténation. |
 | SEC-82 | XSS : rendu React échappé par défaut ; interdiction de `dangerouslySetInnerHTML` sur du contenu saisi. |
 | SEC-83 | En-têtes : `Content-Security-Policy` (sources limitées : Bunny, Supabase, Turnstile, Sentry), `Strict-Transport-Security`, `X-Content-Type-Options`, `Referrer-Policy`, `frame-ancestors 'none'` (anti-clickjacking). |
-| SEC-84 | CSRF : cookies `SameSite=Lax`, vérification de l'origine sur les actions qui modifient des données. |
-| SEC-85 | Redirections : URL de retour après connexion limitées aux chemins internes (pas de redirection ouverte). |
+| SEC-84 | CSRF : cookies `SameSite=Lax` ; vérification de l'origine sur **toutes** les requêtes qui modifient des données — actions serveur (Next.js) **et** routes API (`/api/playback`, `/api/progress`, `/api/checkout`, déconnexion) ; la déconnexion se fait en POST, jamais en GET. |
+| SEC-85 | Redirections : URL de retour après connexion limitées aux chemins internes commençant par un seul `/` (refus de `//hôte`, `/\hôte`, schémas) ; liste des URL de redirection Supabase limitée au domaine exact (aucun joker de type `*.vercel.app` en production). |
 | SEC-86 | Dépendances : fichier de verrouillage versionné, alertes de vulnérabilité (Dependabot), mises à jour régulières. |
 
 ## 11. Données personnelles

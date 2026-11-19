@@ -56,7 +56,7 @@
                  ┌──────────────────┐ ┌──────────────┐ ┌──────────────────┐
                  │ Supabase         │ │ CinetPay     │ │ Bunny Stream     │
                  │ Postgres + RLS   │ │ FedaPay      │ │ encodage, HLS,   │
-                 │ Auth (admins)    │ │ (+ futurs)   │ │ CDN, jetons      │
+                 │ Auth (comptes)   │ │ (+ futurs)   │ │ CDN, jetons      │
                  │ Storage (images) │ └──────┬───────┘ └────────┬─────────┘
                  └──────────────────┘        │ webhook          │ flux vidéo signé
                                              └──► /api/webhooks │
@@ -80,7 +80,7 @@ Principe : **le navigateur ne détient jamais de secret et ne parle jamais à la
 
 - Logique serveur dans les routes et *server actions* Next.js, regroupée dans des modules métier testables : `catalog`, `auth`, `orders`, `payments`, `entitlements`, `playback`, `admin`, `analytics`.
 - Accès base : **uniquement depuis le serveur**, avec la clé de service, y compris pour le catalogue public (pages rendues côté serveur et mises en cache). Les opérations où l'atomicité compte (ex. « marquer payé + accorder le droit ») sont des **fonctions Postgres transactionnelles**.
-- **RLS activé sur toutes les tables sans aucune politique** pour les rôles `anon` et `authenticated` : même si la clé publique Supabase est utilisée (connexion admin), elle ne donne accès à aucune donnée. Droit d'exécution des fonctions SQL retiré à `PUBLIC`, `anon` et `authenticated`.
+- **RLS activé sur toutes les tables sans aucune politique** pour les rôles `anon` et `authenticated` : la clé « anon » de Supabase (utilisée par notre serveur pour les appels d'authentification) ne donne accès à aucune donnée. Droit d'exécution des fonctions SQL retiré à `PUBLIC`, `anon` et `authenticated`.
 - Région : choisir la même région pour Supabase et les fonctions Vercel, la plus proche de l'Afrique de l'Ouest/centrale disponible (probablement **Europe de l'Ouest, ex. Paris ou Francfort**) **[à vérifier : liste des régions Supabase/Vercel]**.
 - Publication programmée : pas de tâche planifiée nécessaire ; un contenu est visible si `status = 'published'` **ou** `status = 'scheduled' AND publish_at <= now()`.
 - Tâches planifiées (Vercel Cron) : réconciliation des paiements (§5.9), expiration des commandes, purge des journaux techniques expirés.
@@ -312,13 +312,13 @@ Sujets juridiques associés (LAUNCH_CHECKLIST §4) : TVA sur les services numér
 **Estimation d'ordre de grandeur** (à recalculer avec la durée réelle des épisodes **[D-07]**) : un épisode de 10 min en 720p ≈ 100–150 Mo → ≈ 0,006–0,009 $ de diffusion par visionnage en Afrique, soit ~1 % à 2 % d'un prix de 300 FCFA (~0,46 €). Supportable. Les épisodes **gratuits** coûtent aussi en bande passante : à surveiller.
 
 ### 6.2 Mise en œuvre de la protection
-1. Activer dans la bibliothèque Bunny : **authentification par jeton CDN** (indispensable avec un lecteur sur mesure), **authentification du jeton d'intégration** (si le lecteur intégré Bunny est retenu), **domaines autorisés** (domaine de production uniquement), **désactiver le repli MP4** pour les épisodes payants si possible.
-2. Le navigateur appelle `GET /api/playback/:episodeId`. Le serveur vérifie RM-01, puis génère une URL de lecture signée expirant après **quelques minutes** (recommandation Bunny : 1 à 5 min pour le jeton).
+1. Activer dans la bibliothèque Bunny : **authentification par jeton CDN** (playlists et segments HLS — indispensable avec notre lecteur sur mesure), **domaines autorisés** (domaine de production uniquement), **désactiver le repli MP4** pour les épisodes payants si possible.
+2. Le navigateur appelle `POST /api/playback/:episodeId`. Le serveur vérifie RM-01, puis génère une URL de lecture signée expirant après **quelques minutes** (recommandation Bunny : 1 à 5 min pour le jeton).
 3. Les épisodes gratuits passent aussi par ce point (sans vérification de droit) : cela empêche l'intégration sauvage sur d'autres sites.
-4. La clé de signature n'est **jamais** exposée. Les identifiants vidéo ne figurent pas dans les pages publiques ; en revanche, l'URL du lecteur intégré contient l'identifiant de la vidéo une fois la lecture autorisée. **Ce n'est pas un problème** : la protection repose sur les jetons (embed + CDN), pas sur le secret de l'identifiant.
+4. La clé de signature n'est **jamais** exposée. Les identifiants vidéo ne figurent pas dans les données du catalogue ; l'URL signée renvoyée après autorisation contient l'identifiant de la vidéo. **Ce n'est pas un problème** : la protection repose sur le jeton CDN, pas sur le secret de l'identifiant. Les vignettes servies au catalogue viennent de **Supabase Storage** (`thumbnail_path`), jamais des URL Bunny (qui contiennent l'identifiant).
 5. **Tests obligatoires (étape 6 de la feuille de route, puis pré-lancement)** :
    - copier l'URL de playlist HLS depuis les outils du navigateur → refusée après expiration et depuis un autre domaine ;
-   - un épisode complet se lit jusqu'au bout même si sa durée dépasse la validité du jeton (vérifier comment le lecteur Bunny renouvelle l'accès aux segments ; ajuster la durée du jeton si nécessaire).
+   - un épisode complet se lit jusqu'au bout même si sa durée dépasse la validité du jeton (le moteur de diffusion renouvelle le lien avant expiration ; ajuster la durée du jeton si nécessaire).
 
 ### 6.3 Limites honnêtes
 - Aucun système ne peut empêcher **l'enregistrement d'écran** ou le filmage d'un écran. Les jetons empêchent le **partage de liens**, pas la copie par un utilisateur déterminé.
@@ -355,9 +355,10 @@ Exigences : PRODUCT_REQUIREMENTS §5. Décision : `docs/decisions/2026-11-20-com
 | 5. Séquenceur | Construit l'ordre des diapositives d'une saison : épisodes publiés (lecture ou déblocage), épisodes programmés (« bientôt »), carte de fin de saison (saison suivante et son état d'accès) ; règle d'enchaînement (jamais vers un contenu verrouillé) | Contourner les droits : il **décrit** l'état, le serveur le **vérifie** à chaque lecture |
 
 #### Points techniques
-- **API** : `GET /api/feed/:serieSlug?saison=N` renvoie les diapositives et leur état pour l'utilisateur courant (sans `video_id`) ; `POST /api/playback/:episodeId` renvoie le lien signé si l'accès est confirmé ; `PUT /api/progress` enregistre la position (limité en fréquence).
+- **API** : `GET /api/feed/:serieSlug?saison=N` renvoie les diapositives et leur état pour l'utilisateur courant (sans `video_id`), calculé avec **exactement** `has_episode_access` et les règles de visibilité de la base (aucune règle réécrite côté navigateur) : brouillons jamais présents ; épisode programmé dont la date est passée = publié ; épisode dépublié après achat conservé pour l'acheteur (RM-07) ; `POST /api/playback/:episodeId` renvoie le lien signé si l'accès est confirmé ; `PUT /api/progress` enregistre la position (limité en fréquence).
 - **Mémoire sur téléphones modestes** : au plus **3 éléments vidéo** montés (précédent, courant, suivant) ; les autres diapositives n'affichent qu'une image.
 - **Préchargement** : uniquement le manifeste et le premier segment de l'épisode suivant (si accessible), pour démarrer sans attente sans gaspiller la data.
+- **Jetons de lecture** : `/api/playback` distingue une **nouvelle lecture** (comptée dans les statistiques et dans la limite SEC-54) d'un **renouvellement** ou d'un **préchargement** (non comptés comme lecture, limite séparée plus large).
 - **Son** : l'entrée dans le lecteur par un toucher autorise la lecture avec son ; l'enchaînement conserve le choix de l'utilisateur. Si le navigateur l'impose, démarrage en sourdine avec un bouton « Activer le son » visible.
 - **Format** : `object-fit: contain` (jamais de déformation ni de recadrage) ; fond flou généré à partir de la vignette ; plein écran paysage pour les séries horizontales (`screen.orientation.lock` si disponible).
 - **Déblocage dans le flux** : après confirmation d'un achat, le séquenceur recharge les états (`/api/feed`) et déverrouille les diapositives couvertes sans recharger la page.
@@ -369,12 +370,14 @@ Décision : `docs/decisions/2026-11-20-comptes-google-email-lecteur-vertical.md`
 
 ### 7.1 Clients : Supabase Auth (Google, e-mail + mot de passe)
 - **Méthodes au lancement** : Google (OAuth, flux PKCE) et e-mail + mot de passe avec **confirmation d'e-mail obligatoire**. Aucune dépendance à un SMS. La connexion par numéro + PIN n'est pas développée.
-- **Côté serveur uniquement** : les appels à Supabase Auth passent par nos actions serveur ; le retour Google arrive sur `/auth/callback` qui échange le code ; la session est stockée dans des cookies `httpOnly`. Aucun client Supabase dans le navigateur (le navigateur ne parle jamais à la base).
+- **Côté serveur uniquement** : les appels à Supabase Auth passent par nos actions serveur ; le retour Google arrive sur `/auth/callback` (échange du code, flux PKCE) ; les liens reçus par e-mail (confirmation, réinitialisation, changement d'adresse) arrivent sur `/auth/confirm` qui vérifie le jeton de l'e-mail (`token_hash`) — ils fonctionnent donc même ouverts sur un autre appareil ou dans le navigateur d'une messagerie **[à vérifier en étape 3]**. Aucun client Supabase dans le navigateur.
+- **Sessions** : cookies `httpOnly`, `Secure`, `SameSite=Lax` (options de cookies de la bibliothèque Supabase côté serveur **[à vérifier]**) ; rafraîchissement des jetons dans le **middleware** ; toute autorisation repose sur une vérification du jeton par Supabase (`getUser`), jamais sur la simple lecture du cookie.
 - **Identifiant stable** : `customers.id` = `auth.users.id`. Un profil `customers` est créé à la première connexion. Commandes, droits, bibliothèque et progression référencent cet identifiant.
 - **Liaison** : automatique entre identités à e-mail vérifié (comportement Supabase à tester) ; manuelle depuis « Mon compte » (ajouter Google, définir un mot de passe) ; transfert d'achats par un administrateur en dernier recours.
 - **Anti-robot** : Turnstile sur inscription, connexion, réinitialisation.
 - **E-mails** (confirmation, réinitialisation, changement d'adresse) : envoyés par Supabase via un **service SMTP** configuré avec notre domaine **[D-24]** ; l'envoi intégré de Supabase ne sert qu'au développement.
 - **Blocage** : bannissement Supabase + révocation des sessions + contrôle de `customers.status` par notre serveur à chaque action sensible.
+- **Comptes administrateurs** : adresse e-mail **dédiée** à l'administration (jamais l'adresse d'un compte client ni un compte Google) ; la connexion Google est refusée par notre serveur pour un compte qui possède un rôle `staff_roles` ; toutes les actions de « Mon compte » (changer d'e-mail, de mot de passe, lier/retirer une méthode) exigent le niveau `aal2` pour un compte disposant d'un facteur TOTP.
 - **Numéro de téléphone** : simple champ de profil facultatif, non vérifié.
 
 ### 7.2 Administrateurs : Supabase Auth + TOTP
@@ -394,8 +397,8 @@ Variables d'environnement (noms indicatifs, aucune valeur dans le dépôt) :
 
 | Variable | Côté | Rôle |
 |---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | public | URL du projet |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | public | Utilisée uniquement pour la connexion admin ; ne donne accès à aucune donnée (RLS sans politique) |
+| `SUPABASE_URL` | serveur | URL du projet |
+| `SUPABASE_ANON_KEY` | **serveur** | Utilisée par notre serveur pour les appels Supabase Auth ; ne donne accès à aucune donnée (RLS sans politique). Aucun client Supabase dans le navigateur : elle n'a pas besoin d'être publique |
 | `SUPABASE_SERVICE_ROLE_KEY` | **serveur** | Accès complet — jamais au navigateur |
 | `SUPABASE_AUTH_*` (aucune valeur dans l'application) | Supabase | Identifiant Google OAuth et SMTP saisis **dans le tableau de bord Supabase**, pas dans le code |
 | `HASH_SECRET` | **serveur** | HMAC des numéros/IP dans les journaux |
@@ -434,7 +437,7 @@ Un fichier `.env.example` (sans valeurs) sera créé au début du développement
 
 | Risque | Impact | Mitigation |
 |---|---|---|
-| Erreur dans le code d'authentification maison | Comptes compromis | Périmètre réduit, tests exhaustifs à l'étape 3, revue de sécurité indépendante |
+| Mauvaise configuration de Supabase Auth (liaison des comptes, redirections, cookies) | Comptes compromis | Configuration documentée (LAUNCH_CHECKLIST), tests de prise de contrôle anticipée dans les deux sens, revue de sécurité indépendante |
 | Webhooks perdus ou retardés | Client payé sans accès | Réconciliation automatique + revérification manuelle admin |
 | Abus d'inscription (robots) | Comptes factices, envois d'e-mails | Turnstile, confirmation d'e-mail, limites Supabase |
 | Couverture réelle des opérateurs différente des pages publiques | Paiements impossibles dans un pays | Vérification écrite auprès du prestataire et paiement réel de test avant d'ouvrir un marché |

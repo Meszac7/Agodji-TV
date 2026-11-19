@@ -48,7 +48,7 @@ Clients et administrateurs sont des utilisateurs **Supabase Auth** (`auth.users`
 
 | Colonne | Type | Notes |
 |---|---|---|
-| id | uuid PK FK `auth.users(id)` | **identifiant stable** : toutes les commandes, droits, la bibliothèque et la progression y sont rattachés, quelle que soit la méthode de connexion (SEC-11) |
+| id | uuid PK FK `auth.users(id)` **ON DELETE RESTRICT** | **identifiant stable** : toutes les commandes, droits, la bibliothèque et la progression y sont rattachés, quelle que soit la méthode de connexion (SEC-11) |
 | display_name | text NULL | facultatif |
 | phone_e164 | text NULL | **facultatif, non vérifié** (format E.164 contrôlé) ; jamais utilisé pour se connecter, récupérer un compte ou déduire le pays de paiement (SEC-15) |
 | last_payment_country | text NULL FK markets | dernier pays de paiement **confirmé par le client** (proposé par défaut aux achats suivants) |
@@ -60,7 +60,7 @@ Clients et administrateurs sont des utilisateurs **Supabase Auth** (`auth.users`
 
 Règles :
 - L'e-mail et son état de confirmation sont lus dans `auth.users` (source unique, pas de copie) ; un client dont l'e-mail n'est pas confirmé ne peut pas acheter (SEC-02).
-- Suppression de compte : anonymisation du profil, conservation des commandes (obligation comptable).
+- **Aucune suppression physique** : toutes les clés étrangères vers `customers` et `auth.users` sont en `ON DELETE RESTRICT` (un utilisateur ne peut pas être supprimé depuis le tableau de bord Supabase en emportant ses commandes). Suppression de compte = blocage Supabase + effacement de l'e-mail et des identités dans `auth.users` + `status = 'deleted'` + anonymisation du profil ; commandes conservées (obligation comptable).
 
 **`account_transfers`** — transferts d'achats entre deux comptes d'un même client (FR-15, SEC-14), administrateur uniquement.
 
@@ -73,7 +73,9 @@ Règles :
 | entitlements_moved | int | nombre de droits transférés |
 | created_at | timestamptz | |
 
-Le transfert est une transaction unique : les droits actifs du compte source sont recréés sur le compte cible (sans doublon grâce aux index uniques) puis révoqués à la source avec le motif « transfert ».
+| status | text | `requested` (depuis le compte source) \| `confirmed` (depuis le compte cible) \| `approved` (admin) \| `rejected` |
+
+Le transfert approuvé est une transaction unique (SEC-14) : droits actifs du compte source recréés sur la cible avec `source = 'transfer'` et `transfer_id` (sans doublon grâce aux index uniques), révoqués à la source ; progression déplacée ; compte source bloqué ; commandes en attente du compte source rattachées au transfert pour être créditées à la cible si elles sont payées ensuite.
 
 **`staff_roles`** — administrateurs et éditeurs.
 
@@ -290,7 +292,8 @@ Contraintes :
 | user_id | uuid FK customers | |
 | episode_id | uuid NULL FK | |
 | season_id | uuid NULL FK | |
-| source | text | `purchase` \| `admin_grant` |
+| source | text | `purchase` \| `admin_grant` \| `transfer` |
+| transfer_id | uuid NULL FK account_transfers | requis si `transfer` |
 | order_id | uuid NULL FK | requis si `purchase` |
 | granted_by | uuid NULL | admin si `admin_grant` |
 | reason | text NULL | obligatoire si `admin_grant` |
@@ -302,26 +305,6 @@ Contraintes :
 - `CHECK` : exactement un de `episode_id` / `season_id`.
 - Index uniques partiels : `(user_id, episode_id) WHERE revoked_at IS NULL` et `(user_id, season_id) WHERE revoked_at IS NULL`. **Ce sont eux qui empêchent un double droit**, même si deux notifications arrivent en même temps.
 - Remboursement d'une commande : seul le droit dont `order_id` = cette commande est révoqué. Une commande en double n'a pas de droit propre : son remboursement ne retire rien.
-
-### 3.7 Réglages ajustables
-
-**`app_settings`** — valeurs modifiables sans changer le code (CLAUDE.md règle 2). Modification réservée au rôle `admin`, journalisée.
-
-| Colonne | Type | Notes |
-|---|---|---|
-| key | text PK | |
-| value | jsonb | |
-| updated_at, updated_by | | |
-
-Réglages initiaux :
-
-| Clé | Valeur initiale | Référence |
-|---|---|---|
-| `default_display_country` | `"BJ"` | D-21 |
-| `order_limit_per_hour` | `10` | SECURITY §9 |
-| `playback_token` | `{"validity_seconds": 300, "per_user_hour": 60}` | SEC-51, SEC-54 |
-| `order_expiry_minutes` / `reconcile_window_hours` | `60` / `72` | TECHNICAL_ARCHITECTURE §5.9 |
-| `progress_save_interval_seconds` | `10` | FR-37 |
 
 ### 3.6 Journaux
 
@@ -349,6 +332,26 @@ Réglages initiaux :
 |---|---|
 | id bigint PK, episode_id uuid, user_id uuid NULL (anonyme pour les gratuits), created_at timestamptz |
 
+### 3.7 Réglages ajustables
+
+**`app_settings`** — valeurs modifiables sans changer le code (CLAUDE.md règle 2). Modification réservée au rôle `admin`, journalisée.
+
+| Colonne | Type | Notes |
+|---|---|---|
+| key | text PK | |
+| value | jsonb | |
+| updated_at, updated_by | | |
+
+Réglages initiaux :
+
+| Clé | Valeur initiale | Référence |
+|---|---|---|
+| `default_display_country` | `"BJ"` | D-21 |
+| `order_limit_per_hour` | `10` | SECURITY §9 |
+| `playback_token` | `{"validity_seconds": 300, "per_user_hour": 60}` | SEC-51, SEC-54 |
+| `order_expiry_minutes` / `reconcile_window_hours` | `60` / `72` | TECHNICAL_ARCHITECTURE §5.9 |
+| `progress_save_interval_seconds` | `10` | FR-37 |
+
 ## 4. Fonctions SQL clés (logique au plus près des données)
 
 | Fonction | Rôle | Appelée par |
@@ -374,7 +377,7 @@ Sécurité des fonctions : droit d'exécution **retiré** à `PUBLIC`, `anon` et
 
 **Principe : le navigateur ne parle jamais à la base.** Toutes les données passent par le serveur Next.js, qui applique les règles (session, statut du client, propriété des données, rôle admin).
 
-- RLS **activé sur toutes les tables**, **aucune politique** pour les rôles `anon` et `authenticated` → la clé publique Supabase ne donne accès à **rien**, même si quelqu'un l'extrait du site (elle n'est utilisée que pour la connexion des admins).
+- RLS **activé sur toutes les tables**, **aucune politique** pour les rôles `anon` et `authenticated` → la clé « anon » de Supabase ne donne accès à **rien** (elle n'est d'ailleurs utilisée que par notre serveur, pour l'authentification).
 - Privilèges `SELECT/INSERT/UPDATE/DELETE` et `EXECUTE` révoqués pour `anon` et `authenticated` sur le schéma applicatif (double protection).
 - Le serveur utilise la clé de service. Chaque module serveur filtre explicitement par `user_id` de la session (ex. « mes commandes ») ; ce filtrage est **testé**.
 - Le `video_id` n'est jamais renvoyé dans les données du catalogue envoyées au navigateur.

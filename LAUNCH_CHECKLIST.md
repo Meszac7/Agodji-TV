@@ -114,7 +114,7 @@ Le fondateur crée les comptes à son nom (ou celui de la société) et active l
 - [ ] Sentry actif, alertes de paiement configurées.
 - [ ] Domaine, HTTPS, en-têtes de sécurité vérifiés.
 - [ ] Domaines autorisés Bunny = domaine de production.
-- [ ] Supabase Auth : seuls Google et e-mail activés ; confirmation d'e-mail obligatoire ; « secure email change » ; URL de redirection limitées au domaine ; Turnstile actif ; test de prise de contrôle anticipée réussi.
+- [ ] Supabase Auth : seuls Google et e-mail activés ; confirmation d'e-mail obligatoire ; « secure email change » ; URL de redirection limitées au domaine ; Turnstile actif ; tests de prise de contrôle anticipée réussis **dans les deux sens** (SEC-12) ; aucune URL de redirection avec joker en production ; comptes admin sur adresses dédiées, sans Google.
 - [ ] Comptes admin avec TOTP ; aucun compte de test admin en production.
 - [ ] Configuration Supabase Auth durcie : inscriptions publiques désactivées, fournisseur « phone » désactivé, changement de mot de passe sécurisé, MFA `aal2` exigé par l'application, limites de débit actives.
 - [ ] Test : avec la clé publique Supabase, aucune table ni fonction n'est accessible.
