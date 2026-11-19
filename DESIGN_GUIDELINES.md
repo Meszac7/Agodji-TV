@@ -102,11 +102,11 @@ Toutes les couleurs sont des **jetons** (variables CSS). Le code n'utilise jamai
 
 ### 5.3 Carte d'épisode
 - Vignette 16:9 (ou 9:16 si format vertical **[D-07]**), numéro, titre, durée, résumé sur 2 lignes.
-- **Badge d'accès toujours visible** : `Gratuit` · `300 FCFA` · `Acheté` · `Inclus dans votre pass`.
+- **Badge d'accès toujours visible** : `Gratuit` · `499 FCFA` · `Acheté` · `Inclus dans votre pass`.
 - Icône lecture si accessible ; cadenas discret si payant non possédé.
 
 ### 5.4 Écran d'achat (feuille modale sur mobile)
-- Deux options côte à côte ou empilées : **Épisode — 300 FCFA** / **Pass série — 1 500 FCFA (n épisodes, y compris les prochains)**. Le pass est mis en avant (« Meilleure offre », économie calculée à partir des prix réels).
+- Deux options côte à côte ou empilées : **Pass série — [prix de la série] (n épisodes, y compris les prochains)** / **Épisode — 499 FCFA**. Le Pass est mis en avant (« Meilleure offre ») avec **« Économisez X FCFA »**, calculé à partir des prix réels et des épisodes déjà achetés ; pas de mention d'économie si elle est nulle ou négative.
 - **Pays de paiement** : au premier achat, une question claire « Dans quel pays se trouve votre compte Mobile Money ou votre carte ? » avec une suggestion présélectionnée (drapeau + nom) à confirmer d'un geste ; ensuite rappel compact « Payer depuis : Côte d'Ivoire · Changer ». Pays non disponibles visibles mais grisés « bientôt ». Changer de pays met à jour prix et moyens immédiatement.
 - **Pays d'affichage des prix** (navigation) : mention discrète « Prix pour : Bénin ▾ » près des prix, modifiable.
 - **Moyens disponibles** sous forme de tuiles (« Mobile Money » avec logos des opérateurs du pays, « Carte bancaire » avec Visa/Mastercard), une seule sélection ; jamais le nom du prestataire technique (CinetPay/FedaPay).
@@ -168,7 +168,7 @@ Toutes les couleurs sont des **jetons** (variables CSS). Le code n'utilise jamai
 
 ## 8. Ton éditorial
 - Français simple, chaleureux, direct. Tutoiement ou vouvoiement : **vouvoiement recommandé** par défaut **[à valider]**.
-- Prix toujours affichés avec la devise de la grille du pays : « 300 FCFA » (XOF/XAF), « 0,50 $ » (RDC si USD), « … GNF » (Guinée) **[D-03]**. Formats de nombres français (espace pour les milliers : « 1 500 FCFA »).
+- Prix toujours affichés avec la devise de la grille du pays : « 499 FCFA » (XOF/XAF), « 0,50 $ » (RDC si USD), « … GNF » (Guinée) **[D-03]**. Formats de nombres français (espace pour les milliers : « 1 500 FCFA »).
 - Messages d'erreur : ce qui s'est passé + quoi faire.
 
 ## 9. Marque provisoire

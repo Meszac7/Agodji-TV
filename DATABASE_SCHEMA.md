@@ -116,7 +116,7 @@ Le transfert approuvé est une transaction unique (SEC-14) : droits actifs du co
 | number | int | position dans la série (1 → N, ordre de lecture) ; UNIQUE (series_id, number) ; réorganisable par l'admin |
 | title, synopsis | text | |
 | thumbnail_path | text | |
-| duration_seconds | int | requis pour publier ; repère 90 s, limite 110 s (avertissement, réglages) |
+| duration_seconds | int | requis pour publier ; repère 90 s, limite 110 s **bloquante** (D-28) |
 | access_type | text | `free` \| `paid` |
 | status | text | `draft` \| `scheduled` \| `published` \| `unpublished` |
 | publish_at | timestamptz NULL | requis si `scheduled` |
@@ -128,7 +128,7 @@ Le transfert approuvé est une transaction unique (SEC-14) : droits actifs du co
 
 Visibilité publique d'un épisode : série `published` et épisode `published` **ou** (`scheduled` et `publish_at <= now()`).
 
-**Durée totale** d'une série : **calculée** (somme des `duration_seconds` des épisodes publiés et programmés) par la fonction `series_format_report` (§4), jamais saisie. Les limites (10 épisodes, 110 s par épisode, 900 s au total) sont dans `app_settings` ; un dépassement produit un **avertissement** dans l'admin, à confirmer explicitement (journalisé) **[D-28]**.
+**Durée totale** d'une série : **calculée** (somme des `duration_seconds` de **tous** les épisodes de la série : publiés, programmés, brouillons, dépubliés) par la fonction `series_format_report` (§4), jamais saisie. Les limites (10 épisodes, 110 s par épisode, 900 s au total) sont dans `app_settings`, **modifiables uniquement par migration**. Elles sont **bloquantes** (D-28, 2026-11-22) : le déclencheur de contrainte `assert_series_format` refuse toute écriture qui ferait dépasser une série ayant au moins un épisode publié ou programmé ; un épisode ne peut être publié ou programmé sans durée. Aucun contournement.
 
 ### 3.3 Marchés, devises et prix
 
@@ -344,7 +344,6 @@ Réglages initiaux :
 | `series_max_episodes` | `10` | RM-09 |
 | `episode_target_seconds` / `episode_max_seconds` | `90` / `110` | RM-09 |
 | `series_max_total_seconds` | `900` | RM-09 |
-| `format_limits_mode` | `"warn"` (`"block"` possible) | D-28 |
 
 ## 4. Fonctions SQL clés (logique au plus près des données)
 
@@ -352,7 +351,8 @@ Réglages initiaux :
 |---|---|---|
 | `has_episode_access(user_id, episode_id) → boolean` | Voir définition ci-dessous | `/api/playback`, bibliothèque, listes |
 | `episode_price(episode_id, price_list_id) → int` | exception sinon prix de la série | checkout |
-| `series_format_report(series_id)` | nombre d'épisodes, durée totale calculée, épisodes trop longs, dépassements (RM-09) | admin |
+| `series_format_report(series_id)` | sur **tous** les épisodes : nombre, durée totale calculée, durées manquantes, épisodes trop longs, dépassements, `publishable` (RM-09) | admin |
+| `assert_series_format(series_id)` | **déclencheur de contrainte** : refuse toute écriture qui ferait sortir des limites une série ayant un épisode publié ou programmé, et la publication/programmation d'un épisode sans durée (D-28, aucun contournement) | interne |
 | `resolve_payment_route(country_code, method) → payment_account_id` | route active de plus haute priorité (compte et prestataire actifs) | checkout |
 | `create_order(user_id, product_type, product_id, payment_country, method)` | vérifie FR-21, pays `open` (ou `pilot` + client testeur), route active ; fige grille, prix, devise, compte ; réutilise une commande `pending` récente identique | `/api/checkout` |
 | `confirm_order_payment(order_id, payment_account_id, provider_tx_id, amount, currency)` | **transaction atomique** avec verrou sur la commande : vérifie compte/montant/devise (sinon `needs_review`), transition vers `paid` depuis un état autorisé (déjà `paid` → aucun effet), insère le droit `ON CONFLICT DO NOTHING`, marque `is_duplicate_payment` si le contenu était **déjà couvert** (même logique que `has_episode_access`, pas seulement une ligne identique) | webhook + réconciliation |

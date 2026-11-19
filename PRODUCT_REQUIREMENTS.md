@@ -41,10 +41,13 @@
 
 **FR-05 — Liste d'épisodes.** Pour chaque épisode : numéro, titre, vignette, durée, résumé court, et un **badge d'accès** clair :
 - `Gratuit`
-- `300 FCFA` (prix de la grille du pays de l'utilisateur ; pour un visiteur, pays estimé par géolocalisation, modifiable via un sélecteur de pays)
+- `499 FCFA` (prix de l'épisode dans la grille du pays de l'utilisateur ; pour un visiteur, pays estimé par géolocalisation, modifiable via un sélecteur de pays)
 - `Acheté` / `Inclus dans votre pass` (si connecté et propriétaire)
 
-Le bouton « Débloquer toute la série — 1 500 FCFA » (pass série) est visible en haut de la liste des épisodes, avec le nombre d'épisodes et la mention « y compris les prochains ». Il disparaît si l'utilisateur possède déjà le pass.
+**FR-05b — Deux possibilités d'achat sur la fiche série.** En haut de la liste des épisodes, deux options clairement présentées :
+- **Pass série — [prix propre à la série]** : « tous les épisodes, y compris les prochains », avec **l'économie réalisée** lorsqu'elle est positive (« Économisez 1 496 FCFA » = somme des prix des épisodes payants publiés non encore achetés − prix du Pass) ;
+- **À l'unité — [prix de l'épisode]** par épisode (si les épisodes ont des prix différents : « à partir de … »).
+Le Pass est mis en avant. Si l'utilisateur possède le Pass, ces offres disparaissent (« Pass série acquis »). L'économie est recalculée pour tenir compte des épisodes déjà achetés à l'unité.
 
 **FR-06 — Épisode gratuit.** Lecture immédiate sans compte, dans le lecteur vertical (§5). Le défilement continue vers l'épisode suivant (gratuit → lecture ; payant → diapositive de déblocage, FR-38).
 
@@ -171,8 +174,8 @@ Contrôles accessibles au clavier sur ordinateur (espace, flèches, M pour le so
 ### 5.6 Droits d'accès dans le défilement
 
 **FR-38 — Diapositive de déblocage.** Pour un épisode payant non débloqué, la diapositive montre l'image floutée de l'épisode, son titre et deux options claires :
-- « **Débloquer toute la série — 1 500 FCFA** · tous les épisodes, y compris les prochains » (pass série, mis en avant) ;
-- « Seulement cet épisode — 300 FCFA ».
+- « **Débloquer toute la série — [prix du Pass]** · tous les épisodes, y compris les prochains » (pass série, mis en avant) ;
+- « Seulement cet épisode — [prix de l'épisode, ex. 499 FCFA] ».
 L'achat se fait **sans quitter le lecteur** (connexion si nécessaire, puis paiement — simulé jusqu'à l'étape 7). Après confirmation, la diapositive se déverrouille et la lecture démarre ; tous les épisodes couverts deviennent lisibles dans le défilement **sans rechargement**.
 
 **FR-39 — Pass série dans le défilement.** Avec le pass d'une série : **plus aucune demande de paiement** pour cette série (ni diapositive de déblocage, ni bouton d'achat) ; les nouveaux épisodes publiés apparaissent dans le défilement et sont lisibles immédiatement ; le pass n'expire pas. Le serveur vérifie quand même le droit avant chaque lecture.
@@ -222,16 +225,17 @@ L'achat se fait **sans quitter le lecteur** (connexion si nécessaire, puis paie
 Interface web réservée aux administrateurs, accessible sous `/admin`, sur le même site. Simple, en français, utilisable sur ordinateur (le mobile est secondaire pour l'admin).
 
 ### 7.1 Contenu (séries et épisodes — pas de saisons)
-- **FR-50** Créer / modifier une série : titre, slug, synopsis, genres, affiche, bannière, format vidéo (vertical ou horizontal **[D-07]**), statut (`brouillon`, `bientôt`, `publiée`, `dépubliée`), mise en avant, ordre d'affichage, **prix du pass série et prix par défaut d'un épisode, par grille tarifaire**.
+- **FR-50** Créer / modifier une série : titre, slug, synopsis, genres, affiche, bannière, format vidéo (vertical ou horizontal **[D-07]**), statut (`brouillon`, `bientôt`, `publiée`, `dépubliée`), mise en avant, ordre d'affichage, **prix du Pass de cette série** (librement fixé, propre à chaque série) **par grille tarifaire**.
 - **FR-51** Épisodes d'une série : **ajouter, modifier, supprimer** (un épisode déjà acheté ou déjà publié n'est jamais supprimé physiquement : il est dépublié), **réorganiser** par glisser-déposer (ordre 1 → N, sans trou ni doublon).
-- **FR-52** Fiche épisode : titre, résumé, vignette, **durée** (renseignée automatiquement depuis la vidéo encodée quand c'est possible, sinon saisie), gratuit / payant, prix (par défaut celui de la série, modifiable par épisode), statut, publication immédiate ou programmée.
+- **FR-52** Fiche épisode : titre, résumé, vignette, **durée** (renseignée automatiquement depuis la vidéo encodée quand c'est possible, sinon saisie), gratuit / payant, **prix de l'épisode par grille tarifaire** (499 FCFA proposé par défaut en XOF, modifiable épisode par épisode et pays par pays, sans conversion automatique), statut, publication immédiate ou programmée.
 - **FR-53** Vidéo : téléversement direct vers l'hébergeur vidéo depuis l'admin, **ou** association d'une vidéo déjà présente (identifiant). Affichage de l'état d'encodage.
 - **FR-54** Publication immédiate ou programmée : un épisode « programmé » devient visible automatiquement à la date choisie.
-- **FR-54b** **Durée totale calculée automatiquement** et affichée en permanence (ex. « 8 épisodes · 12 min 40 / 15 min »). **Avertissements** (avec confirmation explicite, journalisée **[D-28]**) si :
-  - un épisode dépasse **1 min 50** (repère : 1 min 30) ;
-  - la série dépasse **10 épisodes** ;
-  - la durée totale dépasse **15 minutes** (en comptant les épisodes publiés et programmés).
-  Les limites sont des réglages modifiables.
+- **FR-54b** **Limites de format strictes** (RM-09, décision du 2026-11-22) :
+  - tableau de bord de la série : « 8 épisodes / 10 », « 12 min 40 / 15 min », durée de chaque épisode avec repère 1 min 30 et limite 1 min 50 ; durées manquantes et dépassements **surlignés en rouge** ;
+  - durée totale **calculée automatiquement sur tous les épisodes** (publiés, programmés, brouillons, dépubliés) ;
+  - **publication bloquée** (bouton « Publier » / « Programmer » désactivé, avec le motif exact) si : plus de 10 épisodes, un épisode de plus de 1 min 50, total de plus de 15 minutes, ou épisode sans durée ;
+  - dans une série déjà publiée, toute modification qui ferait dépasser une limite (11ᵉ épisode, durée allongée) est **refusée** ;
+  - **aucun bouton de contournement** ; le blocage est garanti par la base de données, pas seulement par l'interface ; les limites ne sont pas modifiables depuis l'administration.
 - **FR-55** Garde-fous : impossible de publier un épisode payant sans prix (épisode et pass série) dans **chaque grille tarifaire utilisée par un pays en statut `pilote` ou `ouvert`**, sans vidéo encodée, sans durée ou sans vignette. Impossible de passer un pays en `pilote` ou `ouvert` tant que des contenus payants publiés n'ont pas de prix dans sa grille ou qu'aucune route de paiement n'est active. Les prix sont validés contre les contraintes des prestataires (ex. multiple de 5). Avertissement avant de dépublier un contenu déjà acheté.
 - **FR-55b** Achats et droits : pour une série, voir le nombre de pass vendus et d'épisodes vendus ; pour un client, voir ses pass série et épisodes débloqués (§7.2, §7.3).
 
@@ -277,12 +281,13 @@ Interface web réservée aux administrateurs, accessible sous `/admin`, sur le m
 | RM-06 | Pass après achats à l'unité : prix plein, avec avertissement (pas de déduction en V1). | **[D-08]** |
 | RM-07 | Dépublication d'un contenu acheté : les acheteurs conservent l'accès sauf retrait pour raison légale. Un brouillon ou un épisode pas encore sorti n'est jamais lisible, même avec un pass. | **[D-08]** |
 | RM-08 | Remboursement : manuel, au cas par cas, via le prestataire ; le droit d'accès est alors révoqué. | **[D-08]** |
-| RM-09 | Une série compte **10 épisodes au maximum**, durée cible 1 min 30 par épisode, **1 min 50 maximum** par épisode, **15 minutes maximum** au total (calculé). Dépassement : avertissement admin avec confirmation **[D-28]**. | Validé |
+| RM-09 | Une série compte **10 épisodes au maximum**, durée cible 1 min 30 par épisode, **1 min 50 maximum** par épisode, **15 minutes maximum** au total, calculé sur **tous** les épisodes de la série. Dépassement : **publication bloquée**, sans contournement possible (garanti par la base) | Validé (2026-11-22) |
 | RM-10 | Un épisode payant passé en gratuit reste dans la bibliothèque de ceux qui l'ont acheté. | Recommandé |
 | RM-11 | Le prix dépend de la grille tarifaire du **pays de paiement** choisi ; l'utilisateur paie dans la devise de ce pays. Pas de conversion automatique. | **[D-03]**, **[D-17]** |
 | RM-12 | Un achat est valable partout : un contenu acheté dans un pays reste accessible si l'utilisateur voyage ou change de pays de paiement. | Recommandé |
 | RM-13 | Un pass série couvre **uniquement** sa série ; une nouvelle histoire est une nouvelle série, avec son propre pass. Il n'existe pas de saisons. | Validé |
 | RM-16 | Un client qui possède le pass d'une série ne voit **plus jamais** de demande de paiement pour cette série. | Validé |
+| RM-17 | Prix : **499 FCFA** par épisode comme référence (XOF), modifiable épisode par épisode ; **prix du Pass propre à chaque série**, librement fixé ; prix définis par grille tarifaire (pays / devise), **sans conversion automatique**. | Validé (2026-11-22) |
 | RM-14 | L'enchaînement automatique ne lance jamais un épisode payant non débloqué et ne déclenche jamais de paiement ; tout achat exige une action explicite. | Validé |
 | RM-15 | Les achats, la bibliothèque et la progression appartiennent au compte, pas à la méthode de connexion. | Validé |
 

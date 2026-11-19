@@ -42,8 +42,8 @@ Le détail par pays, opérateur et niveau de preuve est dans TECHNICAL_ARCHITECT
 
 - Pas d'abonnement mensuel au lancement.
 - L'utilisateur achète :
-  - **un épisode** — prix indicatif **300 FCFA** ;
-  - **un pass série** — prix indicatif **1 500 FCFA**.
+  - **un épisode** — tarif de référence **499 FCFA** (modifiable épisode par épisode) ;
+  - **un Pass série** — **prix propre à chaque série**, librement fixé par l'administrateur.
 - Les prix sont **configurables par un administrateur** (jamais codés en dur).
 - **Pas de saisons** : une série est une histoire complète de **10 épisodes au maximum** (≈ 1 min 30 chacun, 1 min 50 maximum, **15 minutes au total au maximum**).
 - Un **pass série** débloque **tous les épisodes publiés de la série, y compris ceux ajoutés plus tard** ; il ne couvre jamais une autre série.
@@ -54,11 +54,12 @@ Le détail par pays, opérateur et niveau de preuve est dans TECHNICAL_ARCHITECT
 
 ### Lecture critique du modèle
 
-1. **Micro-paiements et friction** : un paiement Mobile Money de 300 FCFA demande à l'utilisateur de valider une transaction sur son téléphone (USSD/OTP). Répéter cette étape à chaque épisode est pénible. Le pass série est donc le produit à mettre en avant. Un système de **crédits / portefeuille prépayé** pourrait réduire la friction, mais il ajoute de la complexité (comptabilité, réglementation sur la monnaie électronique) : **reporté après la V1**.
-2. **Frais des prestataires** : les commissions Mobile Money observées publiquement varient d'environ **1,8 % à 4 %** selon le pays et l'opérateur (à confirmer, voir TECHNICAL_ARCHITECTURE §5). Sur 300 FCFA, cela reste acceptable, mais il faut vérifier l'absence de **frais fixes** par transaction, qui rendraient les petits montants non rentables.
+1. **Micro-paiements et friction** : un paiement Mobile Money de 499 FCFA demande à l'utilisateur de valider une transaction sur son téléphone (USSD/OTP). Répéter cette étape à chaque épisode est pénible. Le pass série est donc le produit à mettre en avant. Un système de **crédits / portefeuille prépayé** pourrait réduire la friction, mais il ajoute de la complexité (comptabilité, réglementation sur la monnaie électronique) : **reporté après la V1**.
+2. **Frais des prestataires** : les commissions Mobile Money observées publiquement varient d'environ **1,8 % à 4 %** selon le pays et l'opérateur (à confirmer, voir TECHNICAL_ARCHITECTURE §5). Sur 499 FCFA, cela reste acceptable, mais il faut vérifier l'absence de **frais fixes** par transaction, qui rendraient les petits montants non rentables.
 3. **Pass série et épisodes futurs** : la promesse est bornée par les règles de format (10 épisodes, 15 minutes au maximum), ce qui évite qu'une série s'allonge indéfiniment.
 4. **Achat d'un pass après des épisodes à l'unité** : faut-il déduire les épisodes déjà achetés ? Recommandation V1 : **non** (simple), mais avertir l'utilisateur avant l'achat. Voir [DÉCISION D-08].
-5. **Rapport prix / durée** : 10 épisodes × 300 FCFA = 3 000 FCFA contre 1 500 FCFA pour le pass : le pass est nettement avantageux, ce qui encourage un seul paiement par série (moins de friction Mobile Money).
+5. **Rapport prix / Pass** : une série de 10 épisodes payants coûte 4 990 FCFA à l'unité ; un Pass fixé nettement en dessous (affiché avec « l'économie réalisée ») encourage un seul paiement par série, donc moins de friction Mobile Money.
+6. **499 FCFA et CinetPay** : CinetPay indique des montants multiples de 5 en XOF/XAF (à reconfirmer) ; 499 pourrait être refusé — voir `docs/decisions/2026-11-22-limites-strictes-et-tarifs.md` §3.
 
 ## 4. Catalogue de lancement
 
@@ -102,7 +103,7 @@ Colonne « Nécessaire avant » : moment où la décision devient réellement n�
 |---|---|---|---|---|
 | D-01 | Prestataires de paiement | **CinetPay + FedaPay**, intégrations **modulaires** (un adaptateur par prestataire derrière une interface commune, activable/désactivable). Les réponses commerciales n'empêchent pas de construire le reste : un **simulateur de paiement** sert au développement et aux tests | **Validé** | — |
 | D-02 | Pays | **Panafricain**, activation progressive : consultation partout, achat pays par pays et moyen par moyen dès confirmation A/B/C | **Validé** | — |
-| D-03 | Grilles tarifaires | **XOF : 300 FCFA / épisode, 1 500 FCFA / pass série** (valeurs par défaut, réglables par série) (prix indicatifs validés, modifiables dans l'admin). Autres monnaies (XAF, GNF, CDF/USD) : **grilles indépendantes**, montants à saisir le moment venu ; **aucune conversion automatique** | **Validé** pour XOF ; autres montants en attente | Ouverture d'un pays hors XOF |
+| D-03 | Tarifs | **Épisode : 499 FCFA** (référence XOF, modifiable par épisode) ; **Pass série : prix propre à chaque série**, fixé librement par l'admin ; prix par grille tarifaire (pays/devise), **aucune conversion automatique** ; autres monnaies saisies le moment venu | **Validé** (2026-11-22) ; vigilance CinetPay « multiple de 5 » | Ouverture d'un pays hors XOF |
 | D-04 | Longueur du PIN | **Sans objet** : la connexion par numéro + PIN n'est pas développée (décision du fondateur, 2026-11-20) | Clos | — |
 | D-05 | Vérification du numéro par SMS | **Sans objet** : aucun SMS ; le numéro est facultatif et non vérifié | Clos | — |
 | D-06 | Authentification des administrateurs | E-mail + mot de passe fort + double authentification (TOTP) obligatoire | À confirmer | **Étape 4** |
@@ -127,7 +128,7 @@ Colonne « Nécessaire avant » : moment où la décision devient réellement n�
 | D-25 | Connexion Google | Projet Google Cloud du fondateur (gratuit) : identifiant OAuth + écran de consentement au nom d'Agodjié TV ; création guidée | Action du fondateur | Étape 3 (préproduction) |
 | D-26 | Liaison des comptes | Un compte = un identifiant stable ; liaison automatique entre identités à e-mail vérifié, liaison manuelle depuis « Mon compte », transfert d'achats par un admin en dernier recours | **Principe validé** (exigence du fondateur) ; détails techniques testés à l'étape 3 | Étape 3 |
 | D-27 | Visionnage en défilement continu | Défilement vertical entre épisodes, enchaînement automatique (jamais vers un contenu payant), reprise exacte (y compris après paiement), déblocage dans le lecteur, fin de série avec autres séries et retour au catalogue | **Principe validé** ; maquette `/maquettes/lecteur` à valider | Étape 2 |
-| D-28 | Dépassement des limites de format (10 épisodes, 1 min 50, 15 min) | **Avertissement avec confirmation explicite et journalisée** (comme demandé) ; blocage strict possible par simple réglage | Recommandation par défaut, à confirmer | Étape 4 (admin) |
+| D-28 | Dépassement des limites de format (10 épisodes, 1 min 50, 15 min, calculé sur tous les épisodes) | **Publication bloquée, sans contournement**, garantie par la base de données | **Validé** (2026-11-22) | — |
 | D-29 | Structure du contenu et modèle commercial | **Pas de saisons** : série = histoire complète ; **Pass série** (épisodes présents et futurs, sans expiration) + épisode à l'unité ; fin de série = autres séries + retour au catalogue | **Validé** (2026-11-21) ; nouvelle maquette à valider | Étape 2 |
 
 ## 9. Index des documents

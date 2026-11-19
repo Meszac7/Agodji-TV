@@ -228,12 +228,12 @@ Règles :
 ### 5.8 Devises et tarifs par marché
 
 - **Grilles tarifaires** (`price_lists`) : une grille = une devise + un pas d'arrondi. Chaque marché pointe vers une grille. Exemple initial **[D-03]** :
-  - `XOF` : pays UEMOA → **300 / 1 500** (validé) ;
+  - `XOF` : pays UEMOA → **499 FCFA** par épisode (référence), **Pass : prix propre à chaque série** (validé) ;
   - `XAF` : pays CEMAC → grille indépendante, montants à fixer (aucune conversion automatique) ;
   - `RDC` : USD ou CDF, montant à décider ;
   - `GNF` : Guinée, montant à décider.
 - Plusieurs marchés partagent une grille (simple) ; un marché peut avoir sa propre grille si un prix local différent est souhaité (flexible), sans changer le code.
-- Les prix sont saisis **par série** et par grille (prix d'un épisode, prix du **pass série**), avec exceptions possibles par épisode (DATABASE_SCHEMA §3.3).
+- Les prix sont saisis **par série** et par grille : prix du **Pass série** (propre à chaque série) et prix d'un épisode (499 FCFA par défaut en XOF), **modifiable épisode par épisode** (DATABASE_SCHEMA §3.3).
 - Les montants sont validés contre les contraintes de **tous les comptes de paiement** routés pour les marchés de la grille (ex. multiple de 5).
 - Pas de conversion automatique de devises : chaque prix est saisi explicitement (évite les montants bizarres et les risques de change).
 - Statistiques toujours **par devise**, jamais additionnées entre devises.
@@ -309,7 +309,7 @@ Sujets juridiques associés (LAUNCH_CHECKLIST §4) : TVA sur les services numér
 | Protection | **Jeton d'intégration** (`SHA256(clé + video_id + expiration)`) pour le lecteur iframe + **authentification par jeton CDN** pour les URL directes (playlists, segments, MP4, vignettes) ; restriction par domaine référent |
 | Coûts (indicatifs) | Encodage standard inclus ; stockage ~0,01 $/Go/région ; diffusion Afrique/Moyen-Orient ~0,06 $/Go sur le réseau standard (plus cher que l'Europe ~0,01 $) |
 
-**Estimation d'ordre de grandeur** (épisodes d'environ **1 min 30**, 1 min 50 maximum, D-07) : un épisode vertical en 720p ≈ 15–25 Mo → ≈ 0,001–0,0015 $ de diffusion par visionnage en Afrique (tarif public indicatif ~0,06 $/Go), soit **environ 0,2 % à 0,3 %** du prix d'un épisode (300 FCFA ≈ 0,46 €) ; une série complète de 15 minutes regardée en entier ≈ 0,01–0,015 $. Les épisodes **gratuits** coûtent aussi en bande passante : à surveiller.
+**Estimation d'ordre de grandeur** (épisodes d'environ **1 min 30**, 1 min 50 maximum, D-07) : un épisode vertical en 720p ≈ 15–25 Mo → ≈ 0,001–0,0015 $ de diffusion par visionnage en Afrique (tarif public indicatif ~0,06 $/Go), soit **environ 0,15 % à 0,2 %** du prix d'un épisode (499 FCFA ≈ 0,76 €) ; une série complète de 15 minutes regardée en entier ≈ 0,01–0,015 $. Les épisodes **gratuits** coûtent aussi en bande passante : à surveiller.
 
 ### 6.2 Mise en œuvre de la protection
 1. Activer dans la bibliothèque Bunny : **authentification par jeton CDN** (playlists et segments HLS — indispensable avec notre lecteur sur mesure), **domaines autorisés** (domaine de production uniquement), **désactiver le repli MP4** pour les épisodes payants si possible.

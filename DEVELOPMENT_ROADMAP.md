@@ -61,7 +61,7 @@ Chaque étape indique : **livrables**, **tests automatisés**, **validation par 
 **Livrables**
 - Projet Next.js + TypeScript strict, Tailwind, jetons de design (sombre par défaut, clair disponible, choix mémorisé), polices Figtree et Roboto.
 - Page « guide de style » (préproduction uniquement) : couleurs, typographie, boutons, badges, cartes d'affiche et d'épisode, états.
-- Base de données : migrations versionnées pour le catalogue, les pays, les grilles tarifaires (XOF 300 / 1 500 pré-rempli, autres grilles vides), les prestataires, comptes et routes, les réglages ajustables (`app_settings`) ; RLS verrouillé ; données de démonstration réalistes (6 séries, dont 1 disponible).
+- Base de données : migrations versionnées pour le catalogue, les pays, les grilles tarifaires (XOF : 499 FCFA l'épisode et Pass par série pré-remplis, autres grilles vides), les prestataires, comptes et routes, les réglages ajustables (`app_settings`) ; RLS verrouillé ; données de démonstration réalistes (6 séries, dont 1 disponible).
 - Interfaces `PaymentProvider`, `SmsProvider`, `VideoProvider` et leurs **simulateurs** (non utilisables en production).
 - En-têtes de sécurité, `.env.example`, Sentry (désactivé sans clé), CI GitHub Actions.
 

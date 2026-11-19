@@ -9,7 +9,7 @@
 
 - [x] **F** D-01 Prestataires : CinetPay + FedaPay (orientation validée le 2026-11-19)
 - [x] **F** D-02 Orientation panafricaine (validée le 2026-11-19)
-- [x] **F** D-03 Grille XOF : 300 / 1 500 FCFA (validée) — [ ] montants XAF, GNF, CDF/USD à fixer avant l'ouverture des pays concernés
+- [x] **F** D-03 Tarifs : 499 FCFA l'épisode (référence XOF), Pass au prix propre à chaque série (validé) — [ ] vérifier la contrainte « multiple de 5 » de CinetPay pour 499 — [ ] montants XAF, GNF, CDF/USD à fixer avant l'ouverture des pays concernés
 - [x] **F** D-04 PIN — sans objet (pas de connexion par numéro + PIN)
 - [x] **F** D-05 SMS — sans objet (aucun SMS)
 - [ ] **F** D-06 Authentification administrateur (e-mail + TOTP)
@@ -34,6 +34,7 @@
 - [ ] **F** D-25 Projet Google Cloud + identifiant OAuth (avant l'étape 3)
 - [x] **F** D-26 Principe de liaison des comptes (validé ; tests à l'étape 3)
 - [ ] **F** D-27 Validation de la maquette du lecteur vertical
+- [x] **F** D-28 Limites de format : publication bloquée, sans contournement (validé)
 
 ## 2. Comptes et accès externes à créer
 
