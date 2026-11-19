@@ -12,7 +12,8 @@ Rappels : vidéos de démonstration de 14 secondes **sans son** (la liste affich
 
 ## Ce qui a changé depuis la version 1
 - Plus aucune saison : une série = une histoire complète, épisodes 1 → N.
-- « Débloquer toute la série — 1 500 FCFA » (**Pass série**) remplace le pass saison.
+- « Débloquer toute la série — 1 500 FCFA » (**Pass série**, prix propre à la série) remplace le pass saison ; l'épisode à l'unité coûte **499 FCFA**.
+- **Fiche série** : deux offres clairement présentées — Pass série (« Économisez 496 FCFA + les prochains épisodes », « Au lieu de 1 996 FCFA pour 4 épisodes à l'unité ») et À l'unité (499 FCFA par épisode). L'économie tient compte des épisodes déjà achetés et n'est jamais négative.
 - La lecture **reprend automatiquement** après le paiement (plus besoin de toucher « Regarder maintenant »).
 - **Fin de série** : « D'autres séries à découvrir » + « Retour au catalogue » ; date du prochain épisode s'il en reste d'annoncés ; jamais de saison suivante.
 - La fiche série affiche le **nombre d'épisodes et la durée totale** ; avec le pass, plus aucun prix ni proposition d'achat.
@@ -21,7 +22,9 @@ Rappels : vidéos de démonstration de 14 secondes **sans son** (la liste affich
 ## Ce qu'il faut regarder
 - [ ] Fiche série : épisodes, durées, durée totale, prix du pass et de l'épisode, bouton « Regarder » / « Reprendre ».
 - [ ] Défilement vertical, enchaînement automatique, commandes discrètes (inchangés).
-- [ ] Épisode payant : « Débloquer toute la série — 1 500 FCFA » / « Seulement cet épisode — 300 FCFA ».
+- [ ] Épisode payant : « Débloquer toute la série — 1 500 FCFA · économisez 496 FCFA » / « Seulement cet épisode — 499 FCFA ».
+- [ ] Fiche série : les deux offres (Pass avec l'économie, 499 FCFA l'épisode) sont claires ; achat du Pass possible directement depuis la fiche.
+- [ ] Réglage « Épisode 5 acheté » : l'économie affichée diminue (3 épisodes restants).
 - [ ] Après paiement : la lecture reprend seule ; les épisodes suivants s'enchaînent sans aucun nouveau paiement.
 - [ ] Épisode à venir : « Disponible le … · Inclus dans votre pass série ».
 - [ ] Fin de série : autres séries, retour au catalogue, aucune mention de saison.
