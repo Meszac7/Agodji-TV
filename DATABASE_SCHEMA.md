@@ -134,6 +134,7 @@ Les clients ne sont **pas** des utilisateurs Supabase Auth (voir TECHNICAL_ARCHI
 | status | text | `draft` \| `coming_soon` \| `published` \| `unpublished` |
 | release_label | text NULL | ex. « Mars 2027 » pour `coming_soon` |
 | is_featured | boolean | bannière d'accueil |
+| video_orientation | text | `landscape` (16:9) \| `portrait` (9:16) — l'interface s'adapte **[D-07]** |
 | sort_order | int | |
 | created_at, updated_at | | |
 
@@ -233,7 +234,7 @@ Règles :
 
 | Colonne | Type | Notes |
 |---|---|---|
-| code | text PK | `cinetpay`, `fedapay` |
+| code | text PK | `cinetpay`, `fedapay`, `simulator` (développement et tests uniquement, refusé en production — SEC-44) |
 | display_name | text | |
 | is_enabled | boolean | interrupteur global |
 

@@ -85,34 +85,36 @@ Contexte d'usage supposé **[HYPOTHÈSE H-02]** : majorité de smartphones Andro
 
 Abonnement mensuel, application mobile native, téléchargement hors-ligne, portefeuille/crédits, codes promo, parrainage, commentaires/notes, recommandations personnalisées, multi-profils, multilingue (hors français), DRM complet, Chromecast/TV, notifications push. Détail dans PRODUCT_REQUIREMENTS §10.
 
-## 8. Registre des décisions en attente
+## 8. Registre des décisions
 
 Ce registre est la **source unique** des décisions à valider. Les autres documents y renvoient.
 
-| ID | Sujet | Recommandation | Statut |
-|---|---|---|---|
-| D-01 | Prestataires de paiement | **CinetPay + FedaPay**, derrière une architecture où chaque prestataire est interchangeable et désactivable (TECHNICAL_ARCHITECTURE §5.6) | **Validé** par le fondateur ; ouverture effective de chaque pays conditionnée aux réponses écrites (D-09, D-20) |
-| D-02 | Pays ouverts | **Panafricain**, activation progressive : consultation partout, achat pays par pays et moyen par moyen dès confirmation A/B/C | **Validé** par le fondateur |
-| D-03 | Grilles tarifaires | XOF : 300 / 1 500. XAF : 300 / 1 500 (parité). RDC : USD (recommandé, plus stable) ou CDF, montant à définir. Guinée : montant en GNF à définir. Une grille par devise au départ ; grilles par pays possibles plus tard sans changer le code | En attente |
-| D-04 | Longueur du PIN | PIN **4 chiffres accepté** à condition d'appliquer toutes les protections de SECURITY_REQUIREMENTS §3 ; 6 chiffres en option si le fondateur le souhaite | En attente |
-| D-05 | Vérification du numéro par SMS (OTP) | **Obligatoire** à l'inscription et pour réinitialiser le PIN | En attente |
-| D-06 | Authentification des administrateurs | E-mail + mot de passe fort + **double authentification (TOTP)** obligatoire, séparée du PIN client (les admins auront donc besoin d'une adresse e-mail et d'une application d'authentification sur leur téléphone) | En attente |
-| D-07 | Format vidéo (vertical 9:16 ou horizontal 16:9) et durée moyenne | Information à fournir par le fondateur | En attente |
-| D-08 | Politiques commerciales et éditoriales : remboursement, retrait d'un contenu acheté, pass après épisodes, taille d'une saison, classification d'âge | Voir PRODUCT_REQUIREMENTS §8 | En attente |
-| D-09 | Stratégie d'encaissement par zone monétaire | Société **béninoise** (fait communiqué par le fondateur). Reste à décider, selon les réponses des prestataires et d'un juriste, comment encaisser hors zone XOF : compte de la société béninoise si accepté, sinon partenaire local, entité locale ou prestataire supplémentaire. Voir TECHNICAL_ARCHITECTURE §5.10 | En attente des réponses écrites — **bloquant** pour l'achat dans les pays concernés |
-| D-10 | Mention « contenu créé avec l'IA » | Recommandé : mention discrète sur la fiche série | En attente |
-| D-11 | Nom de domaine | À fournir | En attente |
-| D-12 | Budget mensuel d'infrastructure | Estimation indicative dans TECHNICAL_ARCHITECTURE §10 | En attente |
-| D-13 | Lecteur vidéo V1 | **Lecteur intégré Bunny** (iframe) personnalisé aux couleurs ; lecteur sur mesure plus tard | En attente |
-| D-14 | Identité de marque (logo, couleurs officielles) | En attendant : logotype texte provisoire, aucune identité définitive inventée | En attente |
-| D-15 | Langue | Français uniquement en V1 | En attente |
-| D-16 | Prestataire SMS | À choisir après comparaison des tarifs **pour tous les pays visés** (la couverture SMS doit suivre la couverture paiement) | En attente |
-| D-17 | Choix du pays de paiement | L'utilisateur **confirme** son pays de paiement au premier achat (suggestion : pays choisi pour l'affichage, puis IP, puis indicatif), mémorisé ensuite ; le numéro n'est jamais considéré comme le pays de résidence ou de facturation. Parcours : TECHNICAL_ARCHITECTURE §5.7 | **Principe validé** par le fondateur ; validation des écrans à faire |
-| D-18 | Prestataire principal en zone UEMOA (où les deux se recouvrent) | Choisir par pays selon les **frais réels négociés** ; l'autre sert de secours automatique | En attente des grilles tarifaires |
-| D-19 | Gabon, Congo, Tchad, Centrafrique, Guinée équatoriale, Guinée-Bissau | **Aucune information trouvée, pas d'exclusion** : questions écrites aux deux prestataires ; consultation ouverte en attendant ; 3ᵉ prestataire à étudier seulement si les deux répondent non | En attente des réponses |
-| D-20 | Envoi des questions écrites aux prestataires | Envoyer [docs/questions-prestataires-paiement.md](docs/questions-prestataires-paiement.md) à CinetPay et FedaPay (par e-mail, pour garder une trace écrite) ; consigner les réponses dans ce même document | **Action du fondateur** |
-| D-21 | Pays affiché par défaut aux visiteurs dont le pays est inconnu ou non ouvert | Bénin (grille XOF), avec la mention « prix indicatif » | En attente |
-| D-22 | Comptes testeurs pour le statut `pilot` | Liste de numéros fournie par le fondateur pour tester les achats réels avant ouverture publique d'un pays | En attente |
+Colonne « Nécessaire avant » : moment où la décision devient réellement nécessaire. Le développement peut commencer sans attendre les autres (voir DEVELOPMENT_ROADMAP §1).
+
+| ID | Sujet | Décision / recommandation | Statut | Nécessaire avant |
+|---|---|---|---|---|
+| D-01 | Prestataires de paiement | **CinetPay + FedaPay**, intégrations **modulaires** (un adaptateur par prestataire derrière une interface commune, activable/désactivable). Les réponses commerciales n'empêchent pas de construire le reste : un **simulateur de paiement** sert au développement et aux tests | **Validé** | — |
+| D-02 | Pays | **Panafricain**, activation progressive : consultation partout, achat pays par pays et moyen par moyen dès confirmation A/B/C | **Validé** | — |
+| D-03 | Grilles tarifaires | **XOF : 300 FCFA / épisode, 1 500 FCFA / saison** (prix indicatifs validés, modifiables dans l'admin). Autres monnaies (XAF, GNF, CDF/USD) : **grilles indépendantes**, montants à saisir le moment venu ; **aucune conversion automatique** | **Validé** pour XOF ; autres montants en attente | Ouverture d'un pays hors XOF |
+| D-04 | Longueur du PIN | 4 chiffres avec toutes les protections de SECURITY_REQUIREMENTS §3 ; longueur **paramétrable** (4 ou 6) | Recommandation par défaut : 4 | Étape 3 (modifiable ensuite) |
+| D-05 | Vérification du numéro par SMS (OTP) | Obligatoire à l'inscription et pour réinitialiser le PIN | Recommandation par défaut | Étape 3 |
+| D-06 | Authentification des administrateurs | E-mail + mot de passe fort + double authentification (TOTP) obligatoire | À confirmer | **Étape 4** |
+| D-07 | Format vidéo et durée moyenne | Le format est un **réglage par série** (vertical 9:16 ou horizontal 16:9) : l'interface s'adapte, rien n'est figé. Merci d'indiquer le format de la première série et une durée moyenne | Information attendue | Étape 2 (maquettes) — non bloquant |
+| D-08 | Politiques commerciales et éditoriales | Comportements techniques par défaut déjà définis (RM-06 à RM-10) ; textes définitifs (remboursement, retrait de contenu, classification d'âge) à valider | En attente | Pilote |
+| D-09 | Stratégie d'encaissement par zone monétaire | Société **béninoise**. Hors zone XOF : selon les réponses des prestataires et d'un juriste | En attente des réponses écrites | Ouverture à l'achat des pays concernés |
+| D-10 | Mention « contenu créé avec l'IA » | Mention discrète sur la fiche série (champ déjà prévu) | En attente | Pilote |
+| D-11 | Nom de domaine | À fournir | En attente | Pilote |
+| D-12 | Budget mensuel d'infrastructure | Estimation indicative dans TECHNICAL_ARCHITECTURE §10 | En attente | Création des comptes payants |
+| D-13 | Lecteur vidéo V1 | Lecteur intégré Bunny (derrière une interface `VideoProvider`, remplaçable) | Recommandation par défaut | Étape 6 |
+| D-14 | Identité de marque | Logotype texte provisoire ; logo officiel intégré dès réception | En attente | Lancement public |
+| D-15 | Langue | Français en V1, textes centralisés | Recommandation par défaut | — |
+| D-16 | Prestataire SMS | Interface `SmsProvider` ; simulateur en développement ; prestataire réel choisi sur comparaison des tarifs par pays | En attente | Pilote (tests réels dès l'étape 8) |
+| D-17 | Choix du pays de paiement | Pays **confirmé par l'utilisateur** au premier achat, mémorisé ; l'indicatif et l'IP ne sont que des suggestions | **Principe validé** ; écrans à valider | Étape 5 |
+| D-18 | Prestataire principal par pays en zone XOF | Selon les frais réels ; l'autre en secours | En attente des grilles tarifaires | Pilote |
+| D-19 | Gabon, Congo, Tchad, Centrafrique, Guinée équatoriale, Guinée-Bissau | Pas d'exclusion ; questions écrites ; consultation ouverte en attendant | En attente des réponses | Ouverture de ces pays |
+| D-20 | Questions écrites aux prestataires | Envoyer [docs/questions-prestataires-paiement.md](docs/questions-prestataires-paiement.md) | **Action du fondateur** (à lancer maintenant : délais de réponse) | Pilote |
+| D-21 | Pays affiché par défaut | **Bénin** (grille XOF) pour les visiteurs dont le pays est inconnu, avec la mention claire « Prix indicatifs — modifiables selon votre pays » | **Validé** | — |
+| D-22 | Programme pilote | **Petit groupe de testeurs répartis dans plusieurs pays**, achats réels en statut `pilot` ; la composition du groupe **ne bloque pas** le développement | **Principe validé** ; liste des testeurs à fournir | Étape 10 (pilote) |
 
 ## 9. Index des documents
 

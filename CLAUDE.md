@@ -20,11 +20,12 @@ Si le code et ces documents divergent, **signaler l'écart** et mettre à jour l
 
 ## État du projet
 
-- Phase 1 (cadrage) : documents rédigés. **Validés** : D-01 (CinetPay + FedaPay), D-02 (panafricain, activation progressive), principe de D-17 (pays de paiement confirmé par l'utilisateur). Société exploitante : béninoise. Les autres décisions restent **en attente** (registre : PROJECT_BRIEF §8).
-- Aucun code applicatif. Ne pas commencer une étape de la feuille de route sans instruction explicite.
+- Phase 1 (cadrage) terminée ; plan de développement en 11 étapes proposé (DEVELOPMENT_ROADMAP). **Validés** : D-01 (CinetPay + FedaPay, intégrations modulaires), D-02 (panafricain, activation progressive), D-03 pour XOF (300 / 1 500 FCFA, autres monnaies indépendantes, aucune conversion automatique), principe de D-17, D-21 (Bénin par défaut, prix indicatifs), principe de D-22 (pilote multi-pays). Société exploitante : béninoise. Autres décisions : registre PROJECT_BRIEF §8 avec leur échéance.
+- Aucun code applicatif. **Ne commencer une étape de la feuille de route qu'avec le feu vert explicite du fondateur.**
+- Les services externes non disponibles sont remplacés par des simulateurs (TECHNICAL_ARCHITECTURE §12), jamais activables en production.
 - Ne jamais présenter une décision en attente comme validée.
 
-## Pile prévue (sous réserve des prototypes de l'étape 0)
+## Pile prévue (sous réserve des vérifications des étapes 3, 6 et 7 de la feuille de route)
 
 Next.js (App Router) + TypeScript · Tailwind · Supabase (Postgres, Storage, RLS ; Auth **pour les admins uniquement**) · auth client maison (numéro + PIN + OTP, sessions en base) · Bunny Stream · CinetPay + FedaPay (adaptateurs derrière l'interface `PaymentProvider`, routage pays × moyen configurable en base) · Vercel · Sentry · Turnstile · Zod · Vitest · Playwright.
 

@@ -120,10 +120,11 @@ Avec 10 essais maximum avant verrouillage dur et les PIN faibles interdits, la p
 | SEC-37 | Anti double-clic : une commande `pending` récente identique est réutilisée. Un second paiement effectif pour un droit déjà existant est marqué `is_duplicate_payment` pour remboursement. |
 | SEC-38 | Réconciliation automatique des commandes `pending`, et des `expired`/`failed`/`cancelled` de moins de 72 h (le prestataire a le dernier mot) + revérification manuelle depuis l'admin. |
 | SEC-39 | Les secrets live et sandbox sont différents et ne sont jamais mélangés entre environnements. Chaque compte de paiement a ses propres identifiants (variables d'environnement préfixées) ; la base ne contient que leur référence, jamais les clés. |
-| SEC-42 | Désactiver un prestataire ou un compte bloque les **nouveaux** paiements mais **jamais** la vérification des commandes en cours (webhooks et réconciliation restent actifs). |
-| SEC-43 | Modification des pays, grilles, comptes, routes de paiement et du statut testeur réservée au rôle `admin`, avec confirmation et journalisation. |
 | SEC-40 | Le webhook ne répond 200 qu'**après** traitement complet ; en cas d'erreur temporaire il répond 500 pour provoquer une nouvelle tentative du prestataire. Aucune information interne dans la réponse ; erreurs journalisées et remontées (alerte P0). |
 | SEC-41 | Remboursement : seul le droit lié à la commande remboursée est révoqué. |
+| SEC-42 | Désactiver un prestataire ou un compte bloque les **nouveaux** paiements mais **jamais** la vérification des commandes en cours (webhooks et réconciliation restent actifs). |
+| SEC-43 | Modification des pays, grilles, comptes, routes de paiement et du statut testeur réservée au rôle `admin`, avec confirmation et journalisation. |
+| SEC-44 | Les simulateurs (paiement, SMS, vidéo) sont refusés en production : l'application ne démarre pas en production si un simulateur est configuré ou si un compte de paiement `simulator` est actif. Test automatisé obligatoire. |
 
 ## 6. Vidéos protégées
 

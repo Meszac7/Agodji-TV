@@ -152,7 +152,7 @@ Un pays ne peut être ouvert à l'achat que si **A, B et C** sont confirmés (�
 
 ### 5.5 Contraintes techniques utiles à la conception
 
-Ces points concernent l'intégration ; ils restent à vérifier en sandbox (prototype S3).
+Ces points concernent l'intégration ; ils restent à vérifier en sandbox (étape 7 de la feuille de route).
 
 | Point | Source | Conséquence de conception |
 |---|---|---|
@@ -213,7 +213,7 @@ Le pays du numéro de téléphone **n'est pas** le pays de résidence ni le pays
 
 **Parcours :**
 
-1. **Navigation (sans compte)** : les prix sont affichés pour un « pays d'affichage » estimé à partir de l'adresse IP (indication fournie par l'hébergeur), visible et modifiable en un geste : « Prix pour : Bénin ▾ ». Si le pays estimé n'est pas ouvert à l'achat ou est inconnu, les prix affichés sont ceux d'un pays ouvert par défaut avec la mention « Prix indicatif — choisissez votre pays au moment du paiement ».
+1. **Navigation (sans compte)** : les prix sont affichés pour un « pays d'affichage » estimé à partir de l'adresse IP (indication fournie par l'hébergeur), visible et modifiable en un geste : « Prix pour : Bénin ▾ ». Si le pays estimé est inconnu, les prix affichés sont ceux du **Bénin** (grille XOF) avec la mention « Prix indicatifs — modifiables selon votre pays » (D-21). Si le pays est connu mais pas encore ouvert à l'achat, ses prix indicatifs sont affichés s'il a une grille, sinon ceux du Bénin, avec la même mention.
 2. **Premier achat** : un écran unique demande « **Dans quel pays se trouve votre compte Mobile Money ou votre carte ?** ». Une suggestion est présélectionnée, dans cet ordre : pays d'affichage choisi par l'utilisateur → pays estimé par IP → pays de l'indicatif du numéro. **L'utilisateur confirme d'un geste ou change.** Seuls les pays où l'achat est possible sont sélectionnables ; les autres apparaissent grisés « bientôt ».
 3. **Achats suivants** : le dernier pays de paiement utilisé est rappelé (« Payer depuis : Côte d'Ivoire · Changer »). Pas de nouvelle question.
 4. Changer de pays met à jour **immédiatement** le prix (grille du pays) et les moyens proposés, avant toute redirection.
@@ -315,7 +315,7 @@ Sujets juridiques associés (LAUNCH_CHECKLIST §4) : TVA sur les services numér
 2. Le navigateur appelle `GET /api/playback/:episodeId`. Le serveur vérifie RM-01, puis génère une URL de lecture signée expirant après **quelques minutes** (recommandation Bunny : 1 à 5 min pour le jeton).
 3. Les épisodes gratuits passent aussi par ce point (sans vérification de droit) : cela empêche l'intégration sauvage sur d'autres sites.
 4. La clé de signature n'est **jamais** exposée. Les identifiants vidéo ne figurent pas dans les pages publiques ; en revanche, l'URL du lecteur intégré contient l'identifiant de la vidéo une fois la lecture autorisée. **Ce n'est pas un problème** : la protection repose sur les jetons (embed + CDN), pas sur le secret de l'identifiant.
-5. **Tests obligatoires (prototype S2 puis pré-lancement)** :
+5. **Tests obligatoires (étape 6 de la feuille de route, puis pré-lancement)** :
    - copier l'URL de playlist HLS depuis les outils du navigateur → refusée après expiration et depuis un autre domaine ;
    - un épisode complet se lit jusqu'au bout même si sa durée dépasse la validité du jeton (vérifier comment le lecteur Bunny renouvelle l'accès aux segments ; ajuster la durée du jeton si nécessaire).
 
@@ -342,7 +342,7 @@ Détails et justification : SECURITY_REQUIREMENTS §3.
 - **OTP SMS** : code généré par notre serveur, stocké **haché** avec expiration (`otp_challenges`), envoyé via le prestataire SMS ; limites SEC-11 à SEC-14 appliquées avant tout envoi.
 - **Session** : à la connexion réussie, le serveur génère un jeton aléatoire de 256 bits, en stocke le **hachage** dans `customer_sessions`, et place le jeton dans un cookie `httpOnly`, `Secure`, `SameSite=Lax`. Chaque requête authentifiée vérifie la session **et** le statut du client.
 - Conséquences directes : blocage d'un compte, changement de PIN ou « déconnexion de tous les appareils » = **suppression immédiate des sessions en base**, effet instantané.
-- Code d'authentification limité, testé intégralement (prototype S1), sans bibliothèque cryptographique maison : Argon2id via une bibliothèque reconnue, aléa cryptographique du système.
+- Code d'authentification limité, testé intégralement (étape 3 de la feuille de route), sans bibliothèque cryptographique maison : Argon2id via une bibliothèque reconnue, aléa cryptographique du système.
 
 ### 7.2 Administrateurs : Supabase Auth
 - Comptes **séparés** des clients, e-mail + mot de passe fort + **TOTP obligatoire** **[D-06]**.
@@ -401,7 +401,7 @@ Un fichier `.env.example` (sans valeurs) sera créé au début du développement
 
 | Risque | Impact | Mitigation |
 |---|---|---|
-| Erreur dans le code d'authentification maison | Comptes compromis | Périmètre réduit, prototype S1, tests exhaustifs, revue de sécurité indépendante |
+| Erreur dans le code d'authentification maison | Comptes compromis | Périmètre réduit, tests exhaustifs à l'étape 3, revue de sécurité indépendante |
 | Webhooks perdus ou retardés | Client payé sans accès | Réconciliation automatique + revérification manuelle admin |
 | Coût SMS / fraude au SMS (« SMS pumping ») | Facture élevée | Turnstile, limites par numéro/IP/pays, liste blanche des indicatifs pays |
 | Couverture réelle des opérateurs différente des pages publiques | Paiements impossibles dans un pays | Vérification écrite auprès du prestataire et paiement réel de test avant d'ouvrir un marché |
@@ -409,3 +409,19 @@ Un fichier `.env.example` (sans valeurs) sera créé au début du développement
 | Complexité de plusieurs prestataires et comptes | Plus de tests et de support | Interface commune, tests de contrat par adaptateur, sandbox par compte, routes désactivables |
 | Bande passante Afrique plus chère | Marges | Qualités adaptées, suivi des coûts mensuels |
 | Pas de région cloud en Afrique | Latence | Pages légères, cache CDN, région Europe la plus proche |
+
+## 12. Simulateurs : développer sans attendre les services externes
+
+Pour que les réponses commerciales et administratives ne bloquent pas la construction (D-01), chaque service externe est caché derrière une interface, avec un **simulateur** utilisé en développement, en préproduction et dans les tests automatisés.
+
+| Interface | Simulateur | Adaptateurs réels | Réel nécessaire à partir de |
+|---|---|---|---|
+| `PaymentProvider` | `simulator` : page de paiement factice (choix « réussir / échouer / annuler »), notifications signées, scénarios de doublon, de retard, de perte et de montant erroné | `cinetpay`, `fedapay` | Étape 7 (sandbox), pilote (live) |
+| `SmsProvider` | Codes OTP écrits dans un journal de préproduction visible par l'équipe | Prestataire choisi (D-16) | Pilote |
+| `VideoProvider` | Vidéo de démonstration servie localement, jeton signé factice avec expiration | `bunny` | Étape 6 |
+
+Règles :
+- Le moteur (commandes, droits, sessions, lecture) est **identique** quel que soit l'adaptateur : il est testé une fois, puis chaque adaptateur doit passer la même **suite de tests de contrat**.
+- Les simulateurs sont **impossibles à activer en production** : l'application refuse de démarrer en production si un simulateur est configuré ou si un compte de paiement `simulator` est actif (SEC-44).
+- Le simulateur de paiement est un prestataire comme les autres dans la base (`payment_providers.code = 'simulator'`), ce qui permet de tester aussi le routage, les secours et la désactivation.
+

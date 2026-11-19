@@ -9,7 +9,7 @@
 
 - [x] **F** D-01 Prestataires : CinetPay + FedaPay (orientation validée le 2026-11-19)
 - [x] **F** D-02 Orientation panafricaine (validée le 2026-11-19)
-- [ ] **F** D-03 Grilles tarifaires (XOF, XAF, RDC, GNF)
+- [x] **F** D-03 Grille XOF : 300 / 1 500 FCFA (validée) — [ ] montants XAF, GNF, CDF/USD à fixer avant l'ouverture des pays concernés
 - [ ] **F** D-04 Longueur du PIN (4 ou 6 chiffres)
 - [ ] **F** D-05 OTP SMS obligatoire (inscription, réinitialisation)
 - [ ] **F** D-06 Authentification administrateur (e-mail + TOTP)
@@ -27,8 +27,8 @@
 - [ ] **F** D-18 Prestataire principal par pays en zone UEMOA
 - [ ] **F** D-19 Gabon, Congo, Tchad, Centrafrique, Guinée équatoriale, Guinée-Bissau : attendre les réponses écrites
 - [ ] **F** D-20 Envoyer les questions écrites à CinetPay et FedaPay
-- [ ] **F** D-21 Pays d'affichage par défaut
-- [ ] **F** D-22 Liste des comptes testeurs
+- [x] **F** D-21 Pays d'affichage par défaut : Bénin, prix indicatifs (validé)
+- [x] **F** D-22 Principe du pilote multi-pays (validé) — [ ] liste des testeurs à fournir avant l'étape 10
 
 ## 2. Comptes et accès externes à créer
 
@@ -58,7 +58,7 @@ Le fondateur crée les comptes à son nom (ou celui de la société) et active l
 
 ### Bunny Stream
 - [ ] Tarifs actuels stockage/diffusion pour l'Afrique.
-- [ ] Combinaison jeton d'intégration + jeton CDN avec le lecteur intégré : comportement confirmé (prototype S2).
+- [ ] Combinaison jeton d'intégration + jeton CDN avec le lecteur intégré : comportement confirmé (étape 6 de la feuille de route).
 - [ ] Désactivation du repli MP4.
 - [ ] Offre DRM (MediaCage) : prix, compatibilité — pour plus tard.
 
