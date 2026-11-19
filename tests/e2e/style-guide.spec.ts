@@ -7,7 +7,7 @@ test.describe("guide de style (étape 1)", () => {
     await expect(page.getByRole("button", { name: /Regarder l'épisode 1/ })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Cartes de séries" })).toBeVisible();
     await expect(page.getByText("Bientôt", { exact: true }).first()).toBeVisible();
-    await expect(page.getByText("300 FCFA").first()).toBeVisible();
+    await expect(page.getByText("499 FCFA").first()).toBeVisible();
     await expect(page.getByText("Identité provisoire.")).toBeVisible();
   });
 

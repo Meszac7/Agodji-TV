@@ -114,7 +114,7 @@ export default async function StyleGuidePage() {
       <Section id="badges" title="Badges">
         <div className="flex flex-wrap items-center gap-2">
           <Badge kind="free">Gratuit</Badge>
-          <Badge kind="price">{formatPrice(300, "XOF")}</Badge>
+          <Badge kind="price">{formatPrice(499, "XOF")}</Badge>
           <Badge kind="owned">Acheté</Badge>
           <Badge kind="pass">Inclus dans votre pass</Badge>
           <Badge kind="soon">Bientôt</Badge>
@@ -180,7 +180,7 @@ export default async function StyleGuidePage() {
           </p>
           <p className="text-[13px] font-medium text-muted">Métadonnées — Roboto 500 · Épisode 3 · 13 min 18</p>
           <p className="font-display text-lg font-bold tabular-nums">
-            {formatPrice(300, "XOF")} · {formatPrice(1500, "XOF")}
+            {formatPrice(499, "XOF")} · {formatPrice(1500, "XOF")}
           </p>
         </div>
       </Section>

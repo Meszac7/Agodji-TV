@@ -5,6 +5,7 @@ import { ChevronDownIcon, FullscreenIcon, GridIcon } from "@/components/ui/icons
 import { autoAdvance, buildSlides, type Entitlements, type OtherSeries, type SeriesInfo } from "@/lib/player/sequencer";
 import type { Progress } from "@/lib/player/local-progress";
 import { EpisodeSlide } from "./EpisodeSlide";
+import { episodePrice, passOffer, type SeriesPrices } from "@/lib/player/pricing";
 import { LockedSlide } from "./LockedSlide";
 import { ScheduledSlide, SeriesEndSlide } from "./InfoSlides";
 import { EpisodesSheet, PurchaseSheet } from "./Sheets";
@@ -46,7 +47,7 @@ export function VerticalFeed({
   series: SeriesInfo;
   otherSeries: OtherSeries[];
   media: Record<string, { src: string; poster: string }>;
-  prices: { episode: number; pass: number };
+  prices: SeriesPrices;
   initialEntitlements: Entitlements;
   initialIndex: number;
   progress: Progress;
@@ -191,12 +192,14 @@ export function VerticalFeed({
                     poster={m.poster}
                     episodeLabel={`${seriesTitle} · Épisode ${s.episode.number}`}
                     episodeTitle={s.episode.title}
-                    prices={prices}
+                    passPrice={prices.pass}
+                    episodePrice={episodePrice(prices, s.episode.id) ?? 0}
+                    saving={passOffer(series, ent, prices).saving}
                     onChoose={(kind) =>
                       setSheet(
                         kind === "pass"
                           ? { kind: "pass", seriesId: series.id, label: `Pass série · ${seriesTitle}`, amount: prices.pass }
-                          : { kind: "episode", episodeId: s.episode.id, label: `Épisode ${s.episode.number}`, amount: prices.episode },
+                          : { kind: "episode", episodeId: s.episode.id, label: `Épisode ${s.episode.number}`, amount: episodePrice(prices, s.episode.id) ?? 0 },
                       )
                     }
                   />

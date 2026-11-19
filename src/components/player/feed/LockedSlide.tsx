@@ -6,13 +6,18 @@ export function LockedSlide({
   poster,
   episodeLabel,
   episodeTitle,
-  prices,
+  passPrice,
+  episodePrice,
+  saving,
   onChoose,
 }: {
   poster: string;
   episodeLabel: string;
   episodeTitle: string;
-  prices: { episode: number; pass: number };
+  passPrice: number;
+  episodePrice: number;
+  /** Économie réalisée avec le Pass (0 = ne rien afficher). */
+  saving: number;
   onChoose: (kind: "pass" | "episode") => void;
 }) {
   return (
@@ -32,15 +37,18 @@ export function LockedSlide({
           onClick={() => onChoose("pass")}
           className="mt-3 w-full max-w-sm rounded-[var(--radius-control)] bg-primary px-4 py-3 text-on-primary"
         >
-          <span className="block font-display text-base font-bold">Débloquer toute la série — {formatPrice(prices.pass, "XOF")}</span>
-          <span className="block text-[12px] font-medium opacity-80">Pass série · tous les épisodes, y compris les prochains</span>
+          <span className="block font-display text-base font-bold">Débloquer toute la série — {formatPrice(passPrice, "XOF")}</span>
+          <span className="block text-[12px] font-medium opacity-80">
+            Pass série · tous les épisodes, y compris les prochains
+            {saving > 0 ? ` · économisez ${formatPrice(saving, "XOF")}` : ""}
+          </span>
         </button>
         <button
           type="button"
           onClick={() => onChoose("episode")}
           className="w-full max-w-sm rounded-[var(--radius-control)] border border-white/30 bg-white/10 px-4 py-3 font-display font-bold backdrop-blur"
         >
-          Seulement cet épisode — {formatPrice(prices.episode, "XOF")}
+          Seulement cet épisode — {formatPrice(episodePrice, "XOF")}
         </button>
         <p className="text-[12px] text-white/60">Achat définitif · sans expiration</p>
       </div>

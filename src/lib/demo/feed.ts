@@ -3,6 +3,7 @@
  * (dégradés animés de 14 s, sans son) — ni contenu réel ni identité définitive.
  * Séries sans saisons (décision du 2026-11-21) : durées « catalogue » réalistes (~1 min 30).
  */
+import type { SeriesPrices } from "@/lib/player/pricing";
 import type { OtherSeries, SeriesInfo } from "@/lib/player/sequencer";
 
 export type DemoFeedSeries = {
@@ -12,8 +13,13 @@ export type DemoFeedSeries = {
   orientation: "portrait" | "landscape";
   series: SeriesInfo;
   media: Record<string, { src: string; poster: string }>;
-  prices: { episode: number; pass: number };
+  prices: SeriesPrices;
 };
+
+/** Tarifs de démonstration (décision du 2026-11-22) : 499 FCFA par épisode payant, Pass propre à la série. */
+function demoPrices(id: string, pass: number): SeriesPrices {
+  return { pass, episodes: Object.fromEntries(titles.slice(2).map((_, i) => [`${id}-e${i + 3}`, 499])) };
+}
 
 const BASE = "/maquettes/videos";
 const titles = ["La Couronne vacante", "Le Pacte", "Les Masques", "La Trahison", "Le Serment", "Le Conseil", "L'Exil"];
@@ -55,7 +61,7 @@ export const demoVertical: DemoFeedSeries = {
       { src: i < 6 ? `${BASE}/episode-${i + 1}-vertical.mp4` : "", poster: `${BASE}/poster-${Math.min(i + 1, 6)}.jpg` },
     ]),
   ),
-  prices: { episode: 300, pass: 1500 },
+  prices: demoPrices("sr", 1500),
 };
 
 export const demoHorizontal: DemoFeedSeries = {
@@ -67,5 +73,5 @@ export const demoHorizontal: DemoFeedSeries = {
   media: Object.fromEntries(
     Array.from({ length: 7 }, (_, i) => [`nch-e${i + 1}`, { src: `${BASE}/episode-horizontal.mp4`, poster: `${BASE}/poster-horizontal.jpg` }]),
   ),
-  prices: { episode: 300, pass: 1500 },
+  prices: demoPrices("nch", 1500),
 };

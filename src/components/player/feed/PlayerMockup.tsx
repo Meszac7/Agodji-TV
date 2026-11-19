@@ -16,6 +16,8 @@ import {
   type Entitlements,
   type OtherSeries,
 } from "@/lib/player/sequencer";
+import { episodePrice, passOffer } from "@/lib/player/pricing";
+import { PurchaseSheet } from "./Sheets";
 import { VerticalFeed } from "./VerticalFeed";
 
 type Scenario = "none" | "episode" | "pass";
@@ -55,6 +57,8 @@ export function PlayerMockup() {
   // Côté spectateur : durée des épisodes publiés. (L'admin compte aussi les épisodes programmés pour la limite de 15 min.)
   const total = totalDurationSeconds({ ...demo.series, episodes: published });
   const passOwned = ent.seriesPassIds.has(demo.series.id);
+  const offer = passOffer(demo.series, ent, demo.prices);
+  const [buyingPass, setBuyingPass] = useState(false);
 
   function onProgressChange(episodeId: string, position: number, duration: number) {
     setProgress((prev) => {
@@ -161,21 +165,56 @@ export function PlayerMockup() {
               <CheckIcon width={16} height={16} /> Pass série acquis — toute la série est débloquée
             </p>
           ) : (
-            <p className="text-center text-[13px] text-muted">
-              Toute la série : <span className="font-medium text-text">{formatPrice(demo.prices.pass, "XOF")}</span> avec le pass série · ou{" "}
-              {formatPrice(demo.prices.episode, "XOF")} l&apos;épisode
-            </p>
+            <div className="mt-2 grid gap-2" data-testid="purchase-options">
+              <p className="text-[13px] font-medium text-muted">Deux façons de débloquer la suite</p>
+              <button
+                type="button"
+                onClick={() => setBuyingPass(true)}
+                className="relative rounded-[var(--radius-card)] border-2 border-primary bg-surface p-4 text-left"
+                data-testid="offer-pass"
+              >
+                <span className="absolute -top-2.5 right-3 rounded-full bg-primary px-2 py-0.5 text-[11px] font-bold text-on-primary">Meilleure offre</span>
+                <span className="flex items-baseline justify-between gap-3">
+                  <span className="font-display text-base font-bold">Pass série</span>
+                  <span className="font-display text-lg font-bold tabular-nums">{formatPrice(demo.prices.pass, "XOF")}</span>
+                </span>
+                <span className="mt-1 block text-[13px] text-muted">
+                  Tous les épisodes, y compris les prochains{offer.upcomingCount > 0 ? ` (${offer.upcomingCount} à venir)` : ""} · sans expiration
+                </span>
+                {offer.saving > 0 ? (
+                  <span className="mt-2 inline-block rounded-[6px] bg-success/15 px-2 py-0.5 text-[13px] font-medium text-success" data-testid="pass-saving">
+                    Économisez {formatPrice(offer.saving, "XOF")} + les prochains épisodes
+                  </span>
+                ) : null}
+                {offer.remainingCount > 0 ? (
+                  <span className="mt-1 block text-[12px] text-muted">
+                    Au lieu de {formatPrice(offer.remainingTotal, "XOF")} pour {offer.remainingCount} épisode{offer.remainingCount > 1 ? "s" : ""} à l&apos;unité
+                  </span>
+                ) : null}
+              </button>
+              <a href="#episodes" className="block rounded-[var(--radius-card)] border border-border bg-surface p-4" data-testid="offer-episode">
+                <span className="flex items-baseline justify-between gap-3">
+                  <span className="font-display text-base font-bold">À l&apos;unité</span>
+                  <span className="font-display text-lg font-bold tabular-nums">
+                    {offer.minEpisodePrice !== null
+                      ? `${offer.uniformEpisodePrice ? "" : "dès "}${formatPrice(offer.minEpisodePrice, "XOF")}`
+                      : "—"}
+                  </span>
+                </span>
+                <span className="mt-1 block text-[13px] text-muted">Par épisode · seulement l&apos;épisode choisi · sans expiration</span>
+              </a>
+            </div>
           )}
         </div>
       </section>
 
       <section className="mx-auto max-w-xl px-4">
-        <h2 className="mb-2 font-display text-lg font-bold">Épisodes</h2>
+        <h2 id="episodes" className="mb-2 scroll-mt-4 font-display text-lg font-bold">Épisodes</h2>
         <ul className="grid gap-1" data-testid="episode-list">
           {demo.series.episodes.map((e) => {
             const a = episodeAccess(e, demo.series.id, ent);
             const p = progress.get(e.id);
-            const label = e.status === "scheduled" ? "Bientôt" : e.access === "free" ? "Gratuit" : a.state === "playable" ? (a.reason === "pass" ? "Inclus" : "Acheté") : formatPrice(demo.prices.episode, "XOF");
+            const label = e.status === "scheduled" ? "Bientôt" : e.access === "free" ? "Gratuit" : a.state === "playable" ? (a.reason === "pass" ? "Inclus" : "Acheté") : formatPrice(episodePrice(demo.prices, e.id) ?? 0, "XOF");
             return (
               <li key={e.id} className="flex items-center gap-3 rounded-[var(--radius-control)] px-2 py-2">
                 <span className="w-5 font-display font-bold tabular-nums text-muted">{e.number}</span>
@@ -227,6 +266,18 @@ export function PlayerMockup() {
           </p>
         </div>
       </section>
+      {buyingPass ? (
+        <PurchaseSheet
+          label={`Pass série · ${demo.title}`}
+          description="Tous les épisodes de la série, y compris les prochains"
+          amount={demo.prices.pass}
+          onDone={() => {
+            setBuyingPass(false);
+            setEnt((prev) => ({ ...prev, seriesPassIds: new Set([...prev.seriesPassIds, demo.series.id]) }));
+          }}
+          onClose={() => setBuyingPass(false)}
+        />
+      ) : null}
     </main>
   );
 }

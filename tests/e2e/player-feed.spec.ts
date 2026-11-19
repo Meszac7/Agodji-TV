@@ -104,7 +104,7 @@ test.describe("lecteur vertical — maquette", () => {
 
   test("fin de série : autres séries et retour au catalogue, jamais de saison suivante", async ({ page }) => {
     await page.goto("/maquettes/lecteur");
-    await page.getByRole("button", { name: "Pass série" }).click();
+    await page.getByRole("button", { name: "Pass série", exact: true }).click();
     await page.getByTestId("enter-player").click();
     await goToSlide(page, 7);
     const end = page.getByTestId("series-end-slide");
@@ -119,10 +119,39 @@ test.describe("lecteur vertical — maquette", () => {
 
   test("avec le pass série, la fiche n'affiche plus aucune proposition d'achat", async ({ page }) => {
     await page.goto("/maquettes/lecteur");
-    await page.getByRole("button", { name: "Pass série" }).click();
+    await page.getByRole("button", { name: "Pass série", exact: true }).click();
     await expect(page.getByTestId("pass-owned")).toBeVisible();
-    await expect(page.getByText(/avec le pass série/)).toHaveCount(0);
+    await expect(page.getByTestId("purchase-options")).toHaveCount(0);
     await expect(page.getByTestId("episode-list")).not.toContainText("FCFA");
+  });
+
+  test("la fiche présente les deux achats : Pass au prix de la série avec l'économie, ou 499 FCFA l'épisode", async ({ page }) => {
+    await page.goto("/maquettes/lecteur");
+    const pass = page.getByTestId("offer-pass");
+    await expect(pass).toContainText("1\u00a0500\u00a0FCFA");
+    await expect(pass).toContainText("y compris les prochains (1 à venir)");
+    // 4 épisodes payants publiés × 499 = 1 996 FCFA ; 1 996 − 1 500 = 496 FCFA d'économie
+    await expect(page.getByTestId("pass-saving")).toHaveText("Économisez 496\u00a0FCFA + les prochains épisodes");
+    await expect(pass).toContainText("Au lieu de 1\u00a0996\u00a0FCFA pour 4 épisodes à l'unité");
+    await expect(page.getByTestId("offer-episode")).toContainText("499\u00a0FCFA");
+    await expect(page.getByTestId("episode-list")).toContainText("499\u00a0FCFA");
+  });
+
+  test("l'économie tient compte d'un épisode déjà acheté à l'unité", async ({ page }) => {
+    await page.goto("/maquettes/lecteur");
+    await page.getByRole("button", { name: "Épisode 5 acheté" }).click();
+    await expect(page.getByTestId("offer-pass")).toContainText("Au lieu de 1\u00a0497\u00a0FCFA pour 3 épisodes");
+    await expect(page.getByTestId("pass-saving")).toHaveCount(0);
+  });
+
+  test("acheter le Pass depuis la fiche (paiement simulé) : les offres disparaissent", async ({ page }) => {
+    await page.goto("/maquettes/lecteur");
+    await page.getByTestId("offer-pass").click();
+    const sheet = page.getByTestId("purchase-sheet");
+    await expect(sheet).toContainText("1\u00a0500\u00a0FCFA");
+    await sheet.getByRole("button", { name: /Payer/ }).click();
+    await expect(page.getByTestId("pass-owned")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId("purchase-options")).toHaveCount(0);
   });
 
   test("la fiche affiche le nombre d'épisodes et la durée totale calculée", async ({ page }) => {

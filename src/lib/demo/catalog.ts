@@ -117,7 +117,7 @@ export const demoEpisodes: DemoEpisode[] = [
 
 export const demoPricing: { currency: CurrencyCode; episode: number; pass: number; countryLabel: string } = {
   currency: "XOF",
-  episode: 300,
+  episode: 499,
   pass: 1500,
   countryLabel: "Bénin",
 };
