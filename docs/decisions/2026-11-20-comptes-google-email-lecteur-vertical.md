@@ -25,7 +25,7 @@ L'auth « maison » n'existait que pour le PIN, que Supabase ne gère pas. Pour 
 ### Risques et protections (vérification demandée par le fondateur)
 | Risque | Protection |
 |---|---|
-| **Prise de contrôle anticipée** : un tiers crée un compte e-mail/mot de passe avec l'adresse de la victime avant elle | Confirmation d'e-mail **obligatoire** ; un compte non confirmé ne peut ni acheter, ni être lié ; comportement de Supabase sur les identités non confirmées **testé** à l'étape 3 |
+| **Prise de contrôle anticipée** (dans les deux sens : compte e-mail créé avant le compte Google de la victime, ou après) | Confirmation d'e-mail **obligatoire avant toute connexion** ; liaison uniquement entre e-mails vérifiés ; inscription refusée par notre serveur si un compte existe déjà et que Supabase ne protège pas ce cas ; **tests dans les deux sens** à l'étape 3 (SEC-12) |
 | Vol de mot de passe / attaque par dictionnaire | Mot de passe d'au moins 10 caractères, limites de tentatives de Supabase, **Turnstile** sur inscription / connexion / mot de passe oublié, détection des mots de passe divulgués si l'offre Supabase le permet (à vérifier) |
 | Changement d'e-mail frauduleux | Confirmation sur l'ancienne **et** la nouvelle adresse (option « secure email change ») ; réauthentification pour les actions sensibles |
 | Compte bloqué qui reste connecté | Blocage Supabase + statut vérifié par notre serveur à chaque action sensible (lecture payante, achat) |
@@ -67,3 +67,7 @@ L'auth « maison » n'existait que pour le PIN, que Supabase ne gère pas. Pour 
 | Navigation (séquenceur) | Ordre des épisodes, états des diapositives (lecture, verrouillé, bientôt), fin de saison, saison suivante | Serveur (calcul) + navigateur (affichage) |
 
 Détails : TECHNICAL_ARCHITECTURE §6.4, PRODUCT_REQUIREMENTS §5.
+
+## 5. Revue de sécurité indépendante (2026-11-20)
+
+Une relecture indépendante a renforcé : confirmation d'e-mail avant toute connexion, test de prise de contrôle anticipée dans les deux sens, `ON DELETE RESTRICT` (aucun achat perdu par suppression), transferts d'achats à double confirmation, comptes admin sur adresses dédiées sans Google, vérification des sessions côté Supabase, route `/auth/confirm`, CSRF sur les routes API, jetons de renouvellement distincts pour le défilement. Détails : SECURITY_REQUIREMENTS §3, §6, §10.
