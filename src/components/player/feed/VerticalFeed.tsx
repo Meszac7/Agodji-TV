@@ -2,14 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDownIcon, FullscreenIcon, GridIcon } from "@/components/ui/icons";
-import { autoAdvance, buildSlides, type Entitlements, type NextSeasonInfo, type SeasonInfo } from "@/lib/player/sequencer";
+import { autoAdvance, buildSlides, type Entitlements, type OtherSeries, type SeriesInfo } from "@/lib/player/sequencer";
 import type { Progress } from "@/lib/player/local-progress";
 import { EpisodeSlide } from "./EpisodeSlide";
 import { LockedSlide } from "./LockedSlide";
-import { ScheduledSlide, SeasonEndSlide } from "./InfoSlides";
+import { ScheduledSlide, SeriesEndSlide } from "./InfoSlides";
 import { EpisodesSheet, PurchaseSheet } from "./Sheets";
 
-type Purchase = { kind: "pass"; seasonId: string; label: string; amount: number } | { kind: "episode"; episodeId: string; label: string; amount: number };
+type Purchase = { kind: "pass"; seriesId: string; label: string; amount: number } | { kind: "episode"; episodeId: string; label: string; amount: number };
 
 function SoundIcon({ muted }: { muted: boolean }) {
   return (
@@ -28,8 +28,8 @@ function SoundIcon({ muted }: { muted: boolean }) {
 export function VerticalFeed({
   seriesTitle,
   orientation,
-  season,
-  nextSeason,
+  series,
+  otherSeries,
   media,
   prices,
   initialEntitlements,
@@ -37,21 +37,29 @@ export function VerticalFeed({
   progress,
   onProgressChange,
   onExit,
+  onOpenSeries,
+  onCatalog,
+  onEntitlementsChange,
 }: {
   seriesTitle: string;
   orientation: "portrait" | "landscape";
-  season: SeasonInfo;
-  nextSeason: NextSeasonInfo | null;
+  series: SeriesInfo;
+  otherSeries: OtherSeries[];
   media: Record<string, { src: string; poster: string }>;
-  prices: { episode: number; pass: number; nextPass: number };
+  prices: { episode: number; pass: number };
   initialEntitlements: Entitlements;
   initialIndex: number;
   progress: Progress;
   onProgressChange: (episodeId: string, position: number, duration: number) => void;
   onExit: () => void;
+  onOpenSeries: (s: OtherSeries) => void;
+  onCatalog: () => void;
+  /** Remonte les droits obtenus pendant le visionnage (la fiche série reflète le pass acheté). */
+  onEntitlementsChange?: (ent: Entitlements) => void;
 }) {
   const [ent, setEnt] = useState<Entitlements>(initialEntitlements);
-  const slides = useMemo(() => buildSlides(season, ent, nextSeason), [season, ent, nextSeason]);
+  const slides = useMemo(() => buildSlides(series, ent, otherSeries), [series, ent, otherSeries]);
+  const publishedCount = series.episodes.filter((e) => e.status === "published").length;
   const [active, setActive] = useState(initialIndex);
   const [muted, setMuted] = useState(false);
   const [controls, setControls] = useState(true);
@@ -122,7 +130,7 @@ export function VerticalFeed({
 
   const current = slides[active];
   const headerLabel =
-    current && current.kind !== "season-end" ? `S${season.number} · Épisode ${current.episode.number}` : `Saison ${season.number}`;
+    current && current.kind !== "series-end" ? `Épisode ${current.episode.number} / ${Math.max(publishedCount, current.episode.number)}` : "Fin de la série";
 
   function onEnded(index: number) {
     const next = autoAdvance(slides, index);
@@ -130,15 +138,13 @@ export function VerticalFeed({
   }
 
   function completePurchase(p: Purchase) {
-    setEnt((prev) =>
+    const next: Entitlements =
       p.kind === "pass"
-        ? { ...prev, seasonPassIds: new Set([...prev.seasonPassIds, p.seasonId]) }
-        : { ...prev, episodeIds: new Set([...prev.episodeIds, p.episodeId]) },
-    );
+        ? { ...ent, seriesPassIds: new Set([...ent.seriesPassIds, p.seriesId]) }
+        : { ...ent, episodeIds: new Set([...ent.episodeIds, p.episodeId]) };
+    setEnt(next);
+    onEntitlementsChange?.(next);
     setSheet(null);
-    if (p.kind === "pass" && p.seasonId !== season.id) {
-      flashToast("Saison 2 débloquée (la maquette ne contient pas encore ses épisodes).");
-    }
   }
 
   async function toggleFullscreen() {
@@ -162,10 +168,10 @@ export function VerticalFeed({
       <div className="relative mx-auto h-full" style={{ width: columnWidth }}>
         <div ref={scroller} className="no-scrollbar h-full snap-y snap-mandatory overflow-y-scroll overscroll-contain" data-testid="feed-scroller">
           {slides.map((s, i) => {
-            const key = s.kind === "season-end" ? "end" : s.episode.id;
-            const m = s.kind === "season-end" ? undefined : media[s.episode.id];
+            const key = s.kind === "series-end" ? "end" : s.episode.id;
+            const m = s.kind === "series-end" ? undefined : media[s.episode.id];
             return (
-              <section key={key} className="relative h-full w-full snap-start snap-always" aria-label={s.kind === "season-end" ? "Fin de saison" : `Épisode ${s.episode.number}`} data-slide-index={i}>
+              <section key={key} className="relative h-full w-full snap-start snap-always" aria-label={s.kind === "series-end" ? "Fin de la série" : `Épisode ${s.episode.number}`} data-slide-index={i}>
                 {s.kind === "episode" && s.state === "playable" && m ? (
                   <EpisodeSlide
                     src={m.src}
@@ -189,7 +195,7 @@ export function VerticalFeed({
                     onChoose={(kind) =>
                       setSheet(
                         kind === "pass"
-                          ? { kind: "pass", seasonId: season.id, label: `Pass Saison ${season.number}`, amount: prices.pass }
+                          ? { kind: "pass", seriesId: series.id, label: `Pass série · ${seriesTitle}`, amount: prices.pass }
                           : { kind: "episode", episodeId: s.episode.id, label: `Épisode ${s.episode.number}`, amount: prices.episode },
                       )
                     }
@@ -200,20 +206,17 @@ export function VerticalFeed({
                     poster={m.poster}
                     label={`${seriesTitle} · Épisode ${s.episode.number}`}
                     title={s.episode.title}
-                    date={new Date(s.episode.publishAt ?? Date.now()).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}
+                    date={s.episode.publishAt ?? new Date().toISOString()}
                     coveredByPass={s.coveredByPass}
                   />
                 ) : null}
-                {s.kind === "season-end" ? (
-                  <SeasonEndSlide
+                {s.kind === "series-end" ? (
+                  <SeriesEndSlide
                     seriesTitle={seriesTitle}
-                    seasonNumber={s.seasonNumber}
-                    next={s.next ? { number: s.next.season.number, unlocked: s.next.unlocked, firstEpisodeFree: s.next.season.firstEpisodeFree } : null}
-                    currentPassOwned={ent.seasonPassIds.has(season.id)}
-                    nextPassPrice={prices.nextPass}
-                    onUnlockNext={() => s.next && setSheet({ kind: "pass", seasonId: s.next.season.id, label: `Pass Saison ${s.next.season.number}`, amount: prices.nextPass })}
-                    onWatchNextFree={() => flashToast("Dans le vrai lecteur, la saison 2 démarre ici.")}
-                    onBack={onExit}
+                    nextScheduledAt={s.nextScheduledAt}
+                    otherSeries={s.otherSeries}
+                    onOpenSeries={onOpenSeries}
+                    onCatalog={onCatalog}
                   />
                 ) : null}
               </section>
@@ -261,6 +264,7 @@ export function VerticalFeed({
 
         {sheet === "episodes" ? (
           <EpisodesSheet
+            title={`Épisodes · ${seriesTitle}`}
             slides={slides}
             activeIndex={active}
             progress={progress}
@@ -271,7 +275,7 @@ export function VerticalFeed({
         {sheet && sheet !== "episodes" ? (
           <PurchaseSheet
             label={sheet.label}
-            description={sheet.kind === "pass" ? "Tous les épisodes de la saison, y compris les prochains" : "Cet épisode uniquement"}
+            description={sheet.kind === "pass" ? "Tous les épisodes de la série, y compris les prochains" : "Cet épisode uniquement"}
             amount={sheet.amount}
             onDone={() => completePurchase(sheet)}
             onClose={() => setSheet(null)}

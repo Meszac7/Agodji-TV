@@ -1,7 +1,8 @@
 /**
- * Séquenceur du lecteur en défilement continu (TECHNICAL_ARCHITECTURE §6.4, couche 5).
- * Fonction pure : à partir d'une saison, de ses épisodes et des droits de l'utilisateur,
- * construit la suite de diapositives et dit si l'enchaînement automatique est permis.
+ * Séquenceur du lecteur en défilement continu (TECHNICAL_ARCHITECTURE §6.4, couche « ordre des épisodes »).
+ * Pas de saisons : une série = une histoire complète, épisodes 1 → N (décision du 2026-11-21).
+ * Fonction pure : à partir d'une série, de ses épisodes et des droits de l'utilisateur, construit la suite
+ * de diapositives et dit si l'enchaînement automatique est permis.
  * Il DÉCRIT les états ; le serveur VÉRIFIE toujours le droit avant d'émettre un lien de lecture.
  */
 
@@ -16,67 +17,57 @@ export type EpisodeInfo = {
   publishAt?: string;
 };
 
-export type SeasonInfo = {
+export type SeriesInfo = {
   id: string;
-  seriesTitle: string;
-  number: number;
+  title: string;
   episodes: EpisodeInfo[];
 };
 
 export type Entitlements = {
-  /** Saisons couvertes par un pass. */
-  seasonPassIds: ReadonlySet<string>;
+  /** Séries couvertes par un pass série. */
+  seriesPassIds: ReadonlySet<string>;
   /** Épisodes achetés à l'unité. */
   episodeIds: ReadonlySet<string>;
 };
 
-export type NextSeasonInfo = {
-  id: string;
-  number: number;
-  /** Premier épisode de la saison suivante, s'il est gratuit et publié. */
-  firstEpisodeFree: boolean;
-};
+export type OtherSeries = { id: string; slug: string; title: string; poster: string; available: boolean };
 
 export type Slide =
   | { kind: "episode"; episode: EpisodeInfo; state: "playable" | "locked"; reason: "free" | "pass" | "episode" | "none" }
   | { kind: "scheduled"; episode: EpisodeInfo; coveredByPass: boolean }
-  | {
-      kind: "season-end";
-      seasonNumber: number;
-      next: null | { season: NextSeasonInfo; unlocked: boolean };
-    };
+  | { kind: "series-end"; nextScheduledAt: string | null; otherSeries: OtherSeries[] };
+
+export function hasSeriesPass(seriesId: string, ent: Entitlements): boolean {
+  return ent.seriesPassIds.has(seriesId);
+}
 
 export function episodeAccess(
   episode: EpisodeInfo,
-  seasonId: string,
+  seriesId: string,
   ent: Entitlements,
 ): { state: "playable" | "locked"; reason: "free" | "pass" | "episode" | "none" } {
   if (episode.status !== "published") return { state: "locked", reason: "none" };
   if (episode.access === "free") return { state: "playable", reason: "free" };
-  if (ent.seasonPassIds.has(seasonId)) return { state: "playable", reason: "pass" };
+  if (ent.seriesPassIds.has(seriesId)) return { state: "playable", reason: "pass" };
   if (ent.episodeIds.has(episode.id)) return { state: "playable", reason: "episode" };
   return { state: "locked", reason: "none" };
 }
 
-export function buildSlides(season: SeasonInfo, ent: Entitlements, nextSeason: NextSeasonInfo | null): Slide[] {
-  const ordered = [...season.episodes].sort((a, b) => a.number - b.number);
+export function buildSlides(series: SeriesInfo, ent: Entitlements, otherSeries: OtherSeries[]): Slide[] {
+  const ordered = [...series.episodes].sort((a, b) => a.number - b.number);
   const slides: Slide[] = ordered.map((episode) =>
     episode.status === "scheduled"
-      ? { kind: "scheduled", episode, coveredByPass: ent.seasonPassIds.has(season.id) }
-      : { kind: "episode", episode, ...episodeAccess(episode, season.id, ent) },
+      ? { kind: "scheduled", episode, coveredByPass: ent.seriesPassIds.has(series.id) }
+      : { kind: "episode", episode, ...episodeAccess(episode, series.id, ent) },
   );
-  slides.push({
-    kind: "season-end",
-    seasonNumber: season.number,
-    // RM-13 : un pass ne couvre que SA saison — la saison suivante n'est débloquée que par son propre pass.
-    next: nextSeason ? { season: nextSeason, unlocked: ent.seasonPassIds.has(nextSeason.id) } : null,
-  });
+  const nextScheduled = ordered.find((e) => e.status === "scheduled")?.publishAt ?? null;
+  // Fin de série (FR-42) : autres séries + retour au catalogue ; jamais de « saison suivante ».
+  slides.push({ kind: "series-end", nextScheduledAt: nextScheduled, otherSeries: otherSeries.filter((s) => s.id !== series.id) });
   return slides;
 }
 
 /**
  * Enchaînement automatique à la fin d'un épisode (FR-33, RM-14).
- * Renvoie l'index de la diapositive suivante et si elle peut démarrer seule.
  * Jamais de lecture automatique d'un contenu verrouillé : on s'y arrête, sans lecture ni paiement.
  */
 export function autoAdvance(slides: Slide[], fromIndex: number): { index: number; autoplay: boolean } | null {
@@ -87,12 +78,17 @@ export function autoAdvance(slides: Slide[], fromIndex: number): { index: number
   return { index: nextIndex, autoplay: false };
 }
 
+/** Avec le pass série, aucune diapositive ne demande de paiement (RM-16). */
+export function paymentPromptCount(slides: Slide[]): number {
+  return slides.filter((s) => s.kind === "episode" && s.state === "locked").length;
+}
+
 export type EpisodeProgress = { positionSeconds: number; completed: boolean; updatedAt?: number };
 
 /**
  * Index de reprise (FR-37) : l'épisode regardé le plus récemment.
  * - s'il n'est pas terminé → on y revient (à sa position) ;
- * - s'il est terminé → diapositive suivante (épisode suivant, déblocage ou fin de saison) ;
+ * - s'il est terminé → diapositive suivante ;
  * - aucune progression → premier épisode.
  */
 export function resumeIndex(slides: Slide[], progress: ReadonlyMap<string, EpisodeProgress>): number {
@@ -117,4 +113,15 @@ export function resumeIndex(slides: Slide[], progress: ReadonlyMap<string, Episo
 /** « Vu » au-delà de 95 % (FR-37). */
 export function isCompleted(positionSeconds: number, durationSeconds: number): boolean {
   return durationSeconds > 0 && positionSeconds / durationSeconds >= 0.95;
+}
+
+/** Somme des durées des épisodes fournis (au spectateur : les publiés ; à l'admin : publiés + programmés). */
+export function totalDurationSeconds(series: SeriesInfo): number {
+  return series.episodes.reduce((sum, e) => sum + e.durationSeconds, 0);
+}
+
+export function formatMinutes(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60);
+  const s = Math.round(totalSeconds % 60);
+  return s === 0 ? `${m} min` : `${m} min ${String(s).padStart(2, "0")}`;
 }

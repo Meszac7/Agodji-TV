@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-/** Maquette du lecteur vertical en défilement continu (PRODUCT_REQUIREMENTS §5). Paiements simulés. */
+/** Maquette du lecteur vertical en défilement continu — séries sans saisons, Pass série (PRODUCT_REQUIREMENTS §5). Paiements simulés. */
 
 async function enter(page: Page) {
   await page.goto("/maquettes/lecteur");
@@ -35,7 +35,7 @@ test.describe("lecteur vertical — maquette", () => {
   test("entrée dans le lecteur : lecture immédiate de l'épisode 1, titre discret", async ({ page }) => {
     await enter(page);
     await waitPlaying(page);
-    await expect(page.getByTestId("feed-title")).toContainText("Sang Royal · S1 · Épisode 1");
+    await expect(page.getByTestId("feed-title")).toContainText("Sang Royal · Épisode 1 / 6");
   });
 
   test("glisser (flèche bas) passe à l'épisode suivant, flèche haut revient", async ({ page }) => {
@@ -64,16 +64,17 @@ test.describe("lecteur vertical — maquette", () => {
     await expect(page.getByTestId("feed-title")).toContainText("Épisode 3");
     const locked = page.getByRole("region", { name: "Épisode 3" }).getByTestId("locked-slide");
     await expect(locked).toBeVisible();
-    await expect(locked.getByRole("button", { name: /Débloquer la saison/ })).toBeVisible();
+    await expect(locked.getByRole("button", { name: /Débloquer toute la série/ })).toBeVisible();
     await expect(page.getByRole("region", { name: "Épisode 3" }).locator("video")).toHaveCount(0);
   });
 
-  test("le pass saison débloque l'épisode et les suivants, sans nouveau paiement", async ({ page }) => {
+  test("le pass série débloque l'épisode et les suivants, reprise automatique, plus aucun paiement", async ({ page }) => {
     await enter(page);
     await goToSlide(page, 2);
-    await page.getByRole("region", { name: "Épisode 3" }).getByRole("button", { name: /Débloquer la saison/ }).click();
+    await page.getByRole("region", { name: "Épisode 3" }).getByRole("button", { name: /Débloquer toute la série/ }).click();
     await page.getByRole("button", { name: /Payer avec Mobile Money/ }).click();
-    await page.getByRole("button", { name: "Regarder maintenant" }).click();
+    // Reprise automatique après paiement : aucun bouton à toucher.
+    await expect(page.getByTestId("purchase-sheet")).toHaveCount(0, { timeout: 8000 });
     await waitPlaying(page);
     await expect(page.getByTestId("feed-title")).toContainText("Épisode 3");
     for (const n of [4, 5, 6]) {
@@ -81,6 +82,7 @@ test.describe("lecteur vertical — maquette", () => {
       await expect(page.getByTestId("feed-title")).toContainText(`Épisode ${n}`);
       await expect(page.getByRole("region", { name: `Épisode ${n}` }).getByTestId("locked-slide")).toHaveCount(0);
     }
+    await expect(page.getByTestId("locked-slide")).toHaveCount(0);
   });
 
   test("épisode acheté à l'unité : seul celui-ci est débloqué", async ({ page }) => {
@@ -88,7 +90,6 @@ test.describe("lecteur vertical — maquette", () => {
     await goToSlide(page, 2);
     await page.getByRole("region", { name: "Épisode 3" }).getByRole("button", { name: /Seulement cet épisode/ }).click();
     await page.getByRole("button", { name: /Payer avec Mobile Money/ }).click();
-    await page.getByRole("button", { name: "Regarder maintenant" }).click();
     await waitPlaying(page);
     await page.keyboard.press("ArrowDown");
     await expect(page.getByRole("region", { name: "Épisode 4" }).getByTestId("locked-slide")).toBeVisible();
@@ -101,14 +102,32 @@ test.describe("lecteur vertical — maquette", () => {
     await expect(page.getByRole("region", { name: "Épisode 7" }).locator("video")).toHaveCount(0);
   });
 
-  test("fin de saison avec pass : la saison 2 n'est pas présentée comme incluse", async ({ page }) => {
+  test("fin de série : autres séries et retour au catalogue, jamais de saison suivante", async ({ page }) => {
     await page.goto("/maquettes/lecteur");
-    await page.getByRole("button", { name: "Pass saison 1" }).click();
+    await page.getByRole("button", { name: "Pass série" }).click();
     await page.getByTestId("enter-player").click();
     await goToSlide(page, 7);
-    await expect(page.getByTestId("season-end-slide")).toBeVisible();
-    await expect(page.getByTestId("pass-scope-notice")).toHaveText("Votre pass Saison 1 ne couvre pas la saison 2.");
-    await expect(page.getByRole("button", { name: /Débloquer la saison 2/ })).toBeVisible();
+    const end = page.getByTestId("series-end-slide");
+    await expect(end).toBeVisible();
+    await expect(end.getByText("Fin de la série")).toBeVisible();
+    await expect(end.getByText("D'autres séries à découvrir")).toBeVisible();
+    await expect(end.getByTestId("next-episode-notice")).toContainText("Prochain épisode le");
+    await expect(end).not.toContainText(/saison/i);
+    await end.getByRole("button", { name: "Retour au catalogue" }).click();
+    await expect(page.getByTestId("mock-catalog")).toBeVisible();
+  });
+
+  test("avec le pass série, la fiche n'affiche plus aucune proposition d'achat", async ({ page }) => {
+    await page.goto("/maquettes/lecteur");
+    await page.getByRole("button", { name: "Pass série" }).click();
+    await expect(page.getByTestId("pass-owned")).toBeVisible();
+    await expect(page.getByText(/avec le pass série/)).toHaveCount(0);
+    await expect(page.getByTestId("episode-list")).not.toContainText("FCFA");
+  });
+
+  test("la fiche affiche le nombre d'épisodes et la durée totale calculée", async ({ page }) => {
+    await page.goto("/maquettes/lecteur");
+    await expect(page.getByTestId("series-meta")).toContainText("6 épisodes · 9 min 19 au total · 1 à venir");
   });
 
   test("reprise : la fiche propose de reprendre le dernier épisode regardé", async ({ page }) => {

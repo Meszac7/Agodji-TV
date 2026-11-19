@@ -1,31 +1,35 @@
-# Fiche de validation — Maquette du lecteur vertical
+# Fiche de validation — Maquette du lecteur (version 2 : séries sans saisons, Pass série)
 
-À valider par le fondateur **avant** que le vrai lecteur soit construit (étape 2).
+À valider par le fondateur **avant** la construction complète du lecteur (étape 2).
+Version 1 (avec saisons, principe validé) : `docs/recette/maquette-lecteur/`. **Version 2** (à valider) : `docs/recette/maquette-lecteur-v2/`.
 
 ## Comment la voir
-- **Vidéo du parcours** (32 s) : `docs/recette/maquette-lecteur/parcours-lecteur.mp4`
-- **Captures** : dossier `docs/recette/maquette-lecteur/` (13 écrans)
-- **Maquette cliquable** : page `/maquettes/lecteur` (visible dès qu'un lien de préproduction existe ; en attendant, captures et vidéo)
+- **Vidéo du parcours** (43 s) : `docs/recette/maquette-lecteur-v2/parcours-pass-serie.mp4`
+- **Captures** : `docs/recette/maquette-lecteur-v2/` (13 écrans)
+- **Maquette cliquable** : page `/maquettes/lecteur` (dès qu'un lien de préproduction existe)
 
-Rappels : vidéos de démonstration de 14 secondes **sans son** ; paiements **simulés** ; titres fictifs.
+Rappels : vidéos de démonstration de 14 secondes **sans son** (la liste affiche les durées d'une vraie série, ~1 min 30) ; paiements **simulés** ; titres fictifs.
+
+## Ce qui a changé depuis la version 1
+- Plus aucune saison : une série = une histoire complète, épisodes 1 → N.
+- « Débloquer toute la série — 1 500 FCFA » (**Pass série**) remplace le pass saison.
+- La lecture **reprend automatiquement** après le paiement (plus besoin de toucher « Regarder maintenant »).
+- **Fin de série** : « D'autres séries à découvrir » + « Retour au catalogue » ; date du prochain épisode s'il en reste d'annoncés ; jamais de saison suivante.
+- La fiche série affiche le **nombre d'épisodes et la durée totale** ; avec le pass, plus aucun prix ni proposition d'achat.
+- Titre dans le lecteur : « Sang Royal · Épisode 3 / 6 ».
 
 ## Ce qu'il faut regarder
-- [ ] **Immersion** : en entrant dans le lecteur, la vidéo occupe presque tout l'écran ; on ne voit plus le site.
-- [ ] **Défilement** : glisser vers le haut = épisode suivant, vers le bas = précédent ; c'est naturel.
-- [ ] **Enchaînement** : à la fin d'un épisode, le suivant démarre seul.
-- [ ] **Commandes discrètes** : titre de la série et numéro d'épisode en haut ; son, liste des épisodes, plein écran à droite ; barre de progression fine en bas ; toucher l'image = pause.
-- [ ] **Épisode payant** : le défilement s'arrête sur un écran clair « Débloquer la saison — 1 500 FCFA » ou « Seulement cet épisode — 300 FCFA » ; rien ne se lance ni ne se paie tout seul.
-- [ ] **Après achat du pass** : on regarde, puis on enchaîne les épisodes suivants sans rien payer de plus.
-- [ ] **Achat d'un seul épisode** : seul cet épisode s'ouvre.
-- [ ] **Épisode à venir** : écran « disponible le … » (avec « inclus dans votre pass » si c'est le cas).
-- [ ] **Fin de saison** : proposition de la saison 2, avec la phrase « Votre pass Saison 1 ne couvre pas la saison 2 ».
-- [ ] **Liste des épisodes** : utile pour sauter à un épisode, mais jamais nécessaire.
-- [ ] **Reprise** : la fiche de la série propose « Reprendre — Épisode N à m:ss ».
-- [ ] **Série horizontale** : l'image est entière, ni déformée ni recadrée ; le haut et le bas sont comblés par un fond flou.
-- [ ] **Ordinateur** : colonne vidéo centrée, flèches ▲ ▼ et raccourcis clavier.
+- [ ] Fiche série : épisodes, durées, durée totale, prix du pass et de l'épisode, bouton « Regarder » / « Reprendre ».
+- [ ] Défilement vertical, enchaînement automatique, commandes discrètes (inchangés).
+- [ ] Épisode payant : « Débloquer toute la série — 1 500 FCFA » / « Seulement cet épisode — 300 FCFA ».
+- [ ] Après paiement : la lecture reprend seule ; les épisodes suivants s'enchaînent sans aucun nouveau paiement.
+- [ ] Épisode à venir : « Disponible le … · Inclus dans votre pass série ».
+- [ ] Fin de série : autres séries, retour au catalogue, aucune mention de saison.
+- [ ] Fiche avec pass : « Pass série acquis », épisodes « Inclus », plus aucun prix.
+- [ ] Série horizontale : image entière, ni déformée ni recadrée.
 
 ## Vos remarques
 
 ## Décision
-- [ ] Maquette validée — le vrai lecteur peut être construit
+- [ ] Maquette v2 validée — le lecteur complet peut être construit
 - [ ] Ajustements demandés

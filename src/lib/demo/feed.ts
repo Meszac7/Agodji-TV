@@ -1,65 +1,71 @@
 /**
  * Données de la MAQUETTE du lecteur vertical (étape 2). Vidéos de démonstration générées
- * (dégradés animés, sans son) — ni contenu réel ni identité définitive.
+ * (dégradés animés de 14 s, sans son) — ni contenu réel ni identité définitive.
+ * Séries sans saisons (décision du 2026-11-21) : durées « catalogue » réalistes (~1 min 30).
  */
-import type { NextSeasonInfo, SeasonInfo } from "@/lib/player/sequencer";
+import type { OtherSeries, SeriesInfo } from "@/lib/player/sequencer";
 
 export type DemoFeedSeries = {
   slug: string;
   title: string;
   synopsis: string;
   orientation: "portrait" | "landscape";
-  season: SeasonInfo;
-  nextSeason: NextSeasonInfo | null;
+  series: SeriesInfo;
   media: Record<string, { src: string; poster: string }>;
-  prices: { episode: number; pass: number; nextPass: number };
+  prices: { episode: number; pass: number };
 };
 
+const BASE = "/maquettes/videos";
 const titles = ["La Couronne vacante", "Le Pacte", "Les Masques", "La Trahison", "Le Serment", "Le Conseil", "L'Exil"];
+const durations = [92, 88, 95, 101, 86, 97, 90];
 
-function season(seriesTitle: string, prefix: string): SeasonInfo {
+function makeSeries(id: string, title: string): SeriesInfo {
   return {
-    id: `${prefix}-s1`,
-    seriesTitle,
-    number: 1,
-    episodes: titles.map((title, i) => ({
-      id: `${prefix}-e${i + 1}`,
+    id,
+    title,
+    episodes: titles.map((t, i) => ({
+      id: `${id}-e${i + 1}`,
       number: i + 1,
-      title,
-      durationSeconds: 14,
+      title: t,
+      durationSeconds: durations[i]!,
       access: i < 2 ? ("free" as const) : ("paid" as const),
       status: i < 6 ? ("published" as const) : ("scheduled" as const),
-      publishAt: i < 6 ? undefined : "2026-11-26T18:00:00Z",
+      publishAt: i < 6 ? undefined : "2026-11-28T18:00:00Z",
     })),
   };
 }
 
-const BASE = "/maquettes/videos";
+export const otherSeries: OtherSeries[] = [
+  { id: "nc", slug: "nuits-de-cotonou", title: "Nuits de Cotonou", poster: `${BASE}/affiche-nuits-de-cotonou.jpg`, available: false },
+  { id: "mp", slug: "le-marche-des-promesses", title: "Le Marché des Promesses", poster: `${BASE}/affiche-le-marche-des-promesses.jpg`, available: false },
+  { id: "he", slug: "heritage", title: "L'Héritage", poster: `${BASE}/affiche-heritage.jpg`, available: false },
+  { id: "fn", slug: "fleuve-noir", title: "Fleuve Noir", poster: `${BASE}/affiche-fleuve-noir.jpg`, available: false },
+  { id: "ep", slug: "les-epouses", title: "Les Épouses", poster: `${BASE}/affiche-les-epouses.jpg`, available: false },
+];
 
 export const demoVertical: DemoFeedSeries = {
   slug: "sang-royal",
   title: "Sang Royal",
   synopsis: "Le roi meurt sans désigner d'héritier. Entre alliances et trahisons, deux héritiers se disputent le trône.",
   orientation: "portrait",
-  season: season("Sang Royal", "sr"),
-  nextSeason: { id: "sr-s2", number: 2, firstEpisodeFree: true },
+  series: makeSeries("sr", "Sang Royal"),
   media: Object.fromEntries(
-    Array.from({ length: 6 }, (_, i) => [`sr-e${i + 1}`, { src: `${BASE}/episode-${i + 1}-vertical.mp4`, poster: `${BASE}/poster-${i + 1}.jpg` }]).concat([
-      ["sr-e7", { src: "", poster: `${BASE}/poster-6.jpg` }],
+    Array.from({ length: 7 }, (_, i) => [
+      `sr-e${i + 1}`,
+      { src: i < 6 ? `${BASE}/episode-${i + 1}-vertical.mp4` : "", poster: `${BASE}/poster-${Math.min(i + 1, 6)}.jpg` },
     ]),
   ),
-  prices: { episode: 300, pass: 1500, nextPass: 1500 },
+  prices: { episode: 300, pass: 1500 },
 };
 
 export const demoHorizontal: DemoFeedSeries = {
-  slug: "nuits-de-cotonou",
+  slug: "nuits-de-cotonou-horizontal",
   title: "Nuits de Cotonou",
   synopsis: "Démonstration d'une série tournée au format horizontal (16:9), affichée entière, sans déformation.",
   orientation: "landscape",
-  season: season("Nuits de Cotonou", "nc"),
-  nextSeason: null,
+  series: makeSeries("nch", "Nuits de Cotonou"),
   media: Object.fromEntries(
-    Array.from({ length: 7 }, (_, i) => [`nc-e${i + 1}`, { src: `${BASE}/episode-horizontal.mp4`, poster: `${BASE}/poster-horizontal.jpg` }]),
+    Array.from({ length: 7 }, (_, i) => [`nch-e${i + 1}`, { src: `${BASE}/episode-horizontal.mp4`, poster: `${BASE}/poster-horizontal.jpg` }]),
   ),
-  prices: { episode: 300, pass: 1500, nextPass: 1500 },
+  prices: { episode: 300, pass: 1500 },
 };

@@ -18,7 +18,9 @@ export type DemoSeries = {
   releaseLabel?: string;
   orientation: Orientation;
   palette: PosterPalette;
-  seasons: number;
+  /** Nombre d'épisodes publiés et durée totale (séries sans saisons). */
+  episodes: number;
+  totalSeconds: number;
 };
 
 export const demoSeries: DemoSeries[] = [
@@ -30,7 +32,8 @@ export const demoSeries: DemoSeries[] = [
     status: "published",
     orientation: "landscape",
     palette: { from: "#3b0d0c", via: "#8c2f1b", to: "#e0a43a", glow: "#ffcf6e" },
-    seasons: 1,
+    episodes: 8,
+    totalSeconds: 721,
   },
   {
     slug: "nuits-de-cotonou",
@@ -41,7 +44,8 @@ export const demoSeries: DemoSeries[] = [
     releaseLabel: "Prochainement",
     orientation: "landscape",
     palette: { from: "#06112b", via: "#1d3a8a", to: "#6f5bd6", glow: "#9ad0ff" },
-    seasons: 1,
+    episodes: 0,
+    totalSeconds: 0,
   },
   {
     slug: "le-marche-des-promesses",
@@ -52,7 +56,8 @@ export const demoSeries: DemoSeries[] = [
     releaseLabel: "Prochainement",
     orientation: "portrait",
     palette: { from: "#0f2a1c", via: "#1f6b45", to: "#c9b04a", glow: "#f2e08a" },
-    seasons: 1,
+    episodes: 0,
+    totalSeconds: 0,
   },
   {
     slug: "heritage",
@@ -63,7 +68,8 @@ export const demoSeries: DemoSeries[] = [
     releaseLabel: "Prochainement",
     orientation: "landscape",
     palette: { from: "#1a1210", via: "#5c3a24", to: "#d08a4e", glow: "#ffd2a1" },
-    seasons: 1,
+    episodes: 0,
+    totalSeconds: 0,
   },
   {
     slug: "fleuve-noir",
@@ -74,7 +80,8 @@ export const demoSeries: DemoSeries[] = [
     releaseLabel: "Prochainement",
     orientation: "portrait",
     palette: { from: "#041a1f", via: "#0e4d57", to: "#3fa7a3", glow: "#a8f0e0" },
-    seasons: 1,
+    episodes: 0,
+    totalSeconds: 0,
   },
   {
     slug: "les-epouses",
@@ -85,7 +92,8 @@ export const demoSeries: DemoSeries[] = [
     releaseLabel: "Prochainement",
     orientation: "landscape",
     palette: { from: "#24081f", via: "#7a1d5a", to: "#e05a7a", glow: "#ffb3c8" },
-    seasons: 1,
+    episodes: 0,
+    totalSeconds: 0,
   },
 ];
 

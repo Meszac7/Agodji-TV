@@ -1,6 +1,7 @@
 import { PosterArt } from "@/components/brand/PosterArt";
 import { Badge } from "@/components/ui/Badge";
 import type { DemoSeries } from "@/lib/demo/catalog";
+import { formatMinutes } from "@/lib/player/sequencer";
 
 export function PosterCard({ series }: { series: DemoSeries }) {
   const soon = series.status === "coming_soon";
@@ -24,7 +25,7 @@ export function PosterCard({ series }: { series: DemoSeries }) {
       </div>
       <p className="mt-2 line-clamp-1 font-display text-[15px] font-semibold">{series.title}</p>
       <p className="line-clamp-1 text-[12px] text-muted">
-        {soon ? series.releaseLabel : `${series.seasons} saison · ${series.genres.join(", ")}`}
+        {soon ? series.releaseLabel : `${series.episodes} épisodes · ${formatMinutes(series.totalSeconds)}`}
       </p>
     </a>
   );

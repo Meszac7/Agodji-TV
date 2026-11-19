@@ -31,7 +31,7 @@ export function PurchaseSheetPreview({
         <label className="flex cursor-pointer items-center justify-between gap-3 rounded-[var(--radius-card)] border-2 border-primary bg-surface p-3">
           <span>
             <span className="flex items-center gap-2 font-display font-bold">
-              Pass saison
+              Pass série
               <span className="rounded-[6px] bg-primary px-1.5 py-0.5 text-[11px] font-bold text-on-primary">Meilleure offre</span>
             </span>
             <span className="block text-[13px] text-muted">

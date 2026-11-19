@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckIcon, LockIcon, PlayIcon } from "@/components/ui/icons";
 import { formatPrice } from "@/lib/money";
 import type { Slide } from "@/lib/player/sequencer";
@@ -28,7 +28,9 @@ export function EpisodesSheet({
   progress,
   onPick,
   onClose,
+  title,
 }: {
+  title: string;
   slides: Slide[];
   activeIndex: number;
   progress: Map<string, { positionSeconds: number; completed: boolean }>;
@@ -36,10 +38,10 @@ export function EpisodesSheet({
   onClose: () => void;
 }) {
   return (
-    <Sheet title="Épisodes · Saison 1" onClose={onClose} testId="episodes-sheet">
+    <Sheet title={title} onClose={onClose} testId="episodes-sheet">
       <ul className="grid gap-1">
         {slides.map((s, i) => {
-          if (s.kind === "season-end") return null;
+          if (s.kind === "series-end") return null;
           const p = progress.get(s.episode.id);
           const state =
             s.kind === "scheduled" ? "Bientôt" : s.state === "locked" ? "Verrouillé" : p?.completed ? "Vu" : p && p.positionSeconds > 0 ? "En cours" : s.reason === "free" ? "Gratuit" : "Débloqué";
@@ -83,6 +85,18 @@ export function PurchaseSheet({
   onClose: () => void;
 }) {
   const [step, setStep] = useState<"summary" | "paying" | "done">("summary");
+  // Reprise automatique après un paiement réussi (FR-39b) : la feuille se ferme et la lecture démarre.
+  // onDone est conservé dans une référence : le parent se redessine souvent (progression de lecture)
+  // et ne doit pas relancer la minuterie.
+  const onDoneRef = useRef(onDone);
+  useEffect(() => {
+    onDoneRef.current = onDone;
+  });
+  useEffect(() => {
+    if (step !== "done") return;
+    const t = window.setTimeout(() => onDoneRef.current(), 1600);
+    return () => window.clearTimeout(t);
+  }, [step]);
   return (
     <Sheet title={step === "done" ? "Paiement confirmé" : label} onClose={onClose} testId="purchase-sheet">
       {step === "done" ? (
@@ -90,7 +104,7 @@ export function PurchaseSheet({
           <span className="mx-auto grid size-14 place-items-center rounded-full bg-surface text-success">
             <CheckIcon width={28} height={28} />
           </span>
-          <p className="text-muted">Vous pouvez continuer à regarder.</p>
+          <p className="text-muted">La lecture reprend automatiquement…</p>
           <button type="button" onClick={onDone} className="rounded-[var(--radius-control)] bg-primary py-3 font-display font-bold text-on-primary">
             Regarder maintenant
           </button>

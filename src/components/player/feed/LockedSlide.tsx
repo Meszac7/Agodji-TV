@@ -32,8 +32,8 @@ export function LockedSlide({
           onClick={() => onChoose("pass")}
           className="mt-3 w-full max-w-sm rounded-[var(--radius-control)] bg-primary px-4 py-3 text-on-primary"
         >
-          <span className="block font-display text-base font-bold">Débloquer la saison — {formatPrice(prices.pass, "XOF")}</span>
-          <span className="block text-[12px] font-medium opacity-80">Tous les épisodes, y compris les prochains</span>
+          <span className="block font-display text-base font-bold">Débloquer toute la série — {formatPrice(prices.pass, "XOF")}</span>
+          <span className="block text-[12px] font-medium opacity-80">Pass série · tous les épisodes, y compris les prochains</span>
         </button>
         <button
           type="button"

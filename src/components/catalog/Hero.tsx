@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { PlayIcon } from "@/components/ui/icons";
 import type { DemoSeries } from "@/lib/demo/catalog";
+import { formatMinutes } from "@/lib/player/sequencer";
 
 export function Hero({ series }: { series: DemoSeries }) {
   return (
@@ -23,7 +24,7 @@ export function Hero({ series }: { series: DemoSeries }) {
           </h1>
           <p className="mt-3 max-w-md text-[15px] text-text/90 md:text-lg">{series.tagline}</p>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-[13px] text-muted">
-            <span>{series.seasons} saison</span>
+            <span>{series.episodes} épisodes · {formatMinutes(series.totalSeconds)}</span>
             <span aria-hidden>·</span>
             <span>{series.genres.join(", ")}</span>
             <Badge kind="ai">Créée avec l&apos;IA</Badge>
