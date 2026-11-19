@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CheckIcon, LockIcon, PlayIcon } from "@/components/ui/icons";
 import { formatPrice } from "@/lib/money";
+import { QUALITY_MODES, QUALITY_OPTIONS, type QualityMode } from "@/lib/player/quality";
 import type { Slide } from "@/lib/player/sequencer";
 
 function Sheet({ title, onClose, children, testId }: { title: string; onClose: () => void; children: React.ReactNode; testId: string }) {
@@ -160,6 +161,36 @@ export function PurchaseUnavailableSheet({ label, amount, onClose }: { label: st
         <button type="button" onClick={onClose} className="rounded-[var(--radius-control)] bg-primary py-3 font-display font-bold text-on-primary">
           Compris
         </button>
+      </div>
+    </Sheet>
+  );
+}
+
+/** Choix de la qualité vidéo (FR-36, option A validée) : « Automatique » par défaut, choix mémorisé sur l'appareil. */
+export function QualitySheet({ mode, onPick, onClose }: { mode: QualityMode; onPick: (mode: QualityMode) => void; onClose: () => void }) {
+  return (
+    <Sheet title="Qualité vidéo" onClose={onClose} testId="quality-sheet">
+      <div className="grid gap-2" role="radiogroup" aria-label="Qualité vidéo">
+        {QUALITY_MODES.map((m) => {
+          const on = m === mode;
+          return (
+            <button
+              key={m}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => onPick(m)}
+              className={`flex items-center justify-between rounded-[var(--radius-card)] bg-surface p-3 text-left ${on ? "border-2 border-primary" : "border border-border"}`}
+            >
+              <span>
+                <span className="block font-display font-bold">{QUALITY_OPTIONS[m].title}</span>
+                <span className="block text-[13px] text-muted">{QUALITY_OPTIONS[m].detail}</span>
+              </span>
+              {on ? <CheckIcon width={18} height={18} className="text-primary-text" /> : null}
+            </button>
+          );
+        })}
+        <p className="text-center text-[12px] text-muted">Choix mémorisé sur cet appareil · « Automatique » par défaut</p>
       </div>
     </Sheet>
   );

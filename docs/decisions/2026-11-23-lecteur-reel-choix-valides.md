@@ -13,6 +13,13 @@ Plan de référence : `docs/plans/plan-lecteur-reel.md` (étapes L1 → L7). Est
 | CinetPay | **Aucune activation réelle à 499 FCFA** sans confirmation écrite de compatibilité (contrainte « multiple de 5 » à lever) ; aucun prix modifié en silence |
 | Maquette V2 | Référence visuelle et fonctionnelle : écrans réutilisés à l'identique par le site réel |
 
+## Choix de la qualité par le spectateur (validé : option A)
+- Bouton dans la colonne de droite du lecteur, **entre « Épisodes » et « Plein écran »** ; libellé = mode en cours (« Auto », « 360p », « 480p », « 720p »).
+- Modes : **Automatique (par défaut)**, Économie de données (360p, ≈ 10 Mo/épisode), Équilibré (480p, ≈ 17 Mo), Haute qualité (720p, ≈ 33 Mo) ; choix mémorisé sur l'appareil.
+- Mode manuel + connexion insuffisante (2 coupures en 30 s ou une coupure de plus de 4 s) : **proposition** « Passer en automatique » / « Garder ce choix », sans interrompre la lecture ; jamais de changement silencieux.
+- Petits écrans : boutons rapprochés sous 640 px de hauteur, libellés masqués (restent lus par les lecteurs d'écran) sous 480 px.
+- Lecture native (Safari ancien) : la qualité imposée est appliquée en ouvrant directement la variante choisie de la playlist.
+
 ## Autorisation donnée
 Étape **L1 uniquement** : brancher les écrans de la maquette V2 sur les données réelles et lire les épisodes gratuits avec les vidéos de démonstration.
 **Exclus** jusqu'à nouvelle validation : intégration Bunny Stream, création de comptes externes, tout abonnement ou paiement, comptes clients, achats, paiements.

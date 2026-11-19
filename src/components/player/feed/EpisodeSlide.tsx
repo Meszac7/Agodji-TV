@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { PauseIcon, PlayIcon } from "@/components/ui/icons";
 import { formatClock } from "@/lib/player/local-progress";
+import type { QualityMode } from "@/lib/player/quality";
 import { PLAYBACK_ERROR_MESSAGES } from "@/lib/player/stream-url";
 import { useEpisodeStream, type GrantFetcher } from "./useEpisodeStream";
 
@@ -19,6 +20,7 @@ export function EpisodeSlide({
   stream,
   poster,
   active,
+  current,
   mountVideo,
   muted,
   orientation,
@@ -28,9 +30,11 @@ export function EpisodeSlide({
   onTap,
 }: {
   src?: string;
-  stream?: { episodeId: string; fetchGrant: GrantFetcher; preload: boolean };
+  stream?: { episodeId: string; fetchGrant: GrantFetcher; preload: boolean; quality: QualityMode; onStall: (durationMs: number) => void };
   poster: string;
   active: boolean;
+  /** Diapositive affichée (même si un panneau met la lecture en pause) : le flux reste chargé. */
+  current?: boolean;
   mountVideo: boolean;
   muted: boolean;
   orientation: "portrait" | "landscape";
@@ -47,9 +51,11 @@ export function EpisodeSlide({
   const engine = useEpisodeStream({
     videoRef: ref,
     episodeId: stream?.episodeId ?? "",
-    enabled: Boolean(stream) && mountVideo && (active || Boolean(stream?.preload)),
-    active,
+    enabled: Boolean(stream) && mountVideo && (active || Boolean(current) || Boolean(stream?.preload)),
+    active: active || Boolean(current),
     fetchGrant: stream?.fetchGrant ?? noGrant,
+    quality: stream?.quality,
+    onStall: stream?.onStall,
   });
   const waitingForStream = Boolean(stream) && engine.attachedAt === 0;
 

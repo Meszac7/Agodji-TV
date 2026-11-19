@@ -1,6 +1,6 @@
 # Proposition — Choix de la qualité vidéo dans le lecteur (FR-36)
 
-Statut : **proposition, en attente de validation**. Rien n'est encore intégré au lecteur : les images ont été obtenues en ajoutant temporairement l'élément sur la page, sans modifier le code.
+Statut : **option A validée par le fondateur et intégrée** (captures réelles : `docs/recette/qualite-integree/`). Les images de ce dossier étaient la proposition initiale.
 
 ## Option A (recommandée) — 4ᵉ bouton dans la colonne de droite
 - Un bouton **« Auto »** (icône de réglage) entre « Épisodes » et « Plein écran », même forme que les boutons validés ; son libellé affiche le mode choisi (« Auto », « 360p », « 480p », « 720p »).

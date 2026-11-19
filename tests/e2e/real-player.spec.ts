@@ -202,6 +202,132 @@ test.describe("lecteur réel — flux HLS signé", () => {
   });
 });
 
+test.describe("lecteur réel — choix de la qualité vidéo (option A)", () => {
+  async function videoHeight(page: Page) {
+    return page.evaluate(() => document.querySelector<HTMLVideoElement>("[data-testid=active-video]")?.videoHeight ?? 0);
+  }
+
+  test("bouton « Auto » entre « Épisodes » et « Plein écran », automatique par défaut", async ({ page }) => {
+    await enterPlayer(page);
+    await waitPlaying(page);
+    const labels = await page
+      .locator("button[aria-label]")
+      .evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")).filter((l) => /Épisodes|épisodes|Qualité|Plein écran/.test(l ?? "")));
+    expect(labels).toEqual(["Liste des épisodes", "Qualité vidéo : Automatique", "Plein écran"]);
+    await expect(page.getByTestId("quality-button")).toHaveText("Auto");
+  });
+
+  test("4 choix avec la consommation estimée ; « Économie de données » passe en 360p sans recommencer l'épisode ; choix mémorisé", async ({ page }) => {
+    const segments: string[] = [];
+    page.on("request", (r) => {
+      if (/\/demo-1\/.*\.m4s$/.test(r.url())) segments.push(r.url());
+    });
+    await enterPlayer(page);
+    await waitPlaying(page, 1);
+    const before = await page.evaluate(() => document.querySelector<HTMLVideoElement>("[data-testid=active-video]")!.currentTime);
+    await page.getByTestId("quality-button").click();
+    const sheet = page.getByTestId("quality-sheet");
+    await expect(sheet.getByRole("radio")).toHaveCount(4);
+    await expect(sheet.getByRole("radio", { name: /Automatique/ })).toHaveAttribute("aria-checked", "true");
+    await expect(sheet).toContainText("360p · ≈ 10 Mo par épisode");
+    await expect(sheet).toContainText("480p · ≈ 17 Mo par épisode");
+    await expect(sheet).toContainText("720p · ≈ 33 Mo par épisode");
+    await sheet.getByRole("radio", { name: /Économie de données/ }).click();
+    await expect(page.getByTestId("quality-button")).toHaveText("360p");
+    // La lecture continue là où elle était (pas de retour au début) et bascule en 360p
+    await page.waitForFunction(() => document.querySelector<HTMLVideoElement>("[data-testid=active-video]")!.videoHeight === 640, null, { timeout: 15_000 });
+    const after = await page.evaluate(() => document.querySelector<HTMLVideoElement>("[data-testid=active-video]")!.currentTime);
+    expect(after).toBeGreaterThanOrEqual(before);
+    expect(segments.some((u) => /-360p-\d+\.m4s$/.test(u))).toBe(true);
+    // Mémorisé sur l'appareil : toujours 360p après rechargement, dès le premier épisode
+    await page.reload();
+    await page.getByTestId("enter-player").click();
+    await expect(page.getByTestId("quality-button")).toHaveText("360p");
+    await waitPlaying(page);
+    expect(await videoHeight(page)).toBe(640);
+  });
+
+  test("« Haute qualité » impose le 720p, retour à « Automatique » possible", async ({ page }) => {
+    await enterPlayer(page);
+    await waitPlaying(page);
+    await page.getByTestId("quality-button").click();
+    await page.getByTestId("quality-sheet").getByRole("radio", { name: /Haute qualité/ }).click();
+    await expect(page.getByTestId("quality-button")).toHaveText("720p");
+    await page.waitForFunction(() => document.querySelector<HTMLVideoElement>("[data-testid=active-video]")!.videoHeight === 1280, null, { timeout: 15_000 });
+    await page.getByTestId("quality-button").click();
+    await page.getByTestId("quality-sheet").getByRole("radio", { name: /Automatique/ }).click();
+    await expect(page.getByTestId("quality-button")).toHaveText("Auto");
+  });
+
+  test("connexion trop faible pour la qualité choisie : proposition de passer en automatique, sans arrêter la lecture", async ({ page }) => {
+    await page.goto("/series/sang-royal");
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem("agodjie-qualite-video", "720");
+    });
+    // Segments 720p très lents à partir du deuxième : la lecture se met plusieurs fois en attente.
+    await page.route(/-720p-0[1-3]\.m4s$/, async (route) => {
+      await new Promise((r) => setTimeout(r, 4_500));
+      await route.continue();
+    });
+    await page.reload();
+    await page.getByTestId("enter-player").click();
+    await expect(page.getByTestId("quality-button")).toHaveText("720p");
+    const suggestion = page.getByTestId("quality-suggestion");
+    await expect(suggestion).toBeVisible({ timeout: 25_000 });
+    await expect(suggestion).toContainText("trop faible pour la qualité « Haute qualité »");
+    // Aucune interruption brutale : pas de message d'erreur, la vidéo n'est pas mise en pause par le lecteur
+    await expect(page.getByTestId("playback-error")).toHaveCount(0);
+    expect(await page.evaluate(() => document.querySelector<HTMLVideoElement>("[data-testid=active-video]")!.paused)).toBe(false);
+    await suggestion.getByRole("button", { name: "Passer en automatique" }).click();
+    await expect(page.getByTestId("quality-button")).toHaveText("Auto");
+    await expect(suggestion).toHaveCount(0);
+    expect(await page.evaluate(() => localStorage.getItem("agodjie-qualite-video"))).toBe("auto");
+  });
+
+  test("« Garder ce choix » : la proposition disparaît et ne revient pas pour ce mode", async ({ page }) => {
+    await page.goto("/series/sang-royal");
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem("agodjie-qualite-video", "720");
+    });
+    await page.route(/-720p-0[1-3]\.m4s$/, async (route) => {
+      await new Promise((r) => setTimeout(r, 4_500));
+      await route.continue();
+    });
+    await page.reload();
+    await page.getByTestId("enter-player").click();
+    const suggestion = page.getByTestId("quality-suggestion");
+    await expect(suggestion).toBeVisible({ timeout: 25_000 });
+    await suggestion.getByRole("button", { name: "Garder ce choix" }).click();
+    await expect(suggestion).toHaveCount(0);
+    await page.waitForTimeout(6_000);
+    await expect(suggestion).toHaveCount(0);
+    await expect(page.getByTestId("quality-button")).toHaveText("720p");
+  });
+});
+
+test.describe("lecteur réel — petits écrans", () => {
+  for (const viewport of [
+    { width: 320, height: 568 }, // petit téléphone
+    { width: 360, height: 480 }, // écran très court
+  ]) {
+    test(`les 4 boutons restent visibles et ne chevauchent pas le titre (${viewport.width}×${viewport.height})`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await enterPlayer(page);
+      await waitPlaying(page);
+      const title = await page.getByTestId("feed-title").boundingBox();
+      for (const name of [/Son|Couper le son/, /Liste des épisodes/, /Qualité vidéo/, /Plein écran/]) {
+        const box = await page.getByRole("button", { name }).first().boundingBox();
+        expect(box).not.toBeNull();
+        expect(box!.y).toBeGreaterThan(title!.y + title!.height);
+        expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height);
+        expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width);
+      }
+    });
+  }
+});
+
 test.describe("sécurité de la lecture (API)", () => {
   test("aucun identifiant vidéo dans les données envoyées au navigateur", async ({ page, request }) => {
     const feed = await request.get("/api/series/sang-royal/feed");

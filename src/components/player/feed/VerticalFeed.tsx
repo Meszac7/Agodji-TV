@@ -1,14 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDownIcon, FullscreenIcon, GridIcon } from "@/components/ui/icons";
+import { ChevronDownIcon, FullscreenIcon, GridIcon, SlidersIcon } from "@/components/ui/icons";
+import { loadQualityMode, QUALITY_OPTIONS, saveQualityMode, shouldSuggestAuto, type QualityMode } from "@/lib/player/quality";
 import { autoAdvance, buildSlides, type Entitlements, type OtherSeries, type SeriesInfo } from "@/lib/player/sequencer";
 import type { Progress } from "@/lib/player/local-progress";
 import { EpisodeSlide } from "./EpisodeSlide";
 import { episodePrice, passOffer, type SeriesPrices } from "@/lib/player/pricing";
 import { LockedSlide } from "./LockedSlide";
 import { ScheduledSlide, SeriesEndSlide } from "./InfoSlides";
-import { EpisodesSheet, PurchaseSheet, PurchaseUnavailableSheet } from "./Sheets";
+import { EpisodesSheet, PurchaseSheet, PurchaseUnavailableSheet, QualitySheet } from "./Sheets";
 import type { GrantFetcher } from "./useEpisodeStream";
 
 type Purchase = { kind: "pass"; seriesId: string; label: string; amount: number } | { kind: "episode"; episodeId: string; label: string; amount: number };
@@ -72,7 +73,33 @@ export function VerticalFeed({
   const [active, setActive] = useState(initialIndex);
   const [muted, setMuted] = useState(false);
   const [controls, setControls] = useState(true);
-  const [sheet, setSheet] = useState<null | "episodes" | Purchase>(null);
+  const [sheet, setSheet] = useState<null | "episodes" | "quality" | Purchase>(null);
+  // Qualité vidéo (lecteur réel uniquement) : « Automatique » par défaut, choix mémorisé sur l'appareil.
+  const [quality, setQuality] = useState<QualityMode>("auto");
+  const [suggestAuto, setSuggestAuto] = useState(false);
+  const stalls = useRef<{ at: number; durationMs: number }[]>([]);
+  const suggestionDismissedFor = useRef<QualityMode | null>(null);
+  useEffect(() => {
+    if (fetchGrant) setQuality(loadQualityMode());
+  }, [fetchGrant]);
+
+  const chooseQuality = useCallback((mode: QualityMode) => {
+    setQuality(mode);
+    saveQualityMode(mode);
+    stalls.current = [];
+    setSuggestAuto(false);
+    suggestionDismissedFor.current = null;
+  }, []);
+
+  // Connexion insuffisante pour la qualité choisie : on PROPOSE le retour en automatique, sans couper la lecture.
+  const onStall = useCallback(
+    (durationMs: number) => {
+      const now = Date.now();
+      stalls.current = [...stalls.current.filter((x) => now - x.at <= 30_000), { at: now, durationMs }];
+      if (suggestionDismissedFor.current !== quality && shouldSuggestAuto(quality, stalls.current, now)) setSuggestAuto(true);
+    },
+    [quality],
+  );
   const [toast, setToast] = useState<string | null>(null);
   const [hint, setHint] = useState(true);
   const scroller = useRef<HTMLDivElement>(null);
@@ -184,9 +211,10 @@ export function VerticalFeed({
                 {s.kind === "episode" && s.state === "playable" && m ? (
                   <EpisodeSlide
                     src={fetchGrant ? undefined : m.src}
-                    stream={fetchGrant ? { episodeId: s.episode.id, fetchGrant, preload: i === active + 1 } : undefined}
+                    stream={fetchGrant ? { episodeId: s.episode.id, fetchGrant, preload: i === active + 1, quality, onStall } : undefined}
                     poster={m.poster}
                     active={i === active && !sheet}
+                    current={i === active}
                     mountVideo={Math.abs(i - active) <= 1}
                     muted={muted}
                     orientation={orientation}
@@ -248,15 +276,19 @@ export function VerticalFeed({
         </div>
 
         {/* Droite : commandes en colonne (uniquement sur un épisode en lecture) */}
-        <div className={`absolute bottom-24 right-2 z-40 flex flex-col items-center gap-4 transition-opacity duration-300 ${current?.kind === "episode" && current.state === "playable" ? (controls ? "opacity-100" : "opacity-0 hover:opacity-100") : "pointer-events-none opacity-0"}`}>
+        <div className={`absolute bottom-24 right-2 z-40 flex flex-col items-center gap-4 transition-opacity [@media(max-height:640px)]:gap-2 [@media(max-height:480px)]:bottom-14 duration-300 ${current?.kind === "episode" && current.state === "playable" ? (controls ? "opacity-100" : "opacity-0 hover:opacity-100") : "pointer-events-none opacity-0"}`}>
           {[
             { label: muted ? "Activer le son" : "Couper le son", icon: <SoundIcon muted={muted} />, onClick: () => setMuted((m) => !m), text: muted ? "Son coupé" : "Son" },
             { label: "Liste des épisodes", icon: <GridIcon width={22} height={22} />, onClick: () => setSheet("episodes"), text: "Épisodes" },
+            // Qualité vidéo : entre « Épisodes » et « Plein écran » (option A validée), lecteur réel uniquement.
+            ...(fetchGrant
+              ? [{ label: `Qualité vidéo : ${QUALITY_OPTIONS[quality].title}`, icon: <SlidersIcon width={22} height={22} />, onClick: () => setSheet("quality" as const), text: QUALITY_OPTIONS[quality].short, id: "quality" }]
+              : []),
             { label: "Plein écran", icon: <FullscreenIcon width={22} height={22} />, onClick: toggleFullscreen, text: "Plein écran" },
           ].map((b) => (
-            <button key={b.text} type="button" aria-label={b.label} onClick={() => { b.onClick(); showControls(); }} className="flex flex-col items-center gap-1 text-[10px] font-medium [text-shadow:0_1px_3px_rgba(0,0,0,.8)]">
-              <span className="grid size-11 place-items-center rounded-full bg-black/35 backdrop-blur-sm">{b.icon}</span>
-              {b.text}
+            <button key={"id" in b ? b.id : b.text} type="button" aria-label={b.label} onClick={() => { b.onClick(); showControls(); }} className="flex flex-col items-center gap-1 text-[10px] font-medium [text-shadow:0_1px_3px_rgba(0,0,0,.8)]" data-testid={"id" in b ? "quality-button" : undefined}>
+              <span className="grid size-11 place-items-center rounded-full bg-black/35 backdrop-blur-sm [@media(max-height:640px)]:size-10">{b.icon}</span>
+              <span className="[@media(max-height:480px)]:sr-only">{b.text}</span>
             </button>
           ))}
         </div>
@@ -265,6 +297,27 @@ export function VerticalFeed({
           <div className="pointer-events-none absolute inset-x-0 bottom-20 z-40 flex flex-col items-center text-[13px] text-white/90 [text-shadow:0_1px_3px_rgba(0,0,0,.8)]">
             <ChevronDownIcon width={22} height={22} className="rotate-180 animate-bounce" />
             Glissez vers le haut pour l&apos;épisode suivant
+          </div>
+        ) : null}
+
+        {suggestAuto ? (
+          <div className="absolute inset-x-3 top-16 z-50 rounded-[var(--radius-card)] bg-black/80 p-3 text-[14px] backdrop-blur" role="status" data-testid="quality-suggestion">
+            <p>Votre connexion semble trop faible pour la qualité « {QUALITY_OPTIONS[quality].title} ». Passer en automatique ?</p>
+            <div className="mt-2 flex gap-2">
+              <button type="button" onClick={() => chooseQuality("auto")} className="rounded-[var(--radius-control)] bg-primary px-3 py-2 font-display font-bold text-on-primary">
+                Passer en automatique
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  suggestionDismissedFor.current = quality;
+                  setSuggestAuto(false);
+                }}
+                className="rounded-[var(--radius-control)] border border-white/30 px-3 py-2"
+              >
+                Garder ce choix
+              </button>
+            </div>
           </div>
         ) : null}
 
@@ -284,10 +337,21 @@ export function VerticalFeed({
             onClose={() => setSheet(null)}
           />
         ) : null}
-        {sheet && sheet !== "episodes" && purchaseMode === "unavailable" ? (
+        {sheet === "quality" ? (
+          <QualitySheet
+            mode={quality}
+            onPick={(m) => {
+              chooseQuality(m);
+              setSheet(null);
+              flashToast(`Qualité : ${QUALITY_OPTIONS[m].title}`);
+            }}
+            onClose={() => setSheet(null)}
+          />
+        ) : null}
+        {sheet && sheet !== "episodes" && sheet !== "quality" && purchaseMode === "unavailable" ? (
           <PurchaseUnavailableSheet label={sheet.label} amount={sheet.amount} onClose={() => setSheet(null)} />
         ) : null}
-        {sheet && sheet !== "episodes" && purchaseMode === "simulated" ? (
+        {sheet && sheet !== "episodes" && sheet !== "quality" && purchaseMode === "simulated" ? (
           <PurchaseSheet
             label={sheet.label}
             description={sheet.kind === "pass" ? "Tous les épisodes de la série, y compris les prochains" : "Cet épisode uniquement"}

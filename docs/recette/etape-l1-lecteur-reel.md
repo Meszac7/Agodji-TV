@@ -27,5 +27,5 @@ Le site de préproduction en ligne (pour tester sur votre téléphone) nécessit
 ## Limites connues de cette étape (prévues dans le plan)
 - Vidéos de **démonstration** (14 s, sans son) servies par le simulateur ; Bunny Stream à l'étape L2.
 - Pas de comptes ni d'achats (étapes L3 et L4) ; progression mémorisée sur l'appareil seulement.
-- Choix manuel de la qualité « Économie de données / Haute qualité » (FR-36) : non présent dans la maquette validée ; le lecteur choisit automatiquement. **À valider** : proposition d'ajout à une prochaine étape.
+- Choix de la qualité (FR-36) : **ajouté** après validation de l'option A — bouton « Auto » entre « Épisodes » et « Plein écran » ; Automatique (défaut), Économie de données 360p, Équilibré 480p, Haute qualité 720p ; consommations affichées ; choix mémorisé sur l'appareil ; connexion trop faible en mode manuel → proposition de repasser en automatique, sans couper la lecture. Captures : `qualite-integree/`.
 - Testé dans Chromium (formats Android, iPhone et ordinateur). Le vrai Safari d'iPhone (lecture HLS native) sera vérifié sur appareil réel dès la préproduction en ligne.

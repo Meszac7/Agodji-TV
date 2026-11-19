@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import type Hls from "hls.js";
+import { pickLevel, variantUrlFor, type QualityMode } from "@/lib/player/quality";
 import {
   needsRenewal,
   retryDelayMs,
@@ -36,6 +37,8 @@ export function useEpisodeStream({
   enabled,
   active,
   fetchGrant,
+  quality = "auto",
+  onStall,
 }: {
   videoRef: RefObject<HTMLVideoElement | null>;
   episodeId: string;
@@ -43,6 +46,10 @@ export function useEpisodeStream({
   enabled: boolean;
   active: boolean;
   fetchGrant: GrantFetcher;
+  /** Qualité choisie par le spectateur ; « auto » = adaptation au débit (par défaut). */
+  quality?: QualityMode;
+  /** Coupure de lecture (mise en mémoire tampon) pendant la lecture, avec sa durée. */
+  onStall?: (durationMs: number) => void;
 }) {
   const [error, setError] = useState<PlaybackErrorKind | null>(null);
   const [attachedAt, setAttachedAt] = useState(0);
@@ -56,6 +63,21 @@ export function useEpisodeStream({
   const renewing = useRef<Promise<PlaybackGrant | null> | null>(null);
   const activeRef = useRef(active);
   activeRef.current = active;
+  const qualityRef = useRef<QualityMode>(quality);
+  qualityRef.current = quality;
+  const onStallRef = useRef(onStall);
+  onStallRef.current = onStall;
+
+  /** Lecture native : la qualité imposée se choisit en ouvrant directement la variante voulue. */
+  const nativeSource = useCallback(async (g: PlaybackGrant): Promise<string> => {
+    if (qualityRef.current === "auto") return g.url;
+    try {
+      const res = await fetch(g.url, { cache: "no-store" });
+      return res.ok ? variantUrlFor(await res.text(), g.url, qualityRef.current) : g.url;
+    } catch {
+      return g.url;
+    }
+  }, []);
 
   const remember = useCallback((g: PlaybackGrant) => {
     grant.current = g;
@@ -119,7 +141,8 @@ export function useEpisodeStream({
             },
           });
           const instance = new HlsCtor({
-            capLevelToPlayerSize: true,
+            // En automatique, la qualité ne dépasse pas la taille de l'écran ; en manuel, le choix du spectateur prime.
+            capLevelToPlayerSize: qualityRef.current === "auto",
             fragLoadPolicy: retryExpired(HlsCtor.DefaultConfig.fragLoadPolicy),
             playlistLoadPolicy: retryExpired(HlsCtor.DefaultConfig.playlistLoadPolicy),
             maxBufferLength: activeRef.current ? 30 : 4,
@@ -157,11 +180,15 @@ export function useEpisodeStream({
             }
             setError("media");
           });
+          instance.on(HlsCtor.Events.MANIFEST_PARSED, () => {
+            const idx = pickLevel(instance.levels.map((l) => ({ width: l.width, height: l.height, codecs: l.videoCodec })), qualityRef.current);
+            if (idx >= 0) instance.currentLevel = idx;
+          });
           instance.loadSource(g.url);
           instance.attachMedia(video);
         } else if (appleNative || video.canPlayType("application/vnd.apple.mpegurl")) {
           native.current = true;
-          video.src = g.url;
+          video.src = await nativeSource(g);
         } else {
           setError("media");
           return;
@@ -179,9 +206,9 @@ export function useEpisodeStream({
       if (!native.current) return;
       const at = video.currentTime;
       scheduleRetry(() => {
-        void renew().then((g) => {
+        void renew().then(async (g) => {
           if (!g) return;
-          video.src = g.url;
+          video.src = await nativeSource(g);
           video.currentTime = at;
           if (activeRef.current) void video.play().catch(() => undefined);
         });
@@ -189,12 +216,36 @@ export function useEpisodeStream({
     };
     video.addEventListener("error", onNativeError);
 
+    // Coupures de lecture (tampon vide) pendant que l'épisode est regardé.
+    let stallStart = 0;
+    let longStallTimer: number | undefined;
+    const onWaiting = () => {
+      if (!activeRef.current || video.seeking || video.currentTime < 0.5 || stallStart) return;
+      stallStart = Date.now();
+      longStallTimer = window.setTimeout(() => {
+        if (stallStart) onStallRef.current?.(Date.now() - stallStart);
+      }, 4_000);
+    };
+    const onPlaying = () => {
+      window.clearTimeout(longStallTimer);
+      if (stallStart) {
+        const duration = Date.now() - stallStart;
+        stallStart = 0;
+        if (duration < 4_000) onStallRef.current?.(duration);
+      }
+    };
+    video.addEventListener("waiting", onWaiting);
+    video.addEventListener("playing", onPlaying);
+
     return () => {
       cancelled = true;
       // Le flux est détaché : la lecture ne doit pas être relancée avant le prochain attachement.
       setAttachedAt(0);
       window.clearTimeout(retryTimer);
       video.removeEventListener("error", onNativeError);
+      video.removeEventListener("waiting", onWaiting);
+      video.removeEventListener("playing", onPlaying);
+      window.clearTimeout(longStallTimer);
       hls.current?.destroy();
       hls.current = null;
       if (native.current) {
@@ -203,7 +254,26 @@ export function useEpisodeStream({
         native.current = false;
       }
     };
-  }, [enabled, episodeId, fetchGrant, remember, renew, videoRef, attempt]);
+  }, [enabled, episodeId, fetchGrant, remember, renew, videoRef, attempt, nativeSource]);
+
+  // Changement de qualité pendant la lecture : appliqué sans recommencer l'épisode.
+  useEffect(() => {
+    const instance = hls.current;
+    const video = videoRef.current;
+    if (instance) {
+      instance.capLevelToPlayerSize = quality === "auto";
+      const idx = pickLevel(instance.levels.map((l) => ({ width: l.width, height: l.height, codecs: l.videoCodec })), quality);
+      instance.nextLevel = idx; // -1 = retour à l'adaptation automatique ; sinon bascule au prochain segment
+    } else if (native.current && video && grant.current) {
+      const at = video.currentTime;
+      const wasPlaying = !video.paused;
+      void nativeSource(grant.current).then((src) => {
+        video.src = src;
+        video.currentTime = at;
+        if (wasPlaying) void video.play().catch(() => undefined);
+      });
+    }
+  }, [quality, videoRef, nativeSource]);
 
   // Le préchargement devient lecture : on autorise un tampon normal.
   useEffect(() => {
@@ -252,19 +322,19 @@ export function useEpisodeStream({
       setAttempt((a) => a + 1);
       return;
     }
-    void renew().then((g) => {
+    void renew().then(async (g) => {
       if (!g || !video) return;
       if (hls.current) {
         hls.current.loadSource(g.url);
         hls.current.startLoad(video.currentTime);
       } else if (native.current) {
         const at = video.currentTime;
-        video.src = g.url;
+        video.src = await nativeSource(g);
         video.currentTime = at;
       }
       if (activeRef.current) void video.play().catch(() => undefined);
     });
-  }, [renew, videoRef]);
+  }, [renew, videoRef, nativeSource]);
 
   /** À appeler avant de relancer la lecture après une longue pause. */
   const ensureFresh = useCallback(async () => {
