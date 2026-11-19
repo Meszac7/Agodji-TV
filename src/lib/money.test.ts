@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { formatPrice, isCurrencyCode } from "./money";
 
 const NBSP = " ";
-const NNBSP = " "; // séparateur de milliers utilisé par Intl en français
+const NNBSP = "\u00a0"; // séparateur de milliers : espace insécable (lisible)
 
 describe("formatPrice", () => {
   it("affiche les prix XOF validés", () => {

@@ -7,7 +7,12 @@ export default defineConfig({
   fullyParallel: true,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
-  use: { baseURL: `http://localhost:${PORT}`, trace: "off" },
+  use: {
+    baseURL: `http://localhost:${PORT}`,
+    trace: "off",
+    // Lecture automatique autorisée dans les tests (sur un vrai téléphone, l'entrée dans le lecteur est un geste de l'utilisateur).
+    launchOptions: { args: ["--autoplay-policy=no-user-gesture-required"] },
+  },
   projects: [
     { name: "android", use: { ...devices["Pixel 7"] } },
     // Seul Chromium est installé : on émule le format iPhone avec Chromium (le vrai Safari sera testé sur appareil).

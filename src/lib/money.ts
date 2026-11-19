@@ -27,5 +27,6 @@ export function formatPrice(amountMinor: number, currency: CurrencyCode): string
     minimumFractionDigits: minorUnits,
     maximumFractionDigits: minorUnits,
   }).format(value);
-  return `${number} ${label}`;
+  // Espace insécable classique (plus lisible que l'espace fine) entre milliers et devant la devise.
+  return `${number.replace(/\u202f/g, "\u00a0")}\u00a0${label}`;
 }
