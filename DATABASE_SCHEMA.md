@@ -54,7 +54,9 @@ Les clients ne sont **pas** des utilisateurs Supabase Auth (voir TECHNICAL_ARCHI
 | phone_e164 | text UNIQUE NOT NULL | ex. `+22990000000` ; vérifié par OTP |
 | phone_verified_at | timestamptz | |
 | display_name | text NULL | facultatif |
-| country_code | text NOT NULL | ISO 3166-1 alpha-2, **déduit par le serveur** de l'indicatif vérifié ; pays de paiement **par défaut** (le client peut choisir un autre marché ouvert au moment de l'achat) — non modifiable par le client |
+| phone_country_code | text NOT NULL | pays de l'**indicatif** du numéro, déduit par le serveur. Sert à l'envoi des SMS et comme simple suggestion — **jamais** considéré comme pays de résidence ou de facturation |
+| last_payment_country | text NULL FK markets | dernier pays de paiement **confirmé par le client** (proposé par défaut aux achats suivants) |
+| is_tester | boolean DEFAULT false | autorise l'achat dans les pays au statut `pilot` (attribué par un admin) |
 | status | text | `active` \| `blocked` \| `deleted` |
 | terms_version | text | version des CGU acceptée |
 | terms_accepted_at | timestamptz | |
@@ -187,18 +189,20 @@ Visibilité publique d'un épisode : série `published`, saison `published`, et 
 | currency | text FK currencies | |
 | label | text | ex. « Afrique de l'Ouest (FCFA) » |
 
-**`markets`** — pays où la plateforme est proposée.
+**`markets`** — pays connus de la plateforme. Un pays absent de cette table reste **consultable** (catalogue, épisodes gratuits) : la consultation ne dépend jamais de cette table.
 
 | Colonne | Type | Notes |
 |---|---|---|
 | country_code | text PK | `BJ`, `CI`, `SN`, `TG`, `BF`, `ML`, `NE`, `CM`, `CD`, `GN`… |
 | name | text | |
-| phone_prefix | text | ex. `+229` (déduction du pays depuis le numéro, liste blanche OTP) |
-| price_list_id | uuid FK price_lists | plusieurs marchés peuvent partager une grille |
-| status | text | `hidden` (non proposé) \| `browse_only` (navigation et gratuits, achat « bientôt disponible ») \| `open` (achat possible) |
+| phone_prefix | text | ex. `+229` |
+| otp_enabled | boolean | envoi de SMS OTP autorisé vers cet indicatif (création de compte possible) — indépendant du paiement |
+| price_list_id | uuid NULL FK price_lists | requis dès que `payment_status` ≠ `unavailable` |
+| payment_status | text | `unavailable` (achat impossible, « bientôt disponible ») \| `pilot` (achat réservé aux clients `is_tester`) \| `open` (achat pour tous) |
+| providers_confirmation | jsonb | pour chaque prestataire : état des confirmations écrites A/B/C et lien vers la réponse (TECHNICAL_ARCHITECTURE §5.1) |
 | opened_at | timestamptz NULL | |
 
-Passage à `open` refusé par la base tant que : au moins une route de paiement active existe pour ce pays, et tous les contenus payants publiés ont un prix dans la grille du marché.
+Passage à `pilot` ou `open` refusé par la base tant que : au moins une route de paiement active existe pour ce pays, et tous les contenus payants publiés ont un prix dans la grille du pays. Les moyens s'activent ensuite route par route (`payment_routes.is_enabled`).
 
 **`season_prices`** — prix d'une saison, par grille.
 
@@ -220,7 +224,7 @@ Passage à `open` refusé par la base tant que : au moins une route de paiement 
 
 Règles :
 - Prix d'un épisode = exception s'il existe, sinon `season_prices.episode_price` de la grille du marché.
-- Un épisode payant ou une saison ne peut être publié que s'il a un prix dans **chaque grille utilisée par un marché `open`** (FR-55).
+- Un épisode payant ou une saison ne peut être publié que s'il a un prix dans **chaque grille utilisée par un pays `pilot` ou `open`** (FR-55).
 - Tout prix est validé contre les contraintes des comptes de paiement routés pour les marchés de la grille (ex. multiple de 5 chez CinetPay hors USD).
 
 ### 3.4 Prestataires, comptes et routes de paiement
@@ -274,7 +278,7 @@ Sélection : route `is_enabled` de plus petite `priority` dont le compte et le p
 | product_type | text | `episode` \| `season_pass` |
 | episode_id | uuid NULL FK | |
 | season_id | uuid NULL FK | |
-| market_country | text FK markets | pays de paiement choisi (figé) |
+| payment_country | text FK markets | pays de paiement **confirmé par le client** (figé) |
 | payment_method | text | `mobile_money` \| `card` \| `wallet` |
 | price_list_id | uuid FK | grille appliquée (figée) |
 | currency | text | |
@@ -355,7 +359,7 @@ Contraintes :
 | `has_episode_access(user_id, episode_id) → boolean` | Voir définition ci-dessous | `/api/playback`, bibliothèque, listes |
 | `episode_price(episode_id, price_list_id) → int` | exception sinon prix saison | checkout |
 | `resolve_payment_route(country_code, method) → payment_account_id` | route active de plus haute priorité (compte et prestataire actifs) | checkout |
-| `create_order(user_id, product_type, product_id, country_code, method)` | vérifie FR-21, marché `open`, route active ; fige grille, prix, devise, compte ; réutilise une commande `pending` récente identique | `/api/checkout` |
+| `create_order(user_id, product_type, product_id, payment_country, method)` | vérifie FR-21, pays `open` (ou `pilot` + client testeur), route active ; fige grille, prix, devise, compte ; réutilise une commande `pending` récente identique | `/api/checkout` |
 | `confirm_order_payment(order_id, payment_account_id, provider_tx_id, amount, currency)` | **transaction atomique** avec verrou sur la commande : vérifie compte/montant/devise (sinon `needs_review`), transition vers `paid` depuis un état autorisé (déjà `paid` → aucun effet), insère le droit `ON CONFLICT DO NOTHING`, marque `is_duplicate_payment` si le contenu était **déjà couvert** (même logique que `has_episode_access`, pas seulement une ligne identique) | webhook + réconciliation |
 | `user_library(user_id)` | passes + épisodes possédés + épisodes accessibles des saisons possédées | page bibliothèque |
 

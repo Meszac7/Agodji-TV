@@ -16,21 +16,27 @@ Agodjié TV **n'est pas** un service de streaming généraliste au lancement : l
 
 ## 2. Marchés cibles
 
-**Orientation validée par le fondateur (2026-11-19)** : Agodjié TV est **panafricaine dès le départ**, ouverte aux utilisateurs d'Afrique de l'Ouest et d'Afrique centrale couverts par nos solutions de paiement. Le lancement n'est pas limité artificiellement à quelques pays.
+**Orientation validée par le fondateur** : Agodjié TV est **panafricaine**, ouverte aux utilisateurs d'Afrique de l'Ouest et d'Afrique centrale couverts par nos solutions de paiement. Le lancement n'est pas limité artificiellement à quelques pays. La société exploitante est **béninoise**.
 
-| Zone | Pays visés | Devise | Prestataires possibles (à confirmer) |
+| Zone | Pays visés | Devise | Disponibilité technique observée (non confirmée pour notre compte) |
 |---|---|---|---|
-| Afrique de l'Ouest — UEMOA | Bénin, Côte d'Ivoire, Sénégal, Togo, Burkina Faso, Mali, Niger | XOF (franc CFA UEMOA) | FedaPay et/ou CinetPay |
-| Afrique de l'Ouest — hors UEMOA | Guinée | GNF | CinetPay |
-| Afrique centrale — CEMAC | Cameroun | XAF (franc CFA CEMAC) | CinetPay |
-| Afrique centrale | RD Congo | CDF / USD | CinetPay |
-| Afrique centrale — CEMAC | Gabon, Congo, Tchad, Centrafrique | XAF | **Aucun des deux selon les sources trouvées** → prestataire supplémentaire nécessaire |
+| UEMOA | Bénin, Côte d'Ivoire, Sénégal, Togo, Burkina Faso, Mali, Niger, Guinée-Bissau | XOF | CinetPay et/ou FedaPay selon le pays (Guinée-Bissau : aucune information) |
+| Guinée | Guinée | GNF | CinetPay ; FedaPay (listée par son centre d'assistance) |
+| CEMAC | Cameroun | XAF | CinetPay |
+| CEMAC | Gabon, Congo, Tchad, Centrafrique, Guinée équatoriale | XAF | **Aucune information trouvée** — à demander aux deux prestataires, **pas exclus** |
+| RD Congo | RD Congo | CDF / USD | CinetPay |
 
-**Règle d'ouverture** : un pays devient **achetable** dès que son paiement est validé (contrat marchand actif + paiement réel de contrôle réussi). En attendant, il peut être ouvert en **navigation** (catalogue, épisodes gratuits) avec la mention « Paiement bientôt disponible dans votre pays ». Ce n'est pas une limitation commerciale, c'est une garantie de qualité : on ne vend pas là où l'on ne sait pas encaisser.
+Le détail par pays, opérateur et niveau de preuve est dans TECHNICAL_ARCHITECTURE §5.2. **Aucune capacité ni restriction des prestataires n'est considérée comme confirmée sans source officielle explicite ou réponse écrite** (questions prêtes : [docs/questions-prestataires-paiement.md](docs/questions-prestataires-paiement.md)).
+
+**Activation progressive** (TECHNICAL_ARCHITECTURE §5.6) :
+1. **Consultation** (catalogue, épisodes gratuits) : ouverte à tous, partout, sans compte — jamais bloquée par l'état des paiements.
+2. **Création de compte** : possible dès que l'envoi de SMS est activé pour l'indicatif du numéro.
+3. **Achat** : pays par pays et moyen par moyen, dès que trois points sont confirmés par écrit — **A** disponibilité technique, **B** accès pour notre société béninoise, **C** reversement des fonds — puis un paiement réel de contrôle.
 
 **Points d'attention majeurs** :
-- « FCFA » recouvre deux monnaies différentes (XOF et XAF), et la RDC et la Guinée n'utilisent pas le franc CFA. Les prix sont donc définis **par grille tarifaire et par devise** (voir [DÉCISION D-03]).
-- Les prestataires lient leurs comptes marchands à un **pays / une devise** et, pour CinetPay, à une **entreprise établie localement**. La couverture panafricaine dépend donc d'abord de la **structure juridique** de la société (voir [DÉCISION D-09] et TECHNICAL_ARCHITECTURE §5.7).
+- « FCFA » recouvre deux monnaies différentes (XOF et XAF), et la RDC et la Guinée n'utilisent pas le franc CFA. Les prix sont définis **par grille tarifaire et par devise** ([D-03]).
+- Des indices officiels laissent penser que certains prestataires lient un compte marchand à un pays ou à une devise ; **ce n'est pas confirmé**. Ce qu'une société béninoise peut encaisser hors zone XOF, et comment les fonds lui sont reversés, est la principale inconnue ([D-09]).
+- Le pays du numéro de téléphone n'est pas le pays de paiement : l'utilisateur confirme son pays de paiement au moment de l'achat ([D-17]).
 
 ## 3. Modèle économique : TVOD
 
@@ -85,15 +91,15 @@ Ce registre est la **source unique** des décisions à valider. Les autres docum
 
 | ID | Sujet | Recommandation | Statut |
 |---|---|---|---|
-| D-01 | Prestataires de paiement | **CinetPay + FedaPay**, derrière une architecture où chaque prestataire est interchangeable et désactivable (TECHNICAL_ARCHITECTURE §5.3) | **Orientation validée** (2026-11-19) ; ouverture effective conditionnée aux contrats (D-09) |
-| D-02 | Pays ouverts | **Panafricain** : tous les pays d'Afrique de l'Ouest et centrale couverts par nos prestataires, chacun ouvert à l'achat dès que son paiement est validé | **Orientation validée** (2026-11-19) |
+| D-01 | Prestataires de paiement | **CinetPay + FedaPay**, derrière une architecture où chaque prestataire est interchangeable et désactivable (TECHNICAL_ARCHITECTURE §5.6) | **Validé** par le fondateur ; ouverture effective de chaque pays conditionnée aux réponses écrites (D-09, D-20) |
+| D-02 | Pays ouverts | **Panafricain**, activation progressive : consultation partout, achat pays par pays et moyen par moyen dès confirmation A/B/C | **Validé** par le fondateur |
 | D-03 | Grilles tarifaires | XOF : 300 / 1 500. XAF : 300 / 1 500 (parité). RDC : USD (recommandé, plus stable) ou CDF, montant à définir. Guinée : montant en GNF à définir. Une grille par devise au départ ; grilles par pays possibles plus tard sans changer le code | En attente |
 | D-04 | Longueur du PIN | PIN **4 chiffres accepté** à condition d'appliquer toutes les protections de SECURITY_REQUIREMENTS §3 ; 6 chiffres en option si le fondateur le souhaite | En attente |
 | D-05 | Vérification du numéro par SMS (OTP) | **Obligatoire** à l'inscription et pour réinitialiser le PIN | En attente |
 | D-06 | Authentification des administrateurs | E-mail + mot de passe fort + **double authentification (TOTP)** obligatoire, séparée du PIN client (les admins auront donc besoin d'une adresse e-mail et d'une application d'authentification sur leur téléphone) | En attente |
 | D-07 | Format vidéo (vertical 9:16 ou horizontal 16:9) et durée moyenne | Information à fournir par le fondateur | En attente |
 | D-08 | Politiques commerciales et éditoriales : remboursement, retrait d'un contenu acheté, pass après épisodes, taille d'une saison, classification d'âge | Voir PRODUCT_REQUIREMENTS §8 | En attente |
-| D-09 | Entité juridique, pays d'enregistrement et stratégie par zone monétaire | **Décision la plus structurante.** Identifier avec un juriste comment encaisser dans chaque zone (UEMOA, CEMAC, RDC, Guinée) : société existante, filiales, partenaire local ou prestataire supplémentaire. Voir TECHNICAL_ARCHITECTURE §5.7 | En attente — **bloquant** pour les marchés hors UEMOA |
+| D-09 | Stratégie d'encaissement par zone monétaire | Société **béninoise** (fait communiqué par le fondateur). Reste à décider, selon les réponses des prestataires et d'un juriste, comment encaisser hors zone XOF : compte de la société béninoise si accepté, sinon partenaire local, entité locale ou prestataire supplémentaire. Voir TECHNICAL_ARCHITECTURE §5.10 | En attente des réponses écrites — **bloquant** pour l'achat dans les pays concernés |
 | D-10 | Mention « contenu créé avec l'IA » | Recommandé : mention discrète sur la fiche série | En attente |
 | D-11 | Nom de domaine | À fournir | En attente |
 | D-12 | Budget mensuel d'infrastructure | Estimation indicative dans TECHNICAL_ARCHITECTURE §10 | En attente |
@@ -101,9 +107,12 @@ Ce registre est la **source unique** des décisions à valider. Les autres docum
 | D-14 | Identité de marque (logo, couleurs officielles) | En attendant : logotype texte provisoire, aucune identité définitive inventée | En attente |
 | D-15 | Langue | Français uniquement en V1 | En attente |
 | D-16 | Prestataire SMS | À choisir après comparaison des tarifs **pour tous les pays visés** (la couverture SMS doit suivre la couverture paiement) | En attente |
-| D-17 | Pays de paiement différent du pays du numéro | **Autorisé** parmi les marchés ouverts (ex. utilisateur avec un numéro béninois et un compte Mobile Money ivoirien), prix de la grille du pays choisi | En attente |
+| D-17 | Choix du pays de paiement | L'utilisateur **confirme** son pays de paiement au premier achat (suggestion : pays choisi pour l'affichage, puis IP, puis indicatif), mémorisé ensuite ; le numéro n'est jamais considéré comme le pays de résidence ou de facturation. Parcours : TECHNICAL_ARCHITECTURE §5.7 | **Principe validé** par le fondateur ; validation des écrans à faire |
 | D-18 | Prestataire principal en zone UEMOA (où les deux se recouvrent) | Choisir par pays selon les **frais réels négociés** ; l'autre sert de secours automatique | En attente des grilles tarifaires |
-| D-19 | Pays CEMAC non couverts (Gabon, Congo, Tchad, RCA) | Les ouvrir en navigation uniquement ; évaluer un 3ᵉ prestataire après le lancement | En attente |
+| D-19 | Gabon, Congo, Tchad, Centrafrique, Guinée équatoriale, Guinée-Bissau | **Aucune information trouvée, pas d'exclusion** : questions écrites aux deux prestataires ; consultation ouverte en attendant ; 3ᵉ prestataire à étudier seulement si les deux répondent non | En attente des réponses |
+| D-20 | Envoi des questions écrites aux prestataires | Envoyer [docs/questions-prestataires-paiement.md](docs/questions-prestataires-paiement.md) à CinetPay et FedaPay (par e-mail, pour garder une trace écrite) ; consigner les réponses dans ce même document | **Action du fondateur** |
+| D-21 | Pays affiché par défaut aux visiteurs dont le pays est inconnu ou non ouvert | Bénin (grille XOF), avec la mention « prix indicatif » | En attente |
+| D-22 | Comptes testeurs pour le statut `pilot` | Liste de numéros fournie par le fondateur pour tester les achats réels avant ouverture publique d'un pays | En attente |
 
 ## 9. Index des documents
 

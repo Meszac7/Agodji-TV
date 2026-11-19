@@ -26,7 +26,9 @@
 
 ## 2. Parcours visiteur (sans compte)
 
-**FR-01 — Navigation libre.** Toutes les pages publiques (accueil, catalogue, fiches série, listes d'épisodes) sont accessibles sans compte.
+**FR-01 — Navigation libre.** Toutes les pages publiques (accueil, catalogue, fiches série, listes d'épisodes) et les **épisodes gratuits** sont accessibles sans compte, **depuis n'importe quel pays**, quel que soit l'état des paiements dans ce pays.
+
+**FR-02b — Pays d'affichage des prix.** Les prix affichés correspondent à un pays d'affichage estimé par l'adresse IP, visible et modifiable (« Prix pour : Bénin ▾ »). Si ce pays est inconnu ou non ouvert à l'achat, les prix d'un pays par défaut sont affichés avec la mention « prix indicatif » **[D-21]**. Ce choix est mémorisé sur l'appareil.
 
 **FR-02 — Page d'accueil.**
 - Une bannière principale mettant en avant la série disponible (affiche grand format, titre, accroche, bouton « Regarder l'épisode 1 » si gratuit).
@@ -73,7 +75,12 @@ Pas d'e-mail requis. Le nom affiché est facultatif.
 
 **FR-20 — Écran d'achat.** Récapitulatif : ce qui est acheté, prix, devise, pays de paiement, moyen de paiement. Si l'utilisateur possède déjà certains épisodes de la saison, un avertissement l'indique avant l'achat du pass **[D-08]**.
 
-**FR-27 — Pays de paiement.** Présélectionné d'après le numéro de téléphone vérifié ; modifiable parmi les pays **ouverts à l'achat** **[D-17]**. Changer de pays recalcule le prix (grille du pays) et les moyens proposés. Si le pays n'est pas ouvert à l'achat : message « Le paiement n'est pas encore disponible dans votre pays » et proposition de choisir un autre pays si l'utilisateur y dispose d'un compte Mobile Money.
+**FR-27 — Pays de paiement (choisi par l'utilisateur).** **[D-17]** Le pays du numéro n'est jamais considéré comme pays de résidence ou de facturation.
+- Premier achat : question unique « Dans quel pays se trouve votre compte Mobile Money ou votre carte ? », avec une suggestion présélectionnée (pays d'affichage choisi → pays estimé par IP → indicatif du numéro) que l'utilisateur **confirme d'un geste** ou change.
+- Achats suivants : le dernier pays confirmé est rappelé (« Payer depuis : Côte d'Ivoire · Changer »), sans nouvelle question.
+- Seuls les pays où l'achat est possible pour cet utilisateur sont sélectionnables ; les autres sont visibles mais grisés « bientôt disponible ».
+- Changer de pays recalcule immédiatement le prix (grille du pays) et les moyens proposés.
+- Aucun pays disponible : message « Le paiement n'est pas encore disponible dans votre pays. Vous pouvez continuer à regarder les épisodes gratuits. »
 
 **FR-28 — Moyens de paiement proposés automatiquement.** Seuls les moyens réellement disponibles pour le pays choisi sont affichés (ex. « Mobile Money — MTN, Moov, Celtiis », « Carte bancaire — Visa, Mastercard »). L'utilisateur choisit la famille de moyen ; le serveur choisit le prestataire et le compte selon la configuration (route principale, puis secours). L'utilisateur n'a jamais à choisir entre « CinetPay » et « FedaPay ».
 
@@ -131,7 +138,8 @@ Interface web réservée aux administrateurs, accessible sous `/admin`, sur le m
 - **FR-55** Garde-fous : impossible de publier un épisode payant (ou une saison) sans prix dans **chaque grille tarifaire utilisée par un pays ouvert à l'achat**, sans vidéo encodée ou sans vignette. Impossible d'ouvrir un pays à l'achat tant que des contenus payants publiés n'ont pas de prix dans sa grille ou qu'aucune route de paiement n'est active. Les prix sont validés contre les contraintes des prestataires (ex. multiple de 5). Avertissement avant de dépublier un contenu déjà acheté.
 
 ### 7.1 bis Marchés et paiements (réservé au rôle `admin`)
-- **FR-56** Pays : statut (`masqué`, `navigation seule`, `ouvert à l'achat`), grille tarifaire associée, indicatif téléphonique.
+- **FR-56** Pays : statut de paiement (`indisponible`, `pilote` — achats réservés aux testeurs —, `ouvert`), SMS activés ou non pour l'indicatif, grille tarifaire, état des confirmations écrites A/B/C par prestataire (avec lien vers la réponse).
+- **FR-56b** Comptes testeurs : marquer un client comme testeur pour les pays en statut `pilote` **[D-22]**.
 - **FR-57** Grilles tarifaires : création (devise), rattachement des pays.
 - **FR-58** Prestataires et comptes de paiement : activer / désactiver un prestataire ou un compte (les clés restent dans la configuration de l'hébergeur, jamais saisies dans l'admin).
 - **FR-59** Routes : pour chaque pays et moyen (Mobile Money, carte, portefeuille), compte principal et compte de secours, opérateurs affichés, date du dernier paiement réel de contrôle.
@@ -197,7 +205,7 @@ Interface web réservée aux administrateurs, accessible sous `/admin`, sur le m
 | Abonnement mensuel | Hors modèle de lancement |
 | Portefeuille / crédits prépayés | Complexité comptable et réglementaire |
 | Codes promo, parrainage, cartes cadeaux | Non essentiels |
-| Prestataire pour les pays CEMAC non couverts (Gabon, Congo, Tchad, RCA) | Voir [D-19] |
+| Prestataire supplémentaire pour les pays que CinetPay et FedaPay ne pourraient pas servir (après réponse écrite) | Voir [D-19] |
 | Application mobile native / PWA installable | Le site mobile suffit pour valider le marché (PWA légère possible en P1) |
 | Téléchargement hors-ligne | Nécessite DRM et application native |
 | DRM complet (Widevine/FairPlay) | Coût et complexité ; à réévaluer si piratage constaté |

@@ -20,7 +20,7 @@ Si le code et ces documents divergent, **signaler l'écart** et mettre à jour l
 
 ## État du projet
 
-- Phase 1 (cadrage) : documents rédigés. D-01 (CinetPay + FedaPay) et D-02 (orientation panafricaine) **validés** le 2026-11-19 ; les autres décisions (D-03 à D-19) restent **en attente**.
+- Phase 1 (cadrage) : documents rédigés. **Validés** : D-01 (CinetPay + FedaPay), D-02 (panafricain, activation progressive), principe de D-17 (pays de paiement confirmé par l'utilisateur). Société exploitante : béninoise. Les autres décisions restent **en attente** (registre : PROJECT_BRIEF §8).
 - Aucun code applicatif. Ne pas commencer une étape de la feuille de route sans instruction explicite.
 - Ne jamais présenter une décision en attente comme validée.
 
@@ -39,7 +39,8 @@ Next.js (App Router) + TypeScript · Tailwind · Supabase (Postgres, Storage, RL
 7. **PIN** : Argon2id + poivre, vérification serveur uniquement, verrouillages et limites SEC-03 à SEC-05. Aucun autre moyen d'ouvrir une session client (fournisseur « phone » de Supabase désactivé).
 8. **Admin** : session Supabase + MFA `aal2` + rôle `staff_roles` vérifiés côté serveur sur chaque route/action ; actions sensibles dans `audit_logs`.
 9. **Webhooks de paiement** : 200 seulement après traitement ; 500 en cas d'erreur temporaire ; notifications répétées retraitées sans effet de bord.
-10. Ne pas inventer de capacités, tarifs ou formats d'API des prestataires : vérifier dans la documentation officielle et noter la source.
+10. Ne pas inventer de capacités, tarifs ou formats d'API des prestataires. **Aucune capacité ni restriction n'est « confirmée » sans source officielle explicite ou réponse écrite du prestataire** ; utiliser les niveaux de preuve de TECHNICAL_ARCHITECTURE §5.1 et toujours citer la source.
+11. **La consultation et les épisodes gratuits ne sont jamais bloqués** par l'état des paiements d'un pays. Le pays de paiement est confirmé par l'utilisateur, jamais déduit silencieusement du numéro ou de l'IP.
 
 ## Méthode de travail
 

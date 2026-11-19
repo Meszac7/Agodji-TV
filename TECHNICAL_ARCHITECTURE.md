@@ -88,46 +88,84 @@ Principe : **le navigateur ne détient jamais de secret et ne parle jamais à la
 
 ## 5. Paiements — architecture multi-prestataires et multi-marchés
 
-> Orientation validée par le fondateur (2026-11-19) : **plateforme panafricaine dès le départ**, **CinetPay et FedaPay intégrés tous les deux**, sélection automatique des moyens de paiement selon le pays. Voir PROJECT_BRIEF §8 (D-01, D-02).
-> Les documentations officielles des prestataires n'ont pas pu être consultées directement depuis l'environnement de travail (accès réseau bloqué) ; les informations ci-dessous proviennent des résultats de recherche sur ces documentations et de sources tierces. **Chaque ligne doit être confirmée par écrit par le prestataire avant l'ouverture d'un marché** (LAUNCH_CHECKLIST §3).
+> Orientation validée par le fondateur : **plateforme panafricaine**, **CinetPay et FedaPay intégrés tous les deux**, activation progressive des pays et des moyens de paiement. Voir PROJECT_BRIEF §8.
+> **Règle de preuve** : aucune restriction ni capacité d'un prestataire n'est considérée comme **confirmée** tant qu'elle n'est pas établie par une source officielle explicite **ou** par une réponse écrite du prestataire. Les questions à envoyer sont prêtes dans [docs/questions-prestataires-paiement.md](docs/questions-prestataires-paiement.md).
+> Les sites de documentation des prestataires n'ont pas pu être ouverts directement depuis l'environnement de travail (accès réseau bloqué) : les informations ci-dessous proviennent de résultats de recherche citant ces pages. Elles doivent être relues à la source.
 
-### 5.1 Couverture observée par pays et moyen de paiement
+### 5.1 Niveaux de preuve
 
-Légende : ✅ indiqué par une source du prestataire · ⚠️ indiqué par une source tierce, ancienne ou contradictoire · ❌ non couvert selon les sources trouvées · ? aucune information.
+| Symbole | Signification |
+|---|---|
+| ✅ | **Confirmé par écrit** par le prestataire (aucun à ce jour) |
+| 🟢 | Mentionné par une **source officielle** du prestataire (documentation, centre d'assistance, CGU, page produit, dépôt GitHub officiel) — à reconfirmer pour notre compte |
+| 🟡 | Source officielle **ancienne, ambiguë ou contradictoire** |
+| 🟠 | Source **tierce** uniquement (blog, comparatif) |
+| ⚪ | **Aucune information trouvée** — ce n'est **pas** une exclusion |
 
-| Pays | Devise | CinetPay — Mobile Money | FedaPay — Mobile Money | Carte |
+Trois questions distinctes, à ne jamais confondre :
+- **A — Disponibilité technique** : le prestataire sait-il encaisser dans ce pays, avec quels moyens ?
+- **B — Accès pour notre société béninoise** : une société immatriculée au Bénin peut-elle ouvrir un compte marchand et encaisser des clients de ce pays ?
+- **C — Reversement** : les fonds encaissés dans ce pays peuvent-ils être reversés à notre société (compte bancaire ou Mobile Money au Bénin), dans quelle devise, à quel coût et en combien de temps ?
+
+Un pays ne peut être ouvert à l'achat que si **A, B et C** sont confirmés (✅).
+
+### 5.2 A — Disponibilité technique observée
+
+| Pays | Devise | CinetPay | FedaPay | Carte bancaire |
 |---|---|---|---|---|
-| Bénin | XOF | ✅ pays listé ; opérateurs à confirmer | ✅ MTN, Moov, Celtiis, Coris Money, BMO | CinetPay ✅ / FedaPay ✅ (Visa/Mastercard) |
-| Côte d'Ivoire | XOF | ✅ Orange, MTN, Moov, Wave | ✅ MTN, Moov, Orange, Wave | ✅ / ✅ |
-| Sénégal | XOF | ✅ pays listé ; Orange, Wave, Free… ⚠️ | ✅ Orange Money, Wave, Mixx by Yas | ✅ / ✅ |
-| Togo | XOF | ✅ Moov, T-Money (Togocel ⚠️) | ✅ Moov, T-Money / Mixx by Yas | ✅ / ✅ |
-| Burkina Faso | XOF | ✅ Orange, Moov, Wave | ⚠️ figure dans une grille tarifaire, absent de la page d'accueil | ? |
-| Mali | XOF | ✅ Orange, Moov | ⚠️ Orange Money dans la doc v1 | ? |
-| Niger | XOF | ⚠️ Airtel cité sur une page | ✅ Airtel Money | ? |
-| Cameroun | XAF | ✅ Orange, MTN | ❌ | CinetPay ✅ |
-| RD Congo | CDF / USD | ✅ Orange, Airtel, M-Pesa, Africell | ❌ | ? |
-| Guinée | GNF | ✅ Orange, MTN | ⚠️ « MTN » cité dans la doc v1 (douteux, FedaPay se présente comme UEMOA) | ? |
-| Gabon, Congo-Brazzaville, Tchad, Centrafrique | XAF | ❌ aucune source | ❌ | — |
+| Bénin | XOF | 🟢 pays listé ; opérateurs non détaillés | 🟢 MTN, Moov, Celtiis, Coris Money, BMO | 🟢 les deux mentionnent Visa/Mastercard ; disponibilité par pays ⚪ |
+| Côte d'Ivoire | XOF | 🟢 Orange, MTN, Moov, Wave | 🟢 MTN, Moov, Orange, Wave | idem |
+| Sénégal | XOF | 🟢 pays listé ; opérateurs 🟠 | 🟢 Orange Money, Wave, Mixx by Yas | idem |
+| Togo | XOF | 🟢 Moov, T-Money | 🟢 Moov, T-Money / Mixx by Yas | idem |
+| Burkina Faso | XOF | 🟢 Orange, Moov, Wave | 🟡 présent dans une grille tarifaire | idem |
+| Mali | XOF | 🟢 Orange, Moov | 🟡 Orange Money (doc v1, grille tarifaire) | idem |
+| Niger | XOF | 🟡 Airtel cité sur une page | 🟢 Airtel Money | idem |
+| **Guinée** | GNF | 🟢 Orange, MTN | 🟢 **listée par le centre d'assistance FedaPay** ; MTN dans la documentation des moyens de paiement. 🟡 Devise : GNF figure dans la liste des devises, mais la même documentation indique que seul le XOF est actuellement pris en charge pour les transactions | idem |
+| Cameroun | XAF | 🟢 Orange, MTN | ⚪ | idem |
+| RD Congo | CDF / USD | 🟢 Orange, Airtel, M-Pesa, Africell | ⚪ | idem |
+| Gabon | XAF | ⚪ | ⚪ | ⚪ |
+| Congo-Brazzaville | XAF | ⚪ (un blog tiers affirme une prise en charge 🟠) | ⚪ | ⚪ |
+| Tchad | XAF | ⚪ | ⚪ | ⚪ |
+| Centrafrique | XAF | ⚪ | ⚪ | ⚪ |
+| Guinée équatoriale | XAF | ⚪ | ⚪ | ⚪ |
+| Guinée-Bissau | XOF | ⚪ | ⚪ | ⚪ |
 
-**Constats :**
-1. **FedaPay est un acteur de la zone UEMOA (XOF)** : utile pour Bénin, Côte d'Ivoire, Sénégal, Togo, Niger (et peut-être Mali, Burkina). Il ne couvre ni le Cameroun ni la RDC.
-2. **CinetPay est le seul des deux à couvrir l'Afrique centrale** (Cameroun, RDC) et la Guinée.
-3. **Le reste de l'Afrique centrale (Gabon, Congo, Tchad, RCA) n'est couvert par aucun des deux** d'après les sources trouvées. Un troisième prestataire serait nécessaire ; l'architecture le permet (§5.3).
-4. Dans la zone UEMOA, les deux prestataires se recouvrent : cela permet une **redondance** (bascule si l'un est en panne) et un choix par les **frais**.
+**Correction par rapport à la version précédente** : la Guinée chez FedaPay et les pays d'Afrique centrale ne sont **plus présentés comme non couverts**. L'absence d'information n'est pas une exclusion : ces pays font partie des questions écrites. Aucun pays n'est exclu définitivement sans réponse officielle.
 
-### 5.2 Contraintes des prestataires qui structurent l'architecture
+### 5.3 B — Accès pour une société béninoise (indices, rien de confirmé)
 
-| Contrainte | Source | Conséquence |
+| Indice trouvé | Source | Ce qu'il **pourrait** signifier | Statut |
+|---|---|---|---|
+| FedaPay : une entité immatriculée au RCCM du Bénin peut ouvrir un compte ; validation finale à la discrétion de FedaPay (KYC/KYB) | CGU FedaPay 🟢 | Ouverture d'un compte probable pour notre société | À confirmer : **dans quels pays** ce compte encaisse |
+| CinetPay : la FAQ demande une entreprise établie dans le pays depuis lequel on veut encaisser | FAQ CinetPay 🟢 | Peut-être un compte par pays d'établissement — **ou** simplement le pays du compte marchand | **Interprétation à confirmer** |
+| CinetPay : un compte « créé au Cameroun » ne peut initier des paiements qu'en XAF | Documentation CinetPay 🟢 (message d'erreur) | Un compte serait lié à une devise | À confirmer : un compte béninois peut-il encaisser en XAF, CDF, GNF, USD ? |
+| CinetPay : liste des documents KYC définie par zone (Côte d'Ivoire, Mali, Sénégal, Cameroun) | FAQ CinetPay 🟢 | La liste citée ne mentionne pas le Bénin | À confirmer : procédure pour une société béninoise |
+
+### 5.4 C — Reversement des fonds (indices, rien de confirmé)
+
+| Indice trouvé | Source | Statut |
 |---|---|---|
-| CinetPay : **un compte marchand est lié à une devise / un pays** (« si votre compte est créé au Cameroun, vous ne pouvez initier un paiement qu'en XAF ») | Doc CinetPay (message d'erreur documenté) | Il faudra **un compte CinetPay par zone monétaire** (XOF, XAF, CDF/USD, GNF). L'architecture gère donc des **comptes de paiement**, pas seulement des prestataires. |
-| CinetPay : le marchand doit être **une entreprise établie dans le pays** où il encaisse | FAQ CinetPay | **Contrainte juridique majeure** : voir §5.7 |
-| CinetPay : `channels` = `ALL`, `MOBILE_MONEY`, `CREDIT_CARD`, `WALLET` ; la liste des pays affichée sur le guichet dépend de la devise | Doc CinetPay | On peut **présélectionner la famille de moyen de paiement** (Mobile Money ou carte), pas l'opérateur ; l'opérateur est choisi sur la page CinetPay. |
-| CinetPay : montant **multiple de 5** (sauf USD) | Doc CinetPay | Validation des prix par compte de paiement (pas d'arrondi). |
-| FedaPay : présélection de l'opérateur via l'API **uniquement pour MTN** (doc v1) | Doc FedaPay v1 | L'utilisateur choisit son opérateur sur la page FedaPay. |
-| FedaPay : entité béninoise immatriculée au RCCM pour opérer au Bénin ; entité étrangère acceptée **à la discrétion** de FedaPay (pays d'enregistrement, compte bancaire d'entreprise) | CGU FedaPay | Éligibilité à confirmer avec le service conformité. |
-| Reversements : CinetPay exige un compte bancaire dans le pays pour les zones hors UEMOA | CGU CinetPay | Plusieurs comptes bancaires possibles selon les zones. |
+| FedaPay : reversement sur compte Mobile Money ou bancaire après 3 jours ouvrés | Page d'accueil FedaPay 🟢 | À confirmer pour notre compte et pour chaque pays d'encaissement |
+| FedaPay : transferts vers Mobile Money activés sur demande au support | Centre d'assistance FedaPay 🟢 | À demander |
+| CinetPay : le marchand doit ouvrir un compte bancaire dans tout pays hors UEMOA | CGU CinetPay 🟢 (formulation générale) | **Interprétation à confirmer** : impact sur les encaissements XAF/CDF/GNF d'une société béninoise |
+| Fonds encaissés hors zone XOF : réglementation des changes (BEAC, Banque centrale du Congo, BCRG) | — | Question juridique (LAUNCH_CHECKLIST §4) |
 
-### 5.3 Architecture : prestataires interchangeables
+### 5.5 Contraintes techniques utiles à la conception
+
+Ces points concernent l'intégration ; ils restent à vérifier en sandbox (prototype S3).
+
+| Point | Source | Conséquence de conception |
+|---|---|---|
+| CinetPay : paramètre `channels` = `ALL`, `MOBILE_MONEY`, `CREDIT_CARD`, `WALLET` | Documentation CinetPay 🟢 | On peut présélectionner la **famille** de moyen, pas l'opérateur |
+| CinetPay : montant multiple de 5, sauf USD | Documentation CinetPay 🟢 | Contrainte de montant **par compte**, vérifiée à la saisie des prix |
+| CinetPay : pays proposés sur la page de paiement selon la devise | Documentation CinetPay 🟢 | Le pays choisi chez nous doit être cohérent avec la devise du compte |
+| FedaPay : présélection de l'opérateur par API seulement pour MTN | Documentation FedaPay v1 🟡 | L'utilisateur choisit son opérateur sur la page FedaPay |
+| FedaPay : notifications signées `X-FEDAPAY-SIGNATURE`, jusqu'à 9 relances | Documentation FedaPay 🟢 | Authentification + idempotence (§5.9) |
+| CinetPay : notification avec jeton HMAC `x-token`, vérification du statut par API obligatoire, notifications possiblement multiples | Documentation CinetPay 🟢 | Idem |
+
+**L'architecture ne dépend d'aucune de ces hypothèses commerciales** : quelle que soit la réponse des prestataires (un compte pour tout, un compte par devise, un compte par pays), elle se configure sans changer le code (§5.6).
+
+### 5.6 Architecture : prestataires interchangeables et activation progressive
 
 Trois niveaux, tous **configurables en base depuis l'admin**, sans modification du code :
 
@@ -137,39 +175,60 @@ Prestataire (code)          Compte de paiement (contrat)        Route (pays × m
 │ cinetpay     │──1───*────►│ cinetpay-xof  (XOF, live) │◄──*────│ BJ · mobile_money · prio 2   │
 │ fedapay      │            │ cinetpay-xaf  (XAF, live) │        │ BJ · mobile_money · prio 1 ──┼─► fedapay-xof
 │ (futur : …)  │            │ fedapay-xof   (XOF, live) │        │ CM · mobile_money · prio 1   │
-└──────────────┘            └───────────────────────────┘        │ CD · mobile_money · prio 1   │
+└──────────────┘            └───────────────────────────┘        │ GN · mobile_money · prio 1   │
   code = adaptateur           identifiants = variables            └──────────────────────────────┘
   (un module par               d'environnement (jamais en base)     priorité 1 = principal,
    prestataire)                                                     2 = secours
 ```
+
+Les comptes ci-dessus sont des **exemples** : le nombre réel de comptes dépendra des réponses écrites (un seul compte multi-devises, un compte par devise ou par pays — tous les cas se configurent).
 
 - **Adaptateur par prestataire** : un module par prestataire implémente l'interface commune `PaymentProvider` :
   - `createCheckout(order, account, method)` → URL de paiement
   - `authenticateNotification(request, account)` → notification authentique ou rejet
   - `fetchTransactionStatus(reference, account)` → statut, montant, devise réels (fait foi)
   - `capabilities(account)` → devises, moyens, contraintes de montant (ex. multiple de 5)
-  - Ajouter un prestataire = écrire un nouvel adaptateur + ses tests ; **rien d'autre ne change** (commandes, droits, admin, statistiques sont indépendants du prestataire).
-- **Comptes de paiement** (`payment_accounts`) : un contrat marchand = une devise, un environnement (sandbox/live), une référence vers ses identifiants (préfixe de variables d'environnement). Activable/désactivable.
-- **Routes** (`payment_routes`) : pour chaque pays et chaque moyen (`mobile_money`, `card`, `wallet`), un compte principal et éventuellement un compte de secours, avec la liste des opérateurs à afficher (information visuelle).
+  - Ajouter un prestataire = écrire un nouvel adaptateur qui passe la suite de tests commune ; **rien d'autre ne change** (commandes, droits, admin, statistiques sont indépendants du prestataire).
+- **Comptes de paiement** (`payment_accounts`) : un contrat marchand, une devise, un environnement (sandbox/live), une référence vers ses identifiants. Activable/désactivable.
+- **Routes** (`payment_routes`) : pour chaque pays et chaque moyen (`mobile_money`, `card`, `wallet`), un compte principal et éventuellement un compte de secours, la liste des opérateurs à afficher, et la date du dernier paiement réel de contrôle.
 
-**Désactiver un prestataire ou un compte** (panne, litige, frais) :
+**Activation progressive — trois niveaux indépendants** :
+
+| Niveau | Qui en profite | Condition | Exemple |
+|---|---|---|---|
+| 1. Consultation | **Tout le monde, partout**, sans compte | Aucune — jamais bloquée par l'état des paiements | Catalogue, fiches, bandes-annonces, épisodes gratuits |
+| 2. Création de compte (OTP SMS) | Numéros des indicatifs pour lesquels l'envoi de SMS est activé (`markets.otp_enabled`) | Prestataire SMS fiable et budget validé pour ce pays | Un utilisateur du Gabon peut créer un compte même si le paiement n'y est pas encore ouvert |
+| 3. Achat | Pays de paiement au statut `pilot` (testeurs) ou `open` (tous), **et** au moins une route active pour le moyen choisi | A, B, C confirmés + paiement réel de contrôle (LAUNCH_CHECKLIST §9) | Bénin ouvert en Mobile Money, carte ajoutée plus tard |
+
+Statut de paiement d'un pays : `unavailable` (achat impossible, message « bientôt disponible ») → `pilot` (achat réservé aux comptes testeurs) → `open`. Les moyens s'activent **route par route** : un pays peut être ouvert en Mobile Money avant la carte.
+
+**Désactiver un prestataire, un compte ou une route** (panne, litige, frais) :
 - les nouveaux paiements basculent automatiquement sur la route de secours, ou le moyen disparaît du pays s'il n'y en a pas ;
 - **les commandes déjà en cours continuent d'être vérifiées** (webhooks et réconciliation restent actifs pour un compte désactivé tant qu'il a des commandes non finalisées) ;
 - action journalisée dans `audit_logs`.
 
-### 5.4 Sélection automatique du moyen de paiement
+### 5.7 Choix du pays de paiement
 
-1. **Pays de paiement** : par défaut, le pays du numéro de téléphone vérifié du client. L'utilisateur peut choisir un autre pays **parmi les marchés ouverts** (ex. Béninois résidant à Abidjan avec un compte Mobile Money ivoirien). Avant connexion, le pays sert seulement à **afficher** les prix : il est estimé grâce à la géolocalisation de l'adresse IP fournie par l'hébergeur, jamais utilisée pour facturer.
-2. **Prix** : le serveur lit la grille tarifaire du marché choisi (§5.5) et fige le montant dans la commande.
-3. **Moyens proposés** : uniquement ceux ayant une route active pour ce pays, avec les logos des opérateurs (ex. « Mobile Money — MTN, Moov, Celtiis » ; « Carte bancaire — Visa, Mastercard »).
-4. **Routage** : le serveur choisit la route active de plus haute priorité pour (pays, moyen) et crée le paiement sur le compte correspondant, en présélectionnant la famille de moyen quand le prestataire le permet.
-5. Le navigateur n'envoie que `(produit, pays, moyen)` ; **le serveur valide** que le pays est ouvert, que la route existe, et recalcule tout.
+Le pays du numéro de téléphone **n'est pas** le pays de résidence ni le pays de facturation : beaucoup d'utilisateurs ont des numéros de plusieurs pays, voyagent, ou paient avec le compte Mobile Money d'un proche. Le pays de paiement est donc **choisi par l'utilisateur**, avec une suggestion pour aller vite.
 
-### 5.5 Devises et tarifs par marché
+**Parcours :**
+
+1. **Navigation (sans compte)** : les prix sont affichés pour un « pays d'affichage » estimé à partir de l'adresse IP (indication fournie par l'hébergeur), visible et modifiable en un geste : « Prix pour : Bénin ▾ ». Si le pays estimé n'est pas ouvert à l'achat ou est inconnu, les prix affichés sont ceux d'un pays ouvert par défaut avec la mention « Prix indicatif — choisissez votre pays au moment du paiement ».
+2. **Premier achat** : un écran unique demande « **Dans quel pays se trouve votre compte Mobile Money ou votre carte ?** ». Une suggestion est présélectionnée, dans cet ordre : pays d'affichage choisi par l'utilisateur → pays estimé par IP → pays de l'indicatif du numéro. **L'utilisateur confirme d'un geste ou change.** Seuls les pays où l'achat est possible sont sélectionnables ; les autres apparaissent grisés « bientôt ».
+3. **Achats suivants** : le dernier pays de paiement utilisé est rappelé (« Payer depuis : Côte d'Ivoire · Changer »). Pas de nouvelle question.
+4. Changer de pays met à jour **immédiatement** le prix (grille du pays) et les moyens proposés, avant toute redirection.
+
+Règles :
+- Aucune de ces estimations (IP, indicatif) ne sert à facturer : **seul le pays confirmé par l'utilisateur** est utilisé, et **le serveur revalide** qu'il est ouvert et qu'une route existe.
+- Le prestataire peut lui-même refuser un moyen de paiement d'un autre pays : dans ce cas la commande échoue proprement et l'utilisateur peut choisir un autre pays ou moyen.
+- Un contenu acheté reste accessible quel que soit le pays où se trouve ensuite l'utilisateur (RM-12).
+- Risque d'arbitrage (choisir le pays le moins cher) : faible tant que les grilles sont équivalentes ; à surveiller dans les statistiques par pays.
+
+### 5.8 Devises et tarifs par marché
 
 - **Grilles tarifaires** (`price_lists`) : une grille = une devise + un pas d'arrondi. Chaque marché pointe vers une grille. Exemple initial **[D-03]** :
-  - `XOF` : Bénin, Côte d'Ivoire, Sénégal, Togo, Burkina, Mali, Niger → 300 / 1 500 ;
-  - `XAF` : Cameroun → 300 / 1 500 ;
+  - `XOF` : pays UEMOA → 300 / 1 500 ;
+  - `XAF` : pays CEMAC → 300 / 1 500 ;
   - `RDC` : USD ou CDF, montant à décider ;
   - `GNF` : Guinée, montant à décider.
 - Plusieurs marchés partagent une grille (simple) ; un marché peut avoir sa propre grille si un prix local différent est souhaité (flexible), sans changer le code.
@@ -178,13 +237,14 @@ Prestataire (code)          Compte de paiement (contrat)        Route (pays × m
 - Pas de conversion automatique de devises : chaque prix est saisi explicitement (évite les montants bizarres et les risques de change).
 - Statistiques toujours **par devise**, jamais additionnées entre devises.
 
-### 5.6 Flux de paiement sécurisé
+### 5.9 Flux de paiement sécurisé
 
 ```
-1. Client choisit « Acheter », le pays de paiement et le moyen       (navigateur)
+1. Client choisit « Acheter », confirme son pays de paiement (§5.7)
+   et le moyen                                                       (navigateur)
 2. POST /api/checkout {produit, pays, moyen}                          (serveur)
    - session valide, client actif, contenu achetable, non possédé (FR-21)
-   - marché ouvert ? route active pour (pays, moyen) ?
+   - pays au statut `open` (ou `pilot` et client testeur) ? route active pour (pays, moyen) ?
    - prix lu dans la grille du marché → commande `pending` avec
      référence unique, montant, devise, pays, moyen, compte de paiement figés
    - réutilise une commande `pending` récente identique (anti double-clic)
@@ -213,27 +273,23 @@ Prestataire (code)          Compte de paiement (contrat)        Route (pays × m
 
 Règles détaillées : SECURITY_REQUIREMENTS §5.
 
-### 5.7 Restrictions liées au pays d'enregistrement de la société
+### 5.10 Pays d'enregistrement de la société : ce qui reste à établir
 
-C'est **la contrainte la plus importante** de l'orientation panafricaine, et elle n'est pas technique.
+La société est **béninoise** (information du fondateur). Rien n'est encore confirmé sur ce qu'une société béninoise peut faire chez chaque prestataire (§5.3, §5.4). C'est la question la plus structurante de l'orientation panafricaine, et elle n'est pas technique.
 
-| Zone | Prestataire possible | Exigence observée | Risque |
-|---|---|---|---|
-| UEMOA (XOF) | FedaPay | Entité béninoise (RCCM) pour opérer au Bénin ; entité étrangère à la discrétion de FedaPay | Faible si la société est béninoise **[D-09]** |
-| UEMOA (XOF) | CinetPay | « Entreprise établie dans le pays » où l'on encaisse ; Bénin listé parmi les pays | À confirmer : un compte XOF ouvert depuis le Bénin couvre-t-il les autres pays UEMOA ? |
-| CEMAC (XAF, Cameroun) | CinetPay | Compte lié au pays/devise ; entreprise établie dans le pays ? compte bancaire local pour les reversements | **Élevé** : une société camerounaise ou un partenaire local pourrait être exigé |
-| RDC (CDF/USD) | CinetPay | Idem ; compte bancaire en RDC probable | **Élevé** |
-| Guinée (GNF) | CinetPay | Idem | **Élevé** |
+| Zone | Prestataires à interroger | Questions clés |
+|---|---|---|
+| UEMOA (XOF) | FedaPay, CinetPay | Un compte béninois encaisse-t-il dans les 8 pays UEMOA ? Avec quels opérateurs ? Reversement au Bénin ? |
+| Guinée (GNF) | FedaPay, CinetPay | Encaissement en GNF ou conversion ? Reversement au Bénin en XOF ? |
+| CEMAC (XAF) : Cameroun, Gabon, Congo, Tchad, Centrafrique, Guinée équatoriale | CinetPay, FedaPay | Pays et opérateurs disponibles ? Compte béninois possible ou entité/compte bancaire locaux requis ? |
+| RD Congo (CDF/USD) | CinetPay, FedaPay | Idem ; devise d'encaissement (USD ou CDF) ? |
 
-Autres sujets juridiques liés au pays d'enregistrement (à traiter avec un juriste/comptable, LAUNCH_CHECKLIST §4) :
-- **TVA sur les services numériques** : plusieurs pays de la cible taxent les services numériques vendus à leurs résidents, même par une entreprise étrangère.
-- **Réglementation des changes** (BCEAO pour l'UEMOA, BEAC pour la CEMAC, Banque centrale du Congo) : rapatriement des fonds encaissés hors de la zone de la société.
-- **Protection des données** : déclarations éventuelles dans chaque pays ouvert.
+Sujets juridiques associés (LAUNCH_CHECKLIST §4) : TVA sur les services numériques dans chaque pays ouvert, réglementation des changes (BCEAO, BEAC, Banque centrale du Congo, Banque centrale de Guinée), protection des données.
 
-**Approche recommandée (sans limiter artificiellement le lancement)** : l'architecture est panafricaine dès le premier jour ; **chaque marché s'ouvre dès que sa route de paiement est contractuellement et techniquement validée** (« porte qualité » par marché, LAUNCH_CHECKLIST §9). Les marchés dont le contrat n'est pas prêt restent visibles en navigation (catalogue, épisodes gratuits) mais l'achat y affiche « Paiement bientôt disponible dans votre pays ».
+**Principe retenu** : l'architecture est panafricaine dès le premier jour. Chaque pays passe à l'achat dès que A, B et C sont confirmés (✅) et qu'un paiement réel de contrôle a réussi. En attendant, il reste pleinement consultable (niveau 1) et, si les SMS y sont activés, les utilisateurs peuvent y créer un compte (niveau 2).
 
-### 5.8 Échecs et remboursements
-- Paiement échoué/annulé : commande `failed`/`cancelled`, aucun droit. L'utilisateur peut recommencer (nouvelle commande, éventuellement avec un autre moyen).
+### 5.11 Échecs et remboursements
+- Paiement échoué/annulé : commande `failed`/`cancelled`, aucun droit. L'utilisateur peut recommencer (nouvelle commande, éventuellement avec un autre pays ou moyen).
 - **Le prestataire a toujours le dernier mot** : une commande `expired`, `failed` ou `cancelled` passe à `paid` si l'API du prestataire confirme ensuite le paiement.
 - Montant, devise ou compte différents de la commande : `needs_review`, pas de droit automatique, **alerte admin**.
 - Paiement d'un contenu déjà couvert : commande `paid` marquée `is_duplicate_payment`, **alerte admin** pour remboursement.
@@ -349,7 +405,7 @@ Un fichier `.env.example` (sans valeurs) sera créé au début du développement
 | Webhooks perdus ou retardés | Client payé sans accès | Réconciliation automatique + revérification manuelle admin |
 | Coût SMS / fraude au SMS (« SMS pumping ») | Facture élevée | Turnstile, limites par numéro/IP/pays, liste blanche des indicatifs pays |
 | Couverture réelle des opérateurs différente des pages publiques | Paiements impossibles dans un pays | Vérification écrite auprès du prestataire et paiement réel de test avant d'ouvrir un marché |
-| Comptes marchands impossibles à ouvrir hors du pays de la société | Marchés XAF/CDF/GNF non monétisables | Clarifier tôt (§5.7) ; partenaire local ou prestataire supplémentaire branché via un nouvel adaptateur |
+| Conditions d'accès d'une société béninoise hors zone XOF inconnues | Certains pays non monétisables à court terme | Questions écrites envoyées tôt (§5.10) ; pays consultables en attendant ; partenaire local ou prestataire supplémentaire branchable via un nouvel adaptateur |
 | Complexité de plusieurs prestataires et comptes | Plus de tests et de support | Interface commune, tests de contrat par adaptateur, sandbox par compte, routes désactivables |
 | Bande passante Afrique plus chère | Marges | Qualités adaptées, suivi des coûts mensuels |
 | Pas de région cloud en Afrique | Latence | Pages légères, cache CDN, région Europe la plus proche |

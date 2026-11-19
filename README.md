@@ -17,3 +17,4 @@ Plateforme de streaming africaine indépendante dédiée aux séries dramatiques
 | [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md) | Feuille de route |
 | [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md) | Checklist de lancement |
 | [CLAUDE.md](CLAUDE.md) | Règles de développement |
+| [docs/questions-prestataires-paiement.md](docs/questions-prestataires-paiement.md) | Questions écrites à CinetPay et FedaPay + suivi des réponses |

@@ -84,7 +84,7 @@ Avec 10 essais maximum avant verrouillage dur et les PIN faibles interdits, la p
 |---|---|
 | SEC-11 | Code à 6 chiffres généré et vérifié par **notre serveur**, stocké haché, validité ~5 min, 5 essais max, usage unique. Le fournisseur « phone » de Supabase Auth reste **désactivé** (il offrirait un envoi de SMS contournant SEC-12/13). |
 | SEC-12 | Envoi : max 3 SMS / numéro / heure et ~10 / jour ; limite par IP ; **Turnstile obligatoire avant tout envoi**. |
-| SEC-13 | Envoi uniquement vers les **indicatifs des pays ouverts** (`markets.status` = `browse_only` ou `open`) — protection principale contre la fraude au SMS vers des numéros surtaxés. |
+| SEC-13 | Envoi uniquement vers les **indicatifs des pays ouverts** (`markets.otp_enabled`) — protection principale contre la fraude au SMS vers des numéros surtaxés. |
 | SEC-14 | Alerte si le volume quotidien de SMS dépasse un seuil défini (budget). |
 
 ### 3.5 Administrateurs
@@ -104,7 +104,7 @@ Avec 10 essais maximum avant verrouillage dur et les PIN faibles interdits, la p
 | SEC-23 | Les données de catalogue envoyées au navigateur n'incluent ni `video_id` ni champs internes ; l'identifiant vidéo n'apparaît que dans l'URL de lecture signée, une fois l'accès autorisé. |
 | SEC-24 | Tests automatisés : clé publique sans aucun accès, client A vs données de B, éditeur vs transactions, client bloqué. |
 | SEC-25 | Un client **bloqué** perd immédiatement l'accès : ses sessions sont supprimées et le statut est vérifié à chaque requête authentifiée (lecture, achat). |
-| SEC-26 | Le pays par défaut d'un client est déduit par le serveur de son numéro vérifié. Le pays de paiement choisi à l'achat est **revalidé par le serveur** (pays ouvert, route active) ; la géolocalisation IP sert uniquement à l'affichage, jamais à la facturation. |
+| SEC-26 | Le pays de paiement est **confirmé par le client** à l'achat et **revalidé par le serveur** (statut du pays, statut testeur, route active). Ni l'indicatif du numéro ni la géolocalisation IP ne servent à facturer : ce sont de simples suggestions. |
 
 ## 5. Paiements
 
@@ -121,7 +121,7 @@ Avec 10 essais maximum avant verrouillage dur et les PIN faibles interdits, la p
 | SEC-38 | Réconciliation automatique des commandes `pending`, et des `expired`/`failed`/`cancelled` de moins de 72 h (le prestataire a le dernier mot) + revérification manuelle depuis l'admin. |
 | SEC-39 | Les secrets live et sandbox sont différents et ne sont jamais mélangés entre environnements. Chaque compte de paiement a ses propres identifiants (variables d'environnement préfixées) ; la base ne contient que leur référence, jamais les clés. |
 | SEC-42 | Désactiver un prestataire ou un compte bloque les **nouveaux** paiements mais **jamais** la vérification des commandes en cours (webhooks et réconciliation restent actifs). |
-| SEC-43 | Modification des pays, grilles, comptes et routes de paiement réservée au rôle `admin`, avec confirmation et journalisation. |
+| SEC-43 | Modification des pays, grilles, comptes, routes de paiement et du statut testeur réservée au rôle `admin`, avec confirmation et journalisation. |
 | SEC-40 | Le webhook ne répond 200 qu'**après** traitement complet ; en cas d'erreur temporaire il répond 500 pour provoquer une nouvelle tentative du prestataire. Aucune information interne dans la réponse ; erreurs journalisées et remontées (alerte P0). |
 | SEC-41 | Remboursement : seul le droit lié à la commande remboursée est révoqué. |
 

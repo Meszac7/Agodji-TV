@@ -23,9 +23,12 @@
 - [ ] **F** D-14 Logo et identité de marque
 - [ ] **F** D-15 Langue(s)
 - [ ] **F/T** D-16 Prestataire SMS
-- [ ] **F** D-17 Pays de paiement différent du pays du numéro
+- [x] **F** D-17 Principe : pays de paiement confirmé par l'utilisateur (écrans à valider)
 - [ ] **F** D-18 Prestataire principal par pays en zone UEMOA
-- [ ] **F** D-19 Pays CEMAC non couverts
+- [ ] **F** D-19 Gabon, Congo, Tchad, Centrafrique, Guinée équatoriale, Guinée-Bissau : attendre les réponses écrites
+- [ ] **F** D-20 Envoyer les questions écrites à CinetPay et FedaPay
+- [ ] **F** D-21 Pays d'affichage par défaut
+- [ ] **F** D-22 Liste des comptes testeurs
 
 ## 2. Comptes et accès externes à créer
 
@@ -47,21 +50,11 @@ Le fondateur crée les comptes à son nom (ou celui de la société) et active l
 
 ## 3. À vérifier auprès des prestataires (questions écrites)
 
-### Paiement (CinetPay / FedaPay) — à poser à **chacun** des deux
-- [ ] Pays et opérateurs Mobile Money **actuellement** actifs pour notre compte, pays par pays (Bénin, Côte d'Ivoire, Sénégal, Togo, Burkina Faso, Mali, Niger, Guinée, Cameroun, RDC).
-- [ ] **Un compte ouvert par une société enregistrée dans le pays X permet-il d'encaisser dans quels autres pays ?** Faut-il un compte (et une entité) par pays ou par zone monétaire ?
-- [ ] Est-il possible de présélectionner le moyen de paiement ou l'opérateur, et de limiter les pays proposés sur la page de paiement ?
-- [ ] Frais d'ouverture, d'abonnement ou minimum mensuel par compte marchand.
-- [ ] Cartes bancaires : disponibles dans quels pays ?
-- [ ] Grille de frais **actuelle** par pays/opérateur ; existence de **frais fixes** par transaction ; montant minimum.
-- [ ] Délais et frais de reversement vers notre compte.
-- [ ] Éligibilité de notre entité (pays d'enregistrement, documents KYC).
-- [ ] Format exact et sécurité des notifications (HMAC/signature), statuts possibles, notifications multiples.
-- [ ] API de vérification de transaction : statuts, champs montant/devise.
-- [ ] Remboursements : possibles par API pour le Mobile Money ? délais ?
-- [ ] Contraintes de montant (ex. multiple de 5 en XOF/XAF chez CinetPay) et devises acceptées pour la RDC (USD, CDF) et la Guinée (GNF).
-- [ ] Statut de disponibilité / page d'incidents (pour la bascule vers le prestataire de secours).
-- [ ] Environnement sandbox et numéros de test.
+### Paiement (CinetPay / FedaPay)
+- [ ] Questions envoyées par e-mail à **CinetPay** ([docs/questions-prestataires-paiement.md](docs/questions-prestataires-paiement.md) : éligibilité de la société béninoise, pays, opérateurs, devises, comptes marchands, frais, reversements, technique, remboursements).
+- [ ] Questions envoyées par e-mail à **FedaPay** (même document, avec les questions spécifiques F1 à F6, dont la Guinée).
+- [ ] Réponses reçues et consignées dans le tableau de synthèse par pays du même document.
+- [ ] TECHNICAL_ARCHITECTURE §5.2 à §5.4 mis à jour (symboles ✅/❌) d'après les réponses.
 
 ### Bunny Stream
 - [ ] Tarifs actuels stockage/diffusion pour l'Afrique.
@@ -136,12 +129,16 @@ Le fondateur crée les comptes à son nom (ou celui de la société) et active l
 
 ## 9. Ouverture d'un pays à l'achat (à répéter pour chaque pays)
 
-Un pays passe de « navigation seule » à « ouvert à l'achat » uniquement quand :
-- [ ] le contrat avec au moins un prestataire couvrant ce pays est actif (KYC validé, compte live) ;
+La consultation et les épisodes gratuits sont accessibles partout sans attendre. Un pays passe de « achat indisponible » à « pilote » puis « ouvert » uniquement quand :
+- [ ] confirmations écrites **A** (disponibilité technique), **B** (accès pour notre société béninoise) et **C** (reversement des fonds) obtenues pour au moins un prestataire ;
+- [ ] le contrat avec ce prestataire est actif pour ce pays (KYC validé, compte live) ;
 - [ ] les identifiants live du compte sont configurés dans l'hébergeur (jamais par chat) ;
 - [ ] la route de paiement est configurée dans l'admin (moyens, opérateurs, secours éventuel) ;
 - [ ] la grille tarifaire du pays existe et tous les contenus payants publiés y ont un prix ;
 - [ ] un **paiement réel de contrôle** a réussi pour chaque moyen proposé, et un remboursement a été testé ;
 - [ ] les SMS OTP arrivent sur les principaux opérateurs du pays ;
 - [ ] les obligations juridiques et fiscales du pays sont traitées (§4) ;
-- [ ] décision d'ouverture du fondateur, journalisée.
+- [ ] passage en statut `pilot` : achats réels par les comptes testeurs, sans incident ;
+- [ ] décision d'ouverture (`open`) du fondateur, journalisée.
+
+Les moyens de paiement d'un pays ouvert s'ajoutent ensuite un par un (ex. carte après Mobile Money), chacun avec son paiement réel de contrôle.

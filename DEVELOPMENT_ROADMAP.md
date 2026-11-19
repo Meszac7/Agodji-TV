@@ -63,7 +63,7 @@ Sortie : note de décision dans `docs/decisions/` pour chaque prototype.
 ## Étape 4 — Achat et paiement
 
 - Configuration en base : pays, grilles tarifaires, prestataires, comptes, routes (DATABASE_SCHEMA §3.3–3.4).
-- Écran d'achat avec choix du pays de paiement et des moyens disponibles (FR-27 à FR-29), `create_order`, routage.
+- Écran d'achat avec confirmation du pays de paiement et des moyens disponibles (FR-27 à FR-29), statuts `unavailable` / `pilot` / `open`, comptes testeurs, `create_order`, routage.
 - **Deux adaptateurs** (CinetPay, FedaPay) derrière l'interface `PaymentProvider`, avec une **suite de tests commune** que chaque adaptateur doit passer (ajouter un prestataire = passer la même suite).
 - Webhook authentifié + vérification API + `confirm_order_payment` atomique.
 - Page de retour avec interrogation du statut, réconciliation planifiée.
@@ -85,6 +85,10 @@ Sortie : note de décision dans `docs/decisions/` pour chaque prototype.
 - compte désactivé avec commandes en cours → celles-ci sont quand même vérifiées et créditées ;
 - pays non ouvert ou moyen sans route → commande refusée par le serveur ;
 - prix non conforme aux contraintes d'un compte (ex. pas multiple de 5) → refusé à la saisie.
+- pays `unavailable` → achat refusé, consultation et épisodes gratuits toujours accessibles ;
+- pays `pilot` → achat possible pour un testeur, refusé pour les autres ;
+- pays de paiement différent de l'indicatif du numéro → accepté s'il est ouvert ; prix de la grille du pays choisi ;
+- pays de paiement modifié dans la requête vers un pays non ouvert → refusé par le serveur.
 
 ## Étape 5 — Lecture protégée et bibliothèque
 
@@ -130,7 +134,7 @@ Sortie : note de décision dans `docs/decisions/` pour chaque prototype.
 ## Après la V1 (ordre indicatif)
 
 1. Ouverture à l'achat de chaque pays restant dès que son contrat de paiement est validé **[D-09]** (processus LAUNCH_CHECKLIST §9, sans développement).
-2. Prestataire supplémentaire pour les pays CEMAC non couverts **[D-19]** (nouvel adaptateur).
+2. Prestataire supplémentaire uniquement pour les pays que ni CinetPay ni FedaPay ne peuvent servir **après réponse écrite** **[D-19]** (nouvel adaptateur).
 3. Reprise de lecture, mode économie de données, PWA installable.
 4. Notifications « nouvel épisode » (SMS/WhatsApp/push) selon coûts.
 5. Codes promo / offres de lancement.

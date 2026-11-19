@@ -100,10 +100,11 @@ Toutes les couleurs sont des **jetons** (variables CSS). Le code n'utilise jamai
 
 ### 5.4 Écran d'achat (feuille modale sur mobile)
 - Deux options côte à côte ou empilées : **Épisode — 300 FCFA** / **Pass saison — 1 500 FCFA (n épisodes)**. Le pass est mis en avant (« Meilleure offre », économie calculée à partir des prix réels).
-- **Pays de paiement** affiché en haut (drapeau + nom), modifiable par un sélecteur compact ; changer de pays met à jour prix et moyens.
+- **Pays de paiement** : au premier achat, une question claire « Dans quel pays se trouve votre compte Mobile Money ou votre carte ? » avec une suggestion présélectionnée (drapeau + nom) à confirmer d'un geste ; ensuite rappel compact « Payer depuis : Côte d'Ivoire · Changer ». Pays non disponibles visibles mais grisés « bientôt ». Changer de pays met à jour prix et moyens immédiatement.
+- **Pays d'affichage des prix** (navigation) : mention discrète « Prix pour : Bénin ▾ » près des prix, modifiable.
 - **Moyens disponibles** sous forme de tuiles (« Mobile Money » avec logos des opérateurs du pays, « Carte bancaire » avec Visa/Mastercard), une seule sélection ; jamais le nom du prestataire technique (CinetPay/FedaPay).
 - Un seul bouton jaune « Payer » (libellé adapté : « Payer avec Mobile Money », « Payer par carte »).
-- Pays sans paiement disponible : message neutre « Le paiement n'est pas encore disponible dans votre pays », sans bouton jaune.
+- Aucun pays de paiement disponible pour l'utilisateur : message neutre « Le paiement n'est pas encore disponible dans votre pays. Vous pouvez continuer à regarder les épisodes gratuits. », sans bouton jaune, avec un lien vers les épisodes gratuits.
 - Logos d'opérateurs : fichiers officiels fournis par les prestataires/opérateurs, utilisés selon leurs règles **[à obtenir]**.
 - Mentions claires : achat définitif, accès sans limite de durée.
 - Si non connecté : le formulaire numéro → OTP → PIN s'insère dans la même feuille, sans perdre le contexte.
