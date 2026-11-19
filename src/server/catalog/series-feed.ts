@@ -113,6 +113,6 @@ export async function getSeriesFeed(db: Db, slug: string, options: { countryCode
     prices,
     currency: market?.currency ?? "XOF",
     displayCountry: { code: market?.country_code ?? "BJ", name: market?.name ?? "Bénin" },
-    otherSeries: catalog.filter((c) => c.id !== seriesId).map(({ tagline: _t, ...rest }) => rest),
+    otherSeries: catalog.filter((c) => c.id !== seriesId).map((c) => ({ id: c.id, slug: c.slug, title: c.title, poster: c.poster, available: c.available })),
   };
 }

@@ -23,7 +23,7 @@ export default defineConfig({
     command: `npx next start -p ${PORT}`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env.CI,
-    env: { APP_ENV: "development" },
+    env: { APP_ENV: "development", DATABASE_URL: process.env.DATABASE_URL ?? "" },
     timeout: 60_000,
   },
 });

@@ -8,7 +8,8 @@ import { EpisodeSlide } from "./EpisodeSlide";
 import { episodePrice, passOffer, type SeriesPrices } from "@/lib/player/pricing";
 import { LockedSlide } from "./LockedSlide";
 import { ScheduledSlide, SeriesEndSlide } from "./InfoSlides";
-import { EpisodesSheet, PurchaseSheet } from "./Sheets";
+import { EpisodesSheet, PurchaseSheet, PurchaseUnavailableSheet } from "./Sheets";
+import type { GrantFetcher } from "./useEpisodeStream";
 
 type Purchase = { kind: "pass"; seriesId: string; label: string; amount: number } | { kind: "episode"; episodeId: string; label: string; amount: number };
 
@@ -41,12 +42,15 @@ export function VerticalFeed({
   onOpenSeries,
   onCatalog,
   onEntitlementsChange,
+  fetchGrant,
+  purchaseMode = "simulated",
 }: {
   seriesTitle: string;
   orientation: "portrait" | "landscape";
   series: SeriesInfo;
   otherSeries: OtherSeries[];
-  media: Record<string, { src: string; poster: string }>;
+  /** Image de chaque épisode ; `src` = fichier de démonstration (maquette uniquement). */
+  media: Record<string, { src?: string; poster: string }>;
   prices: SeriesPrices;
   initialEntitlements: Entitlements;
   initialIndex: number;
@@ -57,6 +61,10 @@ export function VerticalFeed({
   onCatalog: () => void;
   /** Remonte les droits obtenus pendant le visionnage (la fiche série reflète le pass acheté). */
   onEntitlementsChange?: (ent: Entitlements) => void;
+  /** Lecteur réel : lien de lecture signé demandé au serveur (qui vérifie le droit). */
+  fetchGrant?: GrantFetcher;
+  /** « simulated » : paiement simulé (maquette) ; « unavailable » : achats pas encore ouverts. */
+  purchaseMode?: "simulated" | "unavailable";
 }) {
   const [ent, setEnt] = useState<Entitlements>(initialEntitlements);
   const slides = useMemo(() => buildSlides(series, ent, otherSeries), [series, ent, otherSeries]);
@@ -175,7 +183,8 @@ export function VerticalFeed({
               <section key={key} className="relative h-full w-full snap-start snap-always" aria-label={s.kind === "series-end" ? "Fin de la série" : `Épisode ${s.episode.number}`} data-slide-index={i}>
                 {s.kind === "episode" && s.state === "playable" && m ? (
                   <EpisodeSlide
-                    src={m.src}
+                    src={fetchGrant ? undefined : m.src}
+                    stream={fetchGrant ? { episodeId: s.episode.id, fetchGrant, preload: i === active + 1 } : undefined}
                     poster={m.poster}
                     active={i === active && !sheet}
                     mountVideo={Math.abs(i - active) <= 1}
@@ -275,7 +284,10 @@ export function VerticalFeed({
             onClose={() => setSheet(null)}
           />
         ) : null}
-        {sheet && sheet !== "episodes" ? (
+        {sheet && sheet !== "episodes" && purchaseMode === "unavailable" ? (
+          <PurchaseUnavailableSheet label={sheet.label} amount={sheet.amount} onClose={() => setSheet(null)} />
+        ) : null}
+        {sheet && sheet !== "episodes" && purchaseMode === "simulated" ? (
           <PurchaseSheet
             label={sheet.label}
             description={sheet.kind === "pass" ? "Tous les épisodes de la série, y compris les prochains" : "Cet épisode uniquement"}

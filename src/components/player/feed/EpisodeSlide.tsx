@@ -3,14 +3,20 @@
 import { useEffect, useRef, useState } from "react";
 import { PauseIcon, PlayIcon } from "@/components/ui/icons";
 import { formatClock } from "@/lib/player/local-progress";
+import { PLAYBACK_ERROR_MESSAGES } from "@/lib/player/stream-url";
+import { useEpisodeStream, type GrantFetcher } from "./useEpisodeStream";
 
 /**
  * Diapositive d'un épisode lisible : affichage entier (contain) sur fond flou, toucher = pause/lecture,
- * barre de progression. Le moteur de diffusion réel (HLS adaptatif, liens signés) remplacera la balise
- * <video> simple de cette maquette sans changer l'interface.
+ * barre de progression. Deux sources possibles, même interface :
+ * - `stream` : moteur de diffusion réel (HLS adaptatif, lien signé demandé au serveur) ;
+ * - `src` : fichier de démonstration de la maquette.
  */
+const noGrant: GrantFetcher = () => Promise.reject(new Error("aucun flux"));
+
 export function EpisodeSlide({
   src,
+  stream,
   poster,
   active,
   mountVideo,
@@ -21,7 +27,8 @@ export function EpisodeSlide({
   onEnded,
   onTap,
 }: {
-  src: string;
+  src?: string;
+  stream?: { episodeId: string; fetchGrant: GrantFetcher; preload: boolean };
   poster: string;
   active: boolean;
   mountVideo: boolean;
@@ -37,16 +44,26 @@ export function EpisodeSlide({
   const [flash, setFlash] = useState<"play" | "pause" | null>(null);
   const [time, setTime] = useState({ current: 0, duration: 0 });
   const [scrubbing, setScrubbing] = useState(false);
+  const engine = useEpisodeStream({
+    videoRef: ref,
+    episodeId: stream?.episodeId ?? "",
+    enabled: Boolean(stream) && mountVideo && (active || Boolean(stream?.preload)),
+    active,
+    fetchGrant: stream?.fetchGrant ?? noGrant,
+  });
+  const waitingForStream = Boolean(stream) && engine.attachedAt === 0;
 
   useEffect(() => {
     const v = ref.current;
     if (!v) return;
     if (active && !paused) {
-      v.play().catch(() => setPaused(true));
+      if (waitingForStream) return; // le flux n'est pas encore attaché : la lecture démarrera dès qu'il le sera
+      void engine.ensureFresh().then(() => v.play()).catch(() => setPaused(true));
     } else {
       v.pause();
     }
-  }, [active, paused, mountVideo]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, paused, mountVideo, waitingForStream, engine.attachedAt]);
 
   useEffect(() => {
     if (!active) setPaused(false);
@@ -100,14 +117,25 @@ export function EpisodeSlide({
           }}
           onEnded={onEnded}
         >
-          {/* Maquette : WebM puis MP4. Le vrai lecteur utilisera le flux HLS adaptatif. */}
-          <source src={src.replace(/\.mp4$/, ".webm")} type="video/webm" />
-          <source src={src} type="video/mp4" />
+          {/* Maquette : WebM puis MP4. Lecteur réel : le flux HLS est attaché par le moteur de diffusion. */}
+          {src && !stream ? <source src={src.replace(/\.mp4$/, ".webm")} type="video/webm" /> : null}
+          {src && !stream ? <source src={src} type="video/mp4" /> : null}
         </video>
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={poster} alt="" className="absolute inset-0 h-full w-full object-contain" />
       )}
+
+      {engine.error && active ? (
+        <div className="absolute inset-x-6 top-1/2 z-30 -translate-y-1/2 rounded-[var(--radius-card)] bg-black/75 p-4 text-center text-white backdrop-blur" role="alert" data-testid="playback-error">
+          <p className="text-[15px]">{PLAYBACK_ERROR_MESSAGES[engine.error]}</p>
+          {engine.error !== "locked" && engine.error !== "not_found" ? (
+            <button type="button" onClick={engine.retry} className="mt-3 rounded-[var(--radius-control)] bg-primary px-5 py-2.5 font-display font-bold text-on-primary">
+              Réessayer
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       {flash ? (
         <span className="pointer-events-none absolute left-1/2 top-1/2 z-20 grid size-20 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-white">

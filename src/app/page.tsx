@@ -10,8 +10,16 @@ export default function HomePage() {
       <p className="text-lg text-muted">Séries dramatiques africaines. Bientôt disponible.</p>
       {!isProduction() ? (
         <Link
-          href="/guide-de-style"
+          href="/series"
           className="inline-flex h-12 items-center rounded-[var(--radius-control)] bg-primary px-6 font-display font-bold text-on-primary hover:bg-primary-hover"
+        >
+          Découvrir les séries
+        </Link>
+      ) : null}
+      {!isProduction() ? (
+        <Link
+          href="/guide-de-style"
+          className="text-[14px] text-muted underline underline-offset-4"
         >
           Voir le guide de style
         </Link>

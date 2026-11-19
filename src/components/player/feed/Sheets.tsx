@@ -143,3 +143,24 @@ export function PurchaseSheet({
     </Sheet>
   );
 }
+
+/**
+ * Lecteur réel, étape L1 : les comptes et les achats ne sont pas encore ouverts.
+ * Aucun paiement n'est simulé ici (les simulateurs restent dans la maquette et les tests).
+ */
+export function PurchaseUnavailableSheet({ label, amount, onClose }: { label: string; amount: number; onClose: () => void }) {
+  return (
+    <Sheet title={label} onClose={onClose} testId="purchase-unavailable">
+      <div className="grid gap-3">
+        <div className="flex items-center justify-between rounded-[var(--radius-card)] bg-surface p-3">
+          <span className="text-[14px] text-muted">Prix</span>
+          <span className="font-display text-lg font-bold tabular-nums">{formatPrice(amount, "XOF")}</span>
+        </div>
+        <p className="text-[15px]">Les achats ouvriront très bientôt. En attendant, les épisodes gratuits restent disponibles.</p>
+        <button type="button" onClick={onClose} className="rounded-[var(--radius-control)] bg-primary py-3 font-display font-bold text-on-primary">
+          Compris
+        </button>
+      </div>
+    </Sheet>
+  );
+}
