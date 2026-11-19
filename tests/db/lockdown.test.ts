@@ -61,7 +61,7 @@ describe("verrouillage de la base pour les rôles clients", () => {
     });
 
     it(`${role} reçoit un refus en lisant le catalogue, les prix ou les réglages`, async () => {
-      for (const table of ["app.series", "app.season_prices", "app.app_settings", "app.payment_accounts"]) {
+      for (const table of ["app.series", "app.series_prices", "app.app_settings", "app.payment_accounts"]) {
         await inRollback(db, async () => {
           await db.query(`SET LOCAL ROLE ${role}`);
           await expectPgError(db.query(`SELECT * FROM ${table} LIMIT 1`), INSUFFICIENT_PRIVILEGE);
