@@ -61,7 +61,15 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      # Les serveurs de paquets Ubuntu renvoient parfois 503 : on réessaie, puis on installe
+      # le navigateur seul (les bibliothèques système sont déjà présentes sur ubuntu-latest).
+      - name: Installer Chromium (avec reprises)
+        run: |
+          for i in 1 2 3; do
+            npx playwright install --with-deps chromium && exit 0
+            echo "Tentative $i échouée, nouvel essai dans 20 s"; sleep 20
+          done
+          npx playwright install chromium
       - run: npm run build
         env:
           APP_ENV: development
