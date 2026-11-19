@@ -39,7 +39,7 @@
 
 **FR-05 — Liste d'épisodes.** Pour chaque épisode : numéro, titre, vignette, durée, résumé court, et un **badge d'accès** clair :
 - `Gratuit`
-- `300 FCFA` (prix dans la devise de l'utilisateur)
+- `300 FCFA` (prix de la grille du pays de l'utilisateur ; pour un visiteur, pays estimé par géolocalisation, modifiable via un sélecteur de pays)
 - `Acheté` / `Inclus dans votre pass` (si connecté et propriétaire)
 
 Le bouton « Acheter le pass saison — 1 500 FCFA » est visible en haut de la liste de la saison, avec le nombre d'épisodes inclus.
@@ -71,13 +71,20 @@ Pas d'e-mail requis. Le nom affiché est facultatif.
 
 ## 4. Achat et paiement
 
-**FR-20 — Écran d'achat.** Récapitulatif : ce qui est acheté, prix, devise, moyen de paiement. Si l'utilisateur possède déjà certains épisodes de la saison, un avertissement l'indique avant l'achat du pass **[D-08]**.
+**FR-20 — Écran d'achat.** Récapitulatif : ce qui est acheté, prix, devise, pays de paiement, moyen de paiement. Si l'utilisateur possède déjà certains épisodes de la saison, un avertissement l'indique avant l'achat du pass **[D-08]**.
+
+**FR-27 — Pays de paiement.** Présélectionné d'après le numéro de téléphone vérifié ; modifiable parmi les pays **ouverts à l'achat** **[D-17]**. Changer de pays recalcule le prix (grille du pays) et les moyens proposés. Si le pays n'est pas ouvert à l'achat : message « Le paiement n'est pas encore disponible dans votre pays » et proposition de choisir un autre pays si l'utilisateur y dispose d'un compte Mobile Money.
+
+**FR-28 — Moyens de paiement proposés automatiquement.** Seuls les moyens réellement disponibles pour le pays choisi sont affichés (ex. « Mobile Money — MTN, Moov, Celtiis », « Carte bancaire — Visa, Mastercard »). L'utilisateur choisit la famille de moyen ; le serveur choisit le prestataire et le compte selon la configuration (route principale, puis secours). L'utilisateur n'a jamais à choisir entre « CinetPay » et « FedaPay ».
+
+**FR-29 — Indisponibilité d'un prestataire.** Si un prestataire est désactivé ou en panne, le moyen est servi par la route de secours si elle existe ; sinon il disparaît temporairement du pays, sans erreur technique visible.
 
 **FR-21 — Achats interdits.** Le serveur refuse :
 - l'achat d'un épisode gratuit ;
 - l'achat d'un épisode déjà possédé (à l'unité ou via pass) ;
 - l'achat d'un pass déjà possédé ;
-- l'achat d'un contenu non publié ou d'une série « bientôt ».
+- l'achat d'un contenu non publié ou d'une série « bientôt » ;
+- un pays non ouvert à l'achat, ou un moyen sans route active pour ce pays.
 
 **FR-22 — Paiement.** Redirection vers la page de paiement du prestataire (Mobile Money, carte si disponible). Le prix est **toujours calculé par le serveur** à partir de la base, jamais transmis par le navigateur.
 
@@ -117,11 +124,18 @@ Interface web réservée aux administrateurs, accessible sous `/admin`, sur le m
 
 ### 7.1 Contenu
 - **FR-50** Créer / modifier une série : titre, slug, synopsis, genres, affiche, bannière, statut (`brouillon`, `bientôt`, `publiée`, `dépubliée`), mise en avant, ordre d'affichage.
-- **FR-51** Créer / modifier une saison : numéro, titre, description, prix du pass par devise, nombre d'épisodes prévu.
+- **FR-51** Créer / modifier une saison : numéro, titre, description, prix de l'épisode et du pass **par grille tarifaire**, nombre d'épisodes prévu.
 - **FR-52** Créer / modifier un épisode : numéro, titre, résumé, vignette, durée, gratuit/payant, prix (par défaut celui de la saison, modifiable par épisode), statut, date de publication programmée.
 - **FR-53** Vidéo : téléversement direct vers l'hébergeur vidéo depuis l'admin, **ou** association d'une vidéo déjà présente (identifiant). Affichage de l'état d'encodage.
 - **FR-54** Publication programmée : un épisode « programmé » devient visible automatiquement à la date choisie.
-- **FR-55** Garde-fous : impossible de publier un épisode payant (ou une saison) sans prix dans **chaque devise des marchés ouverts**, sans vidéo encodée ou sans vignette. Impossible d'ouvrir un nouveau marché tant que des contenus payants publiés n'ont pas de prix dans sa devise. Avertissement avant de dépublier un contenu déjà acheté.
+- **FR-55** Garde-fous : impossible de publier un épisode payant (ou une saison) sans prix dans **chaque grille tarifaire utilisée par un pays ouvert à l'achat**, sans vidéo encodée ou sans vignette. Impossible d'ouvrir un pays à l'achat tant que des contenus payants publiés n'ont pas de prix dans sa grille ou qu'aucune route de paiement n'est active. Les prix sont validés contre les contraintes des prestataires (ex. multiple de 5). Avertissement avant de dépublier un contenu déjà acheté.
+
+### 7.1 bis Marchés et paiements (réservé au rôle `admin`)
+- **FR-56** Pays : statut (`masqué`, `navigation seule`, `ouvert à l'achat`), grille tarifaire associée, indicatif téléphonique.
+- **FR-57** Grilles tarifaires : création (devise), rattachement des pays.
+- **FR-58** Prestataires et comptes de paiement : activer / désactiver un prestataire ou un compte (les clés restent dans la configuration de l'hébergeur, jamais saisies dans l'admin).
+- **FR-59** Routes : pour chaque pays et moyen (Mobile Money, carte, portefeuille), compte principal et compte de secours, opérateurs affichés, date du dernier paiement réel de contrôle.
+- Toute modification de cette section est journalisée et demande une confirmation explicite.
 
 ### 7.2 Utilisateurs
 - **FR-60** Liste des utilisateurs (numéro partiellement masqué par défaut, date d'inscription, nombre d'achats).
@@ -135,7 +149,8 @@ Interface web réservée aux administrateurs, accessible sous `/admin`, sur le m
 - **FR-73** File « À traiter » : paiements `à examiner` (montant incohérent) et paiements en double à rembourser, avec actions « valider », « refuser », « marquer remboursé ». Ces cas déclenchent aussi une **alerte e-mail** dès le lancement.
 
 ### 7.4 Statistiques (simples)
-- **FR-80** Chiffre d'affaires et nombre d'achats (jour / 7 jours / 30 jours / total), par devise.
+- **FR-80** Chiffre d'affaires et nombre d'achats (jour / 7 jours / 30 jours / total), par devise et par pays.
+- **FR-84** Paiements par prestataire, compte et moyen : volume, taux de réussite, taux d'échec par route (pour détecter un opérateur défaillant).
 - **FR-81** Répartition épisodes vs passes.
 - **FR-82** Top séries et top épisodes (ventes, lectures).
 - **FR-83** Utilisateurs : inscrits, nouveaux inscrits sur la période, acheteurs, taux de conversion inscrits → acheteurs.
@@ -158,7 +173,8 @@ Interface web réservée aux administrateurs, accessible sous `/admin`, sur le m
 | RM-08 | Remboursement : manuel, au cas par cas, via le prestataire ; le droit d'accès est alors révoqué. | **[D-08]** |
 | RM-09 | Taille d'une saison : nombre d'épisodes prévu affiché à l'achat du pass. | **[D-08]** |
 | RM-10 | Un épisode payant passé en gratuit reste dans la bibliothèque de ceux qui l'ont acheté. | Recommandé |
-| RM-11 | Prix par devise ; l'utilisateur paie dans la devise de son pays de paiement. | **[D-03]** |
+| RM-11 | Le prix dépend de la grille tarifaire du **pays de paiement** choisi ; l'utilisateur paie dans la devise de ce pays. Pas de conversion automatique. | **[D-03]**, **[D-17]** |
+| RM-12 | Un achat est valable partout : un contenu acheté dans un pays reste accessible si l'utilisateur voyage ou change de pays de paiement. | Recommandé |
 
 ## 9. Exigences non fonctionnelles
 
@@ -170,6 +186,7 @@ Interface web réservée aux administrateurs, accessible sous `/admin`, sur le m
 | NFR-04 | Accessibilité : contrastes conformes WCAG 2.1 AA, navigation clavier, libellés explicites. |
 | NFR-05 | Disponibilité : dépend des services managés ; pas d'engagement contractuel en V1. |
 | NFR-06 | Langue : français **[D-15]**. Textes centralisés pour permettre la traduction plus tard. |
+| NFR-09 | Panafricain : aucun pays, devise, prestataire ou opérateur codé en dur ; tout est configuration en base. |
 | NFR-07 | Navigateurs : Chrome Android, Safari iOS, Samsung Internet, Opera Mini en mode non-extrême **[HYPOTHÈSE]**, navigateurs de bureau récents. |
 | NFR-08 | Données personnelles : collecte minimale (numéro, PIN haché, achats). Conformité aux lois locales (voir LAUNCH_CHECKLIST). |
 
@@ -180,7 +197,7 @@ Interface web réservée aux administrateurs, accessible sous `/admin`, sur le m
 | Abonnement mensuel | Hors modèle de lancement |
 | Portefeuille / crédits prépayés | Complexité comptable et réglementaire |
 | Codes promo, parrainage, cartes cadeaux | Non essentiels |
-| Second prestataire de paiement | Voir [D-01] |
+| Prestataire pour les pays CEMAC non couverts (Gabon, Congo, Tchad, RCA) | Voir [D-19] |
 | Application mobile native / PWA installable | Le site mobile suffit pour valider le marché (PWA légère possible en P1) |
 | Téléchargement hors-ligne | Nécessite DRM et application native |
 | DRM complet (Widevine/FairPlay) | Coût et complexité ; à réévaluer si piratage constaté |

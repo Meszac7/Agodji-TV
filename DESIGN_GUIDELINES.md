@@ -100,7 +100,11 @@ Toutes les couleurs sont des **jetons** (variables CSS). Le code n'utilise jamai
 
 ### 5.4 Écran d'achat (feuille modale sur mobile)
 - Deux options côte à côte ou empilées : **Épisode — 300 FCFA** / **Pass saison — 1 500 FCFA (n épisodes)**. Le pass est mis en avant (« Meilleure offre », économie calculée à partir des prix réels).
-- Un seul bouton jaune « Payer avec Mobile Money ».
+- **Pays de paiement** affiché en haut (drapeau + nom), modifiable par un sélecteur compact ; changer de pays met à jour prix et moyens.
+- **Moyens disponibles** sous forme de tuiles (« Mobile Money » avec logos des opérateurs du pays, « Carte bancaire » avec Visa/Mastercard), une seule sélection ; jamais le nom du prestataire technique (CinetPay/FedaPay).
+- Un seul bouton jaune « Payer » (libellé adapté : « Payer avec Mobile Money », « Payer par carte »).
+- Pays sans paiement disponible : message neutre « Le paiement n'est pas encore disponible dans votre pays », sans bouton jaune.
+- Logos d'opérateurs : fichiers officiels fournis par les prestataires/opérateurs, utilisés selon leurs règles **[à obtenir]**.
 - Mentions claires : achat définitif, accès sans limite de durée.
 - Si non connecté : le formulaire numéro → OTP → PIN s'insère dans la même feuille, sans perdre le contexte.
 
@@ -138,7 +142,7 @@ Toutes les couleurs sont des **jetons** (variables CSS). Le code n'utilise jamai
 
 ## 8. Ton éditorial
 - Français simple, chaleureux, direct. Tutoiement ou vouvoiement : **vouvoiement recommandé** par défaut **[à valider]**.
-- Prix toujours affichés avec la devise : « 300 FCFA » (XOF/XAF), « 0,50 $ » (RDC si USD **[D-03]**).
+- Prix toujours affichés avec la devise de la grille du pays : « 300 FCFA » (XOF/XAF), « 0,50 $ » (RDC si USD), « … GNF » (Guinée) **[D-03]**. Formats de nombres français (espace pour les milliers : « 1 500 FCFA »).
 - Messages d'erreur : ce qui s'est passé + quoi faire.
 
 ## 9. Marque provisoire

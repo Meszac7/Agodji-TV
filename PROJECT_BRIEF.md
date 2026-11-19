@@ -16,15 +16,21 @@ Agodjié TV **n'est pas** un service de streaming généraliste au lancement : l
 
 ## 2. Marchés cibles
 
-| Marché | Monnaie | Priorité | Remarque |
-|---|---|---|---|
-| Bénin | XOF (franc CFA UEMOA) | Lancement | Marché d'origine **[HYPOTHÈSE]** |
-| Côte d'Ivoire | XOF | Lancement | |
-| Cameroun | XAF (franc CFA CEMAC) | Lancement ou V1.1 **[DÉCISION D-02]** | XAF ≠ XOF (même parité, monnaies distinctes) |
-| RD Congo | CDF / USD | Lancement ou V1.1 **[DÉCISION D-02]** | Pas de franc CFA : le prix « 300 FCFA » ne s'applique pas |
-| Autres pays francophones | variable | Plus tard | |
+**Orientation validée par le fondateur (2026-11-19)** : Agodjié TV est **panafricaine dès le départ**, ouverte aux utilisateurs d'Afrique de l'Ouest et d'Afrique centrale couverts par nos solutions de paiement. Le lancement n'est pas limité artificiellement à quelques pays.
 
-**Point d'attention majeur** : « FCFA » recouvre deux monnaies différentes (XOF en Afrique de l'Ouest, XAF en Afrique centrale), et la RDC n'utilise pas le franc CFA. La tarification doit donc être **définie par devise**, pas par un chiffre unique (voir [DÉCISION D-03]).
+| Zone | Pays visés | Devise | Prestataires possibles (à confirmer) |
+|---|---|---|---|
+| Afrique de l'Ouest — UEMOA | Bénin, Côte d'Ivoire, Sénégal, Togo, Burkina Faso, Mali, Niger | XOF (franc CFA UEMOA) | FedaPay et/ou CinetPay |
+| Afrique de l'Ouest — hors UEMOA | Guinée | GNF | CinetPay |
+| Afrique centrale — CEMAC | Cameroun | XAF (franc CFA CEMAC) | CinetPay |
+| Afrique centrale | RD Congo | CDF / USD | CinetPay |
+| Afrique centrale — CEMAC | Gabon, Congo, Tchad, Centrafrique | XAF | **Aucun des deux selon les sources trouvées** → prestataire supplémentaire nécessaire |
+
+**Règle d'ouverture** : un pays devient **achetable** dès que son paiement est validé (contrat marchand actif + paiement réel de contrôle réussi). En attendant, il peut être ouvert en **navigation** (catalogue, épisodes gratuits) avec la mention « Paiement bientôt disponible dans votre pays ». Ce n'est pas une limitation commerciale, c'est une garantie de qualité : on ne vend pas là où l'on ne sait pas encaisser.
+
+**Points d'attention majeurs** :
+- « FCFA » recouvre deux monnaies différentes (XOF et XAF), et la RDC et la Guinée n'utilisent pas le franc CFA. Les prix sont donc définis **par grille tarifaire et par devise** (voir [DÉCISION D-03]).
+- Les prestataires lient leurs comptes marchands à un **pays / une devise** et, pour CinetPay, à une **entreprise établie localement**. La couverture panafricaine dépend donc d'abord de la **structure juridique** de la société (voir [DÉCISION D-09] et TECHNICAL_ARCHITECTURE §5.7).
 
 ## 3. Modèle économique : TVOD
 
@@ -79,22 +85,25 @@ Ce registre est la **source unique** des décisions à valider. Les autres docum
 
 | ID | Sujet | Recommandation | Statut |
 |---|---|---|---|
-| D-01 | Prestataire de paiement au lancement | **CinetPay seul** au lancement (seul des deux à couvrir Cameroun et RDC), architecture prête pour ajouter FedaPay ensuite. Si le lancement est limité au Bénin/Côte d'Ivoire, FedaPay est une alternative valable. Conditionné à la vérification de l'éligibilité marchand. | En attente |
-| D-02 | Pays ouverts au lancement | Lancer **Bénin + Côte d'Ivoire** (XOF, une seule devise) ; ouvrir Cameroun puis RDC en V1.1 après validation des paiements | En attente |
-| D-03 | Prix par devise | XOF : 300 / 1 500. XAF : 300 / 1 500 (parité). RDC : prix en USD ou CDF à définir | En attente |
+| D-01 | Prestataires de paiement | **CinetPay + FedaPay**, derrière une architecture où chaque prestataire est interchangeable et désactivable (TECHNICAL_ARCHITECTURE §5.3) | **Orientation validée** (2026-11-19) ; ouverture effective conditionnée aux contrats (D-09) |
+| D-02 | Pays ouverts | **Panafricain** : tous les pays d'Afrique de l'Ouest et centrale couverts par nos prestataires, chacun ouvert à l'achat dès que son paiement est validé | **Orientation validée** (2026-11-19) |
+| D-03 | Grilles tarifaires | XOF : 300 / 1 500. XAF : 300 / 1 500 (parité). RDC : USD (recommandé, plus stable) ou CDF, montant à définir. Guinée : montant en GNF à définir. Une grille par devise au départ ; grilles par pays possibles plus tard sans changer le code | En attente |
 | D-04 | Longueur du PIN | PIN **4 chiffres accepté** à condition d'appliquer toutes les protections de SECURITY_REQUIREMENTS §3 ; 6 chiffres en option si le fondateur le souhaite | En attente |
 | D-05 | Vérification du numéro par SMS (OTP) | **Obligatoire** à l'inscription et pour réinitialiser le PIN | En attente |
 | D-06 | Authentification des administrateurs | E-mail + mot de passe fort + **double authentification (TOTP)** obligatoire, séparée du PIN client (les admins auront donc besoin d'une adresse e-mail et d'une application d'authentification sur leur téléphone) | En attente |
 | D-07 | Format vidéo (vertical 9:16 ou horizontal 16:9) et durée moyenne | Information à fournir par le fondateur | En attente |
 | D-08 | Politiques commerciales et éditoriales : remboursement, retrait d'un contenu acheté, pass après épisodes, taille d'une saison, classification d'âge | Voir PRODUCT_REQUIREMENTS §8 | En attente |
-| D-09 | Entité juridique et pays d'enregistrement du marchand | Nécessaire pour ouvrir les comptes de paiement | En attente |
+| D-09 | Entité juridique, pays d'enregistrement et stratégie par zone monétaire | **Décision la plus structurante.** Identifier avec un juriste comment encaisser dans chaque zone (UEMOA, CEMAC, RDC, Guinée) : société existante, filiales, partenaire local ou prestataire supplémentaire. Voir TECHNICAL_ARCHITECTURE §5.7 | En attente — **bloquant** pour les marchés hors UEMOA |
 | D-10 | Mention « contenu créé avec l'IA » | Recommandé : mention discrète sur la fiche série | En attente |
 | D-11 | Nom de domaine | À fournir | En attente |
 | D-12 | Budget mensuel d'infrastructure | Estimation indicative dans TECHNICAL_ARCHITECTURE §10 | En attente |
 | D-13 | Lecteur vidéo V1 | **Lecteur intégré Bunny** (iframe) personnalisé aux couleurs ; lecteur sur mesure plus tard | En attente |
 | D-14 | Identité de marque (logo, couleurs officielles) | En attendant : logotype texte provisoire, aucune identité définitive inventée | En attente |
 | D-15 | Langue | Français uniquement en V1 | En attente |
-| D-16 | Prestataire SMS | À choisir après comparaison des tarifs pour les pays cibles | En attente |
+| D-16 | Prestataire SMS | À choisir après comparaison des tarifs **pour tous les pays visés** (la couverture SMS doit suivre la couverture paiement) | En attente |
+| D-17 | Pays de paiement différent du pays du numéro | **Autorisé** parmi les marchés ouverts (ex. utilisateur avec un numéro béninois et un compte Mobile Money ivoirien), prix de la grille du pays choisi | En attente |
+| D-18 | Prestataire principal en zone UEMOA (où les deux se recouvrent) | Choisir par pays selon les **frais réels négociés** ; l'autre sert de secours automatique | En attente des grilles tarifaires |
+| D-19 | Pays CEMAC non couverts (Gabon, Congo, Tchad, RCA) | Les ouvrir en navigation uniquement ; évaluer un 3ᵉ prestataire après le lancement | En attente |
 
 ## 9. Index des documents
 

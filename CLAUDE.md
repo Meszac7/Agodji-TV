@@ -20,18 +20,18 @@ Si le code et ces documents divergent, **signaler l'écart** et mettre à jour l
 
 ## État du projet
 
-- Phase 1 (cadrage) : documents rédigés, **décisions D-01 à D-16 en attente** du fondateur.
+- Phase 1 (cadrage) : documents rédigés. D-01 (CinetPay + FedaPay) et D-02 (orientation panafricaine) **validés** le 2026-11-19 ; les autres décisions (D-03 à D-19) restent **en attente**.
 - Aucun code applicatif. Ne pas commencer une étape de la feuille de route sans instruction explicite.
 - Ne jamais présenter une décision en attente comme validée.
 
 ## Pile prévue (sous réserve des prototypes de l'étape 0)
 
-Next.js (App Router) + TypeScript · Tailwind · Supabase (Postgres, Storage, RLS ; Auth **pour les admins uniquement**) · auth client maison (numéro + PIN + OTP, sessions en base) · Bunny Stream · CinetPay (FedaPay plus tard, via interface `PaymentProvider`) · Vercel · Sentry · Turnstile · Zod · Vitest · Playwright.
+Next.js (App Router) + TypeScript · Tailwind · Supabase (Postgres, Storage, RLS ; Auth **pour les admins uniquement**) · auth client maison (numéro + PIN + OTP, sessions en base) · Bunny Stream · CinetPay + FedaPay (adaptateurs derrière l'interface `PaymentProvider`, routage pays × moyen configurable en base) · Vercel · Sentry · Turnstile · Zod · Vitest · Playwright.
 
 ## Règles non négociables
 
 1. **Aucun secret** dans le dépôt, le code navigateur ou les journaux. Seul `.env.example` (sans valeurs) est versionné. Rien de secret dans une variable `NEXT_PUBLIC_*`.
-2. **Prix et règles d'accès en base**, jamais codés en dur. Montants en entiers, par devise.
+2. **Prix, règles d'accès, pays, devises, prestataires et routes de paiement en base**, jamais codés en dur. Montants en entiers, par grille tarifaire.
 3. **Aucun droit d'accès accordé sur la foi du navigateur.** Uniquement après notification authentifiée **et** vérification via l'API du prestataire, dans `confirm_order_payment` (transaction atomique, idempotente).
 4. **Le prix est toujours recalculé côté serveur.**
 5. **Le navigateur ne parle jamais à la base.** RLS activé sur toutes les tables sans politique pour `anon`/`authenticated` ; tout passe par le serveur, qui filtre par client de la session.

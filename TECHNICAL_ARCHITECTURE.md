@@ -14,7 +14,7 @@
 | Base de données | **Supabase Postgres** | Firebase (NoSQL, mauvais pour les transactions), MongoDB |
 | Authentification clients | **Sessions serveur maison** (numéro + PIN + OTP SMS gérés par notre serveur) — voir §7 | Supabase Auth avec couche PIN (contournable, voir §7) ; Clerk/Auth0 (pas de PIN, coût) |
 | Authentification admins | **Supabase Auth** e-mail + mot de passe + TOTP obligatoire | — |
-| Paiement | **CinetPay** au lancement, module abstrait prêt pour **FedaPay** | Les deux dès le lancement |
+| Paiement | **CinetPay + FedaPay** derrière une interface commune, routage par pays et moyen de paiement configurable (§5) | Un seul prestataire (couverture insuffisante pour une plateforme panafricaine) |
 | Vidéo | **Bunny Stream** (encodage, HLS adaptatif, CDN, jetons signés) | Mux (plus cher), Cloudflare Stream, AWS (complexe) |
 | Images (affiches, vignettes) | **Supabase Storage** (bucket public en lecture) + optimisation d'images Next.js | Bunny Storage (à reconsidérer si coûts d'images élevés) |
 | Anti-robot | **Cloudflare Turnstile** | reCAPTCHA (plus intrusif) |
@@ -46,7 +46,7 @@
                     │  Routes serveur :                          │
                     │   • /api/auth/*   (OTP, PIN, sessions)     │
                     │   • /api/checkout (création commande)      │
-                    │   • /api/webhooks/cinetpay|fedapay         │
+                    │   • /api/webhooks/<prestataire>/<compte>   │
                     │   • /api/playback/:episode (jeton vidéo)   │
                     │   • /api/webhooks/bunny (état encodage)    │
                     │   • /api/cron/reconcile (paiements)        │
@@ -55,8 +55,8 @@
                            ▼ (serveur seul) ▼              ▼ (serveur seul)
                  ┌──────────────────┐ ┌──────────────┐ ┌──────────────────┐
                  │ Supabase         │ │ CinetPay     │ │ Bunny Stream     │
-                 │ Postgres + RLS   │ │ (FedaPay     │ │ encodage, HLS,   │
-                 │ Auth (admins)    │ │  plus tard)  │ │ CDN, jetons      │
+                 │ Postgres + RLS   │ │ FedaPay      │ │ encodage, HLS,   │
+                 │ Auth (admins)    │ │ (+ futurs)   │ │ CDN, jetons      │
                  │ Storage (images) │ └──────┬───────┘ └────────┬─────────┘
                  └──────────────────┘        │ webhook          │ flux vidéo signé
                                              └──► /api/webhooks │
@@ -86,76 +86,158 @@ Principe : **le navigateur ne détient jamais de secret et ne parle jamais à la
 - Tâches planifiées (Vercel Cron) : réconciliation des paiements (§5.3), expiration des commandes, purge des tentatives de connexion, des OTP et des sessions expirés.
 - Encodage vidéo : Bunny notifie `/api/webhooks/bunny` ; la notification sert seulement de **signal** — le serveur relit l'état de la vidéo via l'API Bunny avant de mettre à jour `video_status`. Bouton « actualiser l'état » dans l'admin en secours.
 
-## 5. Paiements
+## 5. Paiements — architecture multi-prestataires et multi-marchés
 
-### 5.1 Comparatif (sources publiques, à confirmer)
+> Orientation validée par le fondateur (2026-11-19) : **plateforme panafricaine dès le départ**, **CinetPay et FedaPay intégrés tous les deux**, sélection automatique des moyens de paiement selon le pays. Voir PROJECT_BRIEF §8 (D-01, D-02).
+> Les documentations officielles des prestataires n'ont pas pu être consultées directement depuis l'environnement de travail (accès réseau bloqué) ; les informations ci-dessous proviennent des résultats de recherche sur ces documentations et de sources tierces. **Chaque ligne doit être confirmée par écrit par le prestataire avant l'ouverture d'un marché** (LAUNCH_CHECKLIST §3).
 
-| Critère | CinetPay | FedaPay |
+### 5.1 Couverture observée par pays et moyen de paiement
+
+Légende : ✅ indiqué par une source du prestataire · ⚠️ indiqué par une source tierce, ancienne ou contradictoire · ❌ non couvert selon les sources trouvées · ? aucune information.
+
+| Pays | Devise | CinetPay — Mobile Money | FedaPay — Mobile Money | Carte |
+|---|---|---|---|---|
+| Bénin | XOF | ✅ pays listé ; opérateurs à confirmer | ✅ MTN, Moov, Celtiis, Coris Money, BMO | CinetPay ✅ / FedaPay ✅ (Visa/Mastercard) |
+| Côte d'Ivoire | XOF | ✅ Orange, MTN, Moov, Wave | ✅ MTN, Moov, Orange, Wave | ✅ / ✅ |
+| Sénégal | XOF | ✅ pays listé ; Orange, Wave, Free… ⚠️ | ✅ Orange Money, Wave, Mixx by Yas | ✅ / ✅ |
+| Togo | XOF | ✅ Moov, T-Money (Togocel ⚠️) | ✅ Moov, T-Money / Mixx by Yas | ✅ / ✅ |
+| Burkina Faso | XOF | ✅ Orange, Moov, Wave | ⚠️ figure dans une grille tarifaire, absent de la page d'accueil | ? |
+| Mali | XOF | ✅ Orange, Moov | ⚠️ Orange Money dans la doc v1 | ? |
+| Niger | XOF | ⚠️ Airtel cité sur une page | ✅ Airtel Money | ? |
+| Cameroun | XAF | ✅ Orange, MTN | ❌ | CinetPay ✅ |
+| RD Congo | CDF / USD | ✅ Orange, Airtel, M-Pesa, Africell | ❌ | ? |
+| Guinée | GNF | ✅ Orange, MTN | ⚠️ « MTN » cité dans la doc v1 (douteux, FedaPay se présente comme UEMOA) | ? |
+| Gabon, Congo-Brazzaville, Tchad, Centrafrique | XAF | ❌ aucune source | ❌ | — |
+
+**Constats :**
+1. **FedaPay est un acteur de la zone UEMOA (XOF)** : utile pour Bénin, Côte d'Ivoire, Sénégal, Togo, Niger (et peut-être Mali, Burkina). Il ne couvre ni le Cameroun ni la RDC.
+2. **CinetPay est le seul des deux à couvrir l'Afrique centrale** (Cameroun, RDC) et la Guinée.
+3. **Le reste de l'Afrique centrale (Gabon, Congo, Tchad, RCA) n'est couvert par aucun des deux** d'après les sources trouvées. Un troisième prestataire serait nécessaire ; l'architecture le permet (§5.3).
+4. Dans la zone UEMOA, les deux prestataires se recouvrent : cela permet une **redondance** (bascule si l'un est en panne) et un choix par les **frais**.
+
+### 5.2 Contraintes des prestataires qui structurent l'architecture
+
+| Contrainte | Source | Conséquence |
 |---|---|---|
-| Pays (encaissement) | Cameroun, Côte d'Ivoire, Bénin, Togo, Burkina Faso, Sénégal, Mali, Guinée, Niger, **RDC** (listes publiques divergentes selon les pages) | **Bénin, Côte d'Ivoire, Togo, Sénégal, Niger** — **pas le Cameroun ni la RDC** |
-| Devises | XOF, XAF, CDF, USD (GNF selon les pages) | XOF |
-| Mobile Money | Oui (opérateurs par pays à confirmer) | Oui : MTN, Moov, Celtiis (Bénin), Orange, Wave, etc. |
-| Carte | Oui (à confirmer par pays) | Visa/Mastercard |
-| Frais publics observés | Non publiés de façon fiable (chiffres tiers contradictoires : ~1 à 3,8 %) | Grille publique : ~1,8 % (MTN/Moov Bénin) à 4 % ; carte ~3,6 % ; une autre page indique 4 % |
-| Confirmation | URL de notification (GET/POST) + en-tête `x-token` (HMAC-SHA256) + **API de vérification** du statut obligatoire ; notifications possiblement multiples | Webhooks signés (en-tête `X-FEDAPAY-SIGNATURE`, secret par endpoint, distinct test/live), jusqu'à 9 relances ; récupération de la transaction par API |
-| Bibliothèque Node officielle | SDK communautaire uniquement **[à vérifier]** → appels HTTP directs | Bibliothèque Node officielle (`fedapay`) |
-| Environnement de test | À confirmer | Mode test (sandbox) |
+| CinetPay : **un compte marchand est lié à une devise / un pays** (« si votre compte est créé au Cameroun, vous ne pouvez initier un paiement qu'en XAF ») | Doc CinetPay (message d'erreur documenté) | Il faudra **un compte CinetPay par zone monétaire** (XOF, XAF, CDF/USD, GNF). L'architecture gère donc des **comptes de paiement**, pas seulement des prestataires. |
+| CinetPay : le marchand doit être **une entreprise établie dans le pays** où il encaisse | FAQ CinetPay | **Contrainte juridique majeure** : voir §5.7 |
+| CinetPay : `channels` = `ALL`, `MOBILE_MONEY`, `CREDIT_CARD`, `WALLET` ; la liste des pays affichée sur le guichet dépend de la devise | Doc CinetPay | On peut **présélectionner la famille de moyen de paiement** (Mobile Money ou carte), pas l'opérateur ; l'opérateur est choisi sur la page CinetPay. |
+| CinetPay : montant **multiple de 5** (sauf USD) | Doc CinetPay | Validation des prix par compte de paiement (pas d'arrondi). |
+| FedaPay : présélection de l'opérateur via l'API **uniquement pour MTN** (doc v1) | Doc FedaPay v1 | L'utilisateur choisit son opérateur sur la page FedaPay. |
+| FedaPay : entité béninoise immatriculée au RCCM pour opérer au Bénin ; entité étrangère acceptée **à la discrétion** de FedaPay (pays d'enregistrement, compte bancaire d'entreprise) | CGU FedaPay | Éligibilité à confirmer avec le service conformité. |
+| Reversements : CinetPay exige un compte bancaire dans le pays pour les zones hors UEMOA | CGU CinetPay | Plusieurs comptes bancaires possibles selon les zones. |
 
-### 5.2 Recommandation **[D-01]**
+### 5.3 Architecture : prestataires interchangeables
 
-**Lancer avec un seul prestataire.** Intégrer deux prestataires dès le départ double les tests, les cas d'erreur et le support, sans bénéfice si un seul couvre les pays de lancement.
-
-- Si les pays de lancement incluent **Cameroun ou RDC** → **CinetPay** (FedaPay ne les couvre pas).
-- Si le lancement est **Bénin + Côte d'Ivoire uniquement** → les deux conviennent. FedaPay a une bibliothèque officielle et des frais publics bas au Bénin ; CinetPay évite une migration lors de l'ouverture au Cameroun/RDC.
-- **Recommandation globale : CinetPay**, car il couvre toute la cible avec un seul contrat. Ajouter FedaPay plus tard si ses frais au Bénin sont nettement meilleurs.
-- **Préalable bloquant** : confirmer que l'entité juridique du fondateur est éligible chez le prestataire choisi (pays d'enregistrement, KYC, compte de reversement) **[D-09]**.
-
-Le code utilisera une **interface commune** `PaymentProvider` (`createCheckout`, `verifyNotification`, `fetchTransactionStatus`) pour pouvoir brancher FedaPay sans toucher au reste.
-
-### 5.3 Flux de paiement sécurisé
+Trois niveaux, tous **configurables en base depuis l'admin**, sans modification du code :
 
 ```
-1. Client clique « Acheter »                         (navigateur)
-2. POST /api/checkout {type, id}                      (serveur)
-   - session valide ? contenu achetable ? déjà possédé ? (FR-21)
-   - prix lu en base selon la devise → commande `pending` avec
-     référence unique interne + montant figé
+Prestataire (code)          Compte de paiement (contrat)        Route (pays × moyen)
+┌──────────────┐            ┌───────────────────────────┐        ┌──────────────────────────────┐
+│ cinetpay     │──1───*────►│ cinetpay-xof  (XOF, live) │◄──*────│ BJ · mobile_money · prio 2   │
+│ fedapay      │            │ cinetpay-xaf  (XAF, live) │        │ BJ · mobile_money · prio 1 ──┼─► fedapay-xof
+│ (futur : …)  │            │ fedapay-xof   (XOF, live) │        │ CM · mobile_money · prio 1   │
+└──────────────┘            └───────────────────────────┘        │ CD · mobile_money · prio 1   │
+  code = adaptateur           identifiants = variables            └──────────────────────────────┘
+  (un module par               d'environnement (jamais en base)     priorité 1 = principal,
+   prestataire)                                                     2 = secours
+```
+
+- **Adaptateur par prestataire** : un module par prestataire implémente l'interface commune `PaymentProvider` :
+  - `createCheckout(order, account, method)` → URL de paiement
+  - `authenticateNotification(request, account)` → notification authentique ou rejet
+  - `fetchTransactionStatus(reference, account)` → statut, montant, devise réels (fait foi)
+  - `capabilities(account)` → devises, moyens, contraintes de montant (ex. multiple de 5)
+  - Ajouter un prestataire = écrire un nouvel adaptateur + ses tests ; **rien d'autre ne change** (commandes, droits, admin, statistiques sont indépendants du prestataire).
+- **Comptes de paiement** (`payment_accounts`) : un contrat marchand = une devise, un environnement (sandbox/live), une référence vers ses identifiants (préfixe de variables d'environnement). Activable/désactivable.
+- **Routes** (`payment_routes`) : pour chaque pays et chaque moyen (`mobile_money`, `card`, `wallet`), un compte principal et éventuellement un compte de secours, avec la liste des opérateurs à afficher (information visuelle).
+
+**Désactiver un prestataire ou un compte** (panne, litige, frais) :
+- les nouveaux paiements basculent automatiquement sur la route de secours, ou le moyen disparaît du pays s'il n'y en a pas ;
+- **les commandes déjà en cours continuent d'être vérifiées** (webhooks et réconciliation restent actifs pour un compte désactivé tant qu'il a des commandes non finalisées) ;
+- action journalisée dans `audit_logs`.
+
+### 5.4 Sélection automatique du moyen de paiement
+
+1. **Pays de paiement** : par défaut, le pays du numéro de téléphone vérifié du client. L'utilisateur peut choisir un autre pays **parmi les marchés ouverts** (ex. Béninois résidant à Abidjan avec un compte Mobile Money ivoirien). Avant connexion, le pays sert seulement à **afficher** les prix : il est estimé grâce à la géolocalisation de l'adresse IP fournie par l'hébergeur, jamais utilisée pour facturer.
+2. **Prix** : le serveur lit la grille tarifaire du marché choisi (§5.5) et fige le montant dans la commande.
+3. **Moyens proposés** : uniquement ceux ayant une route active pour ce pays, avec les logos des opérateurs (ex. « Mobile Money — MTN, Moov, Celtiis » ; « Carte bancaire — Visa, Mastercard »).
+4. **Routage** : le serveur choisit la route active de plus haute priorité pour (pays, moyen) et crée le paiement sur le compte correspondant, en présélectionnant la famille de moyen quand le prestataire le permet.
+5. Le navigateur n'envoie que `(produit, pays, moyen)` ; **le serveur valide** que le pays est ouvert, que la route existe, et recalcule tout.
+
+### 5.5 Devises et tarifs par marché
+
+- **Grilles tarifaires** (`price_lists`) : une grille = une devise + un pas d'arrondi. Chaque marché pointe vers une grille. Exemple initial **[D-03]** :
+  - `XOF` : Bénin, Côte d'Ivoire, Sénégal, Togo, Burkina, Mali, Niger → 300 / 1 500 ;
+  - `XAF` : Cameroun → 300 / 1 500 ;
+  - `RDC` : USD ou CDF, montant à décider ;
+  - `GNF` : Guinée, montant à décider.
+- Plusieurs marchés partagent une grille (simple) ; un marché peut avoir sa propre grille si un prix local différent est souhaité (flexible), sans changer le code.
+- Les prix sont saisis par saison et par grille (prix épisode, prix pass), avec exceptions possibles par épisode (DATABASE_SCHEMA §3.3).
+- Les montants sont validés contre les contraintes de **tous les comptes de paiement** routés pour les marchés de la grille (ex. multiple de 5).
+- Pas de conversion automatique de devises : chaque prix est saisi explicitement (évite les montants bizarres et les risques de change).
+- Statistiques toujours **par devise**, jamais additionnées entre devises.
+
+### 5.6 Flux de paiement sécurisé
+
+```
+1. Client choisit « Acheter », le pays de paiement et le moyen       (navigateur)
+2. POST /api/checkout {produit, pays, moyen}                          (serveur)
+   - session valide, client actif, contenu achetable, non possédé (FR-21)
+   - marché ouvert ? route active pour (pays, moyen) ?
+   - prix lu dans la grille du marché → commande `pending` avec
+     référence unique, montant, devise, pays, moyen, compte de paiement figés
    - réutilise une commande `pending` récente identique (anti double-clic)
-3. Serveur appelle le prestataire → URL de paiement
-4. Redirection du client → page du prestataire → validation Mobile Money
-5. Prestataire → POST /api/webhooks/<provider>        (serveur)
-   a. authentifier la notification (signature / HMAC, comparaison à temps constant)
-      → invalide : 401, journalisé, rien d'autre
+3. Adaptateur du prestataire → URL de paiement
+4. Redirection du client → page du prestataire → validation (Mobile Money/carte)
+5. Prestataire → POST /api/webhooks/<prestataire>/<compte>             (serveur)
+   a. authentifier la notification avec le secret DE CE COMPTE
+      (signature / HMAC, comparaison à temps constant) → sinon 401, journalisé
    b. journaliser l'événement brut (payment_events)
-   c. INTERROGER L'API du prestataire pour obtenir le statut réel
-   d. vérifier : référence connue, montant = montant figé, devise identique
+   c. INTERROGER L'API du prestataire (identifiants de ce compte) : statut réel
+   d. vérifier : référence connue, compte = compte de la commande,
+      montant = montant figé, devise identique
    e. si payé : confirm_order_payment (transaction SQL unique, idempotente) :
       commande → `paid` + droit d'accès (ON CONFLICT DO NOTHING)
-   f. répondre 200 seulement APRÈS ces étapes (traitement synchrone, quelques
-      secondes). En cas d'erreur temporaire (API prestataire injoignable, base
-      indisponible) : répondre 500 pour que le prestataire réessaie.
+   f. répondre 200 seulement APRÈS ces étapes ; 500 en cas d'erreur temporaire
+      (API injoignable, base indisponible) pour que le prestataire réessaie.
    L'idempotence repose sur l'état de la commande et l'unicité des droits,
-   PAS sur le rejet des notifications déjà reçues : une notification répétée
-   est retraitée sans effet de bord, si bien qu'un traitement interrompu n'est
-   jamais perdu.
-6. Navigateur revient sur /paiement/retour?order=… → interroge le serveur
+   pas sur le rejet des notifications déjà reçues.
+6. Retour navigateur sur /paiement/retour?order=… → interroge le serveur
    → affiche le statut réel (jamais déduit des paramètres d'URL)
-7. Cron de réconciliation (couvre les webhooks perdus et les paiements tardifs) :
-   - commandes `pending` : revérifiées toutes les ~10 min ;
+7. Cron de réconciliation (tous comptes, y compris désactivés) :
+   - `pending` : revérifiées toutes les ~10 min ;
    - `pending` sans paiement après 60 min → `expired` ;
-   - commandes `expired`, `failed`, `cancelled` de moins de 72 h : revérifiées
-     toutes les heures (un client peut réessayer sur la page du prestataire
-     après un premier refus).
+   - `expired`, `failed`, `cancelled` de moins de 72 h : revérifiées toutes les heures.
 ```
 
 Règles détaillées : SECURITY_REQUIREMENTS §5.
 
-### 5.4 Échecs et remboursements
-- Paiement échoué/annulé : commande `failed`/`cancelled`, aucun droit. L'utilisateur peut recommencer (nouvelle commande).
-- **Le prestataire a toujours le dernier mot** : une commande `expired`, `failed` ou `cancelled` passe à `paid` si l'API du prestataire confirme ensuite le paiement (l'argent a été pris, le droit doit être accordé).
-- Montant différent du montant figé : commande `needs_review`, pas de droit automatique, **alerte admin**.
-- Paiement d'un contenu déjà couvert (ex. épisode payé alors qu'un pass de la saison vient d'être accordé) : commande `paid` marquée `is_duplicate_payment`, **alerte admin** pour remboursement.
-- Remboursement : manuel via le tableau de bord du prestataire **[à vérifier : API de remboursement Mobile Money]** ; l'admin marque ensuite la commande `refunded`, ce qui révoque **uniquement le droit créé par cette commande** (un remboursement de doublon ne retire rien).
+### 5.7 Restrictions liées au pays d'enregistrement de la société
+
+C'est **la contrainte la plus importante** de l'orientation panafricaine, et elle n'est pas technique.
+
+| Zone | Prestataire possible | Exigence observée | Risque |
+|---|---|---|---|
+| UEMOA (XOF) | FedaPay | Entité béninoise (RCCM) pour opérer au Bénin ; entité étrangère à la discrétion de FedaPay | Faible si la société est béninoise **[D-09]** |
+| UEMOA (XOF) | CinetPay | « Entreprise établie dans le pays » où l'on encaisse ; Bénin listé parmi les pays | À confirmer : un compte XOF ouvert depuis le Bénin couvre-t-il les autres pays UEMOA ? |
+| CEMAC (XAF, Cameroun) | CinetPay | Compte lié au pays/devise ; entreprise établie dans le pays ? compte bancaire local pour les reversements | **Élevé** : une société camerounaise ou un partenaire local pourrait être exigé |
+| RDC (CDF/USD) | CinetPay | Idem ; compte bancaire en RDC probable | **Élevé** |
+| Guinée (GNF) | CinetPay | Idem | **Élevé** |
+
+Autres sujets juridiques liés au pays d'enregistrement (à traiter avec un juriste/comptable, LAUNCH_CHECKLIST §4) :
+- **TVA sur les services numériques** : plusieurs pays de la cible taxent les services numériques vendus à leurs résidents, même par une entreprise étrangère.
+- **Réglementation des changes** (BCEAO pour l'UEMOA, BEAC pour la CEMAC, Banque centrale du Congo) : rapatriement des fonds encaissés hors de la zone de la société.
+- **Protection des données** : déclarations éventuelles dans chaque pays ouvert.
+
+**Approche recommandée (sans limiter artificiellement le lancement)** : l'architecture est panafricaine dès le premier jour ; **chaque marché s'ouvre dès que sa route de paiement est contractuellement et techniquement validée** (« porte qualité » par marché, LAUNCH_CHECKLIST §9). Les marchés dont le contrat n'est pas prêt restent visibles en navigation (catalogue, épisodes gratuits) mais l'achat y affiche « Paiement bientôt disponible dans votre pays ».
+
+### 5.8 Échecs et remboursements
+- Paiement échoué/annulé : commande `failed`/`cancelled`, aucun droit. L'utilisateur peut recommencer (nouvelle commande, éventuellement avec un autre moyen).
+- **Le prestataire a toujours le dernier mot** : une commande `expired`, `failed` ou `cancelled` passe à `paid` si l'API du prestataire confirme ensuite le paiement.
+- Montant, devise ou compte différents de la commande : `needs_review`, pas de droit automatique, **alerte admin**.
+- Paiement d'un contenu déjà couvert : commande `paid` marquée `is_duplicate_payment`, **alerte admin** pour remboursement.
+- Remboursement : manuel via le tableau de bord du prestataire concerné **[à vérifier : API de remboursement Mobile Money]** ; l'admin marque ensuite la commande `refunded`, ce qui révoque **uniquement le droit créé par cette commande**.
 
 ## 6. Vidéo
 
@@ -228,8 +310,7 @@ Variables d'environnement (noms indicatifs, aucune valeur dans le dépôt) :
 | `SUPABASE_SERVICE_ROLE_KEY` | **serveur** | Accès complet — jamais au navigateur |
 | `PIN_PEPPER` | **serveur** | Secret ajouté au hachage des PIN |
 | `HASH_SECRET` | **serveur** | HMAC des numéros/IP dans les journaux |
-| `CINETPAY_API_KEY`, `CINETPAY_SITE_ID`, `CINETPAY_SECRET_KEY` | **serveur** | Paiement + vérification HMAC |
-| `FEDAPAY_SECRET_KEY`, `FEDAPAY_WEBHOOK_SECRET` | **serveur** | Plus tard |
+| `PAYACCT_<CODE>_*` (ex. `PAYACCT_CINETPAY_XOF_API_KEY`, `…_SITE_ID`, `…_SECRET_KEY` ; `PAYACCT_FEDAPAY_XOF_SECRET_KEY`, `…_WEBHOOK_SECRET`) | **serveur** | Identifiants **par compte de paiement** ; la base ne stocke que le code du compte (`credentials_ref`), jamais les clés |
 | `BUNNY_STREAM_LIBRARY_ID` | serveur | Bibliothèque vidéo |
 | `BUNNY_STREAM_API_KEY` | **serveur** | Gestion des vidéos |
 | `BUNNY_TOKEN_SECURITY_KEY` / `BUNNY_CDN_TOKEN_KEY` | **serveur** | Signature des URL |
@@ -257,7 +338,7 @@ Un fichier `.env.example` (sans valeurs) sera créé au début du développement
 | Bunny Stream | à la consommation (stockage + diffusion), quelques $ à quelques dizaines de $ au départ |
 | Sentry | gratuit au départ |
 | SMS OTP | **variable et potentiellement important** : prix par SMS selon pays/opérateur ; à chiffrer **[D-16]** |
-| Prestataire de paiement | commission par transaction |
+| Prestataires de paiement | commission par transaction, variable selon pays/opérateur ; éventuels frais de compte ou d'abonnement par compte marchand **[à vérifier]** |
 | Nom de domaine | ~10–20 $/an |
 
 ## 11. Risques techniques
@@ -267,6 +348,8 @@ Un fichier `.env.example` (sans valeurs) sera créé au début du développement
 | Erreur dans le code d'authentification maison | Comptes compromis | Périmètre réduit, prototype S1, tests exhaustifs, revue de sécurité indépendante |
 | Webhooks perdus ou retardés | Client payé sans accès | Réconciliation automatique + revérification manuelle admin |
 | Coût SMS / fraude au SMS (« SMS pumping ») | Facture élevée | Turnstile, limites par numéro/IP/pays, liste blanche des indicatifs pays |
-| Couverture réelle des opérateurs différente des pages publiques | Paiements impossibles dans un pays | Vérification écrite auprès du prestataire avant d'ouvrir un pays |
+| Couverture réelle des opérateurs différente des pages publiques | Paiements impossibles dans un pays | Vérification écrite auprès du prestataire et paiement réel de test avant d'ouvrir un marché |
+| Comptes marchands impossibles à ouvrir hors du pays de la société | Marchés XAF/CDF/GNF non monétisables | Clarifier tôt (§5.7) ; partenaire local ou prestataire supplémentaire branché via un nouvel adaptateur |
+| Complexité de plusieurs prestataires et comptes | Plus de tests et de support | Interface commune, tests de contrat par adaptateur, sandbox par compte, routes désactivables |
 | Bande passante Afrique plus chère | Marges | Qualités adaptées, suivi des coûts mensuels |
 | Pas de région cloud en Afrique | Latence | Pages légères, cache CDN, région Europe la plus proche |

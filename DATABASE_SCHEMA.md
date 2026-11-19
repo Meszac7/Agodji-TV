@@ -32,10 +32,11 @@ customers 1──1 pin_credentials
 auth.users (Supabase, admins uniquement) 1──1 staff_roles
 
 series 1──* seasons 1──* episodes
-   seasons 1──* season_prices          (prix par devise)
+   seasons 1──* season_prices          (prix par grille tarifaire)
    episodes 1──* episode_price_overrides (exceptions de prix)
 
-markets (pays → devise → prestataire)
+markets ──* payment_routes *── payment_accounts *── payment_providers
+markets *──1 price_lists 1──* season_prices / episode_price_overrides
 auth_attempts, audit_logs, playback_sessions (journaux)
 ```
 
@@ -53,7 +54,7 @@ Les clients ne sont **pas** des utilisateurs Supabase Auth (voir TECHNICAL_ARCHI
 | phone_e164 | text UNIQUE NOT NULL | ex. `+22990000000` ; vérifié par OTP |
 | phone_verified_at | timestamptz | |
 | display_name | text NULL | facultatif |
-| country_code | text NOT NULL | ISO 3166-1 alpha-2, **déduit par le serveur** de l'indicatif vérifié ; détermine la devise — jamais modifiable par le client |
+| country_code | text NOT NULL | ISO 3166-1 alpha-2, **déduit par le serveur** de l'indicatif vérifié ; pays de paiement **par défaut** (le client peut choisir un autre marché ouvert au moment de l'achat) — non modifiable par le client |
 | status | text | `active` \| `blocked` \| `deleted` |
 | terms_version | text | version des CGU acceptée |
 | terms_accepted_at | timestamptz | |
@@ -167,23 +168,44 @@ Les clients ne sont **pas** des utilisateurs Supabase Auth (voir TECHNICAL_ARCHI
 
 Visibilité publique d'un épisode : série `published`, saison `published`, et épisode `published` **ou** (`scheduled` et `publish_at <= now()`).
 
-### 3.3 Prix et marchés
+### 3.3 Marchés, devises et prix
 
-**`markets`** — pays ouverts à la vente.
-
-| Colonne | Type | Notes |
-|---|---|---|
-| country_code | text PK | `BJ`, `CI`, `CM`, `CD`… |
-| currency | text | `XOF`, `XAF`, `USD`/`CDF` |
-| payment_provider | text | `cinetpay` (puis `fedapay`) |
-| is_enabled | boolean | ouverture pays par pays **[D-02]** |
-
-**`season_prices`** — prix par défaut d'une saison, par devise.
+**`currencies`**
 
 | Colonne | Type | Notes |
 |---|---|---|
-| season_id | uuid FK | PK (season_id, currency) |
-| currency | text | |
+| code | text PK | ISO 4217 : `XOF`, `XAF`, `CDF`, `USD`, `GNF` |
+| minor_units | int | 0 pour XOF/XAF/GNF, 2 pour USD/CDF |
+| display_label | text | ex. « FCFA », « $ », « FC », « GNF » |
+
+**`price_lists`** — grilles tarifaires (une devise chacune).
+
+| Colonne | Type | Notes |
+|---|---|---|
+| id | uuid PK | |
+| code | text UNIQUE | ex. `XOF`, `XAF`, `RDC-USD` |
+| currency | text FK currencies | |
+| label | text | ex. « Afrique de l'Ouest (FCFA) » |
+
+**`markets`** — pays où la plateforme est proposée.
+
+| Colonne | Type | Notes |
+|---|---|---|
+| country_code | text PK | `BJ`, `CI`, `SN`, `TG`, `BF`, `ML`, `NE`, `CM`, `CD`, `GN`… |
+| name | text | |
+| phone_prefix | text | ex. `+229` (déduction du pays depuis le numéro, liste blanche OTP) |
+| price_list_id | uuid FK price_lists | plusieurs marchés peuvent partager une grille |
+| status | text | `hidden` (non proposé) \| `browse_only` (navigation et gratuits, achat « bientôt disponible ») \| `open` (achat possible) |
+| opened_at | timestamptz NULL | |
+
+Passage à `open` refusé par la base tant que : au moins une route de paiement active existe pour ce pays, et tous les contenus payants publiés ont un prix dans la grille du marché.
+
+**`season_prices`** — prix d'une saison, par grille.
+
+| Colonne | Type | Notes |
+|---|---|---|
+| season_id | uuid FK | PK (season_id, price_list_id) |
+| price_list_id | uuid FK | |
 | episode_price | int NOT NULL CHECK > 0 | prix par défaut d'un épisode payant |
 | pass_price | int NOT NULL CHECK > 0 | prix du pass saison |
 | updated_at, updated_by | | |
@@ -192,13 +214,55 @@ Visibilité publique d'un épisode : série `published`, saison `published`, et 
 
 | Colonne | Type | Notes |
 |---|---|---|
-| episode_id | uuid FK | PK (episode_id, currency) |
-| currency | text | |
+| episode_id | uuid FK | PK (episode_id, price_list_id) |
+| price_list_id | uuid FK | |
 | price | int NOT NULL CHECK > 0 | |
 
-Règle : prix d'un épisode = override s'il existe, sinon `season_prices.episode_price`. Un épisode payant ou une saison sans prix dans **chaque devise des marchés ouverts** ne peut pas être publié (FR-55). L'ouverture d'un nouveau marché (`is_enabled = true`) est refusée tant que des contenus payants publiés n'ont pas de prix dans sa devise.
+Règles :
+- Prix d'un épisode = exception s'il existe, sinon `season_prices.episode_price` de la grille du marché.
+- Un épisode payant ou une saison ne peut être publié que s'il a un prix dans **chaque grille utilisée par un marché `open`** (FR-55).
+- Tout prix est validé contre les contraintes des comptes de paiement routés pour les marchés de la grille (ex. multiple de 5 chez CinetPay hors USD).
 
-### 3.4 Commandes, paiements, droits
+### 3.4 Prestataires, comptes et routes de paiement
+
+**`payment_providers`** — prestataires connus du code (un adaptateur chacun).
+
+| Colonne | Type | Notes |
+|---|---|---|
+| code | text PK | `cinetpay`, `fedapay` |
+| display_name | text | |
+| is_enabled | boolean | interrupteur global |
+
+**`payment_accounts`** — un contrat marchand chez un prestataire.
+
+| Colonne | Type | Notes |
+|---|---|---|
+| id | uuid PK | |
+| code | text UNIQUE | ex. `cinetpay-xof`, `cinetpay-xaf`, `fedapay-xof` ; sert dans l'URL du webhook |
+| provider_code | text FK payment_providers | |
+| currency | text FK currencies | un compte = une devise |
+| environment | text | `sandbox` \| `live` |
+| credentials_ref | text | préfixe des variables d'environnement (ex. `PAYACCT_CINETPAY_XOF`) — **aucune clé en base** |
+| constraints | jsonb | ex. `{"amount_step": 5, "min_amount": 100}` (valeurs à confirmer par prestataire) |
+| is_enabled | boolean | désactivé = plus de nouveaux paiements, vérifications maintenues |
+
+**`payment_routes`** — quel compte encaisse quel moyen dans quel pays.
+
+| Colonne | Type | Notes |
+|---|---|---|
+| id | uuid PK | |
+| country_code | text FK markets | |
+| method | text | `mobile_money` \| `card` \| `wallet` |
+| payment_account_id | uuid FK payment_accounts | la devise du compte doit égaler celle de la grille du marché (contrainte) |
+| priority | int | 1 = principal, 2 = secours… UNIQUE (country_code, method, priority) |
+| operators_display | text[] | ex. `{MTN, Moov, Celtiis}` — affichage uniquement |
+| is_enabled | boolean | |
+| verified_at, verified_by | | date du dernier paiement réel de contrôle (porte qualité) |
+
+Sélection : route `is_enabled` de plus petite `priority` dont le compte et le prestataire sont actifs.
+
+### 3.5 Commandes, paiements, droits
+
 
 **`orders`**
 
@@ -210,9 +274,13 @@ Règle : prix d'un épisode = override s'il existe, sinon `season_prices.episode
 | product_type | text | `episode` \| `season_pass` |
 | episode_id | uuid NULL FK | |
 | season_id | uuid NULL FK | |
+| market_country | text FK markets | pays de paiement choisi (figé) |
+| payment_method | text | `mobile_money` \| `card` \| `wallet` |
+| price_list_id | uuid FK | grille appliquée (figée) |
 | currency | text | |
 | amount | int | **figé** à la création |
-| provider | text | `cinetpay` \| `fedapay` |
+| payment_account_id | uuid FK payment_accounts | compte qui encaisse (figé) |
+| provider | text | `cinetpay` \| `fedapay` (dénormalisé pour les filtres) |
 | provider_transaction_id | text NULL | UNIQUE (provider, provider_transaction_id) |
 | status | text | `pending` \| `paid` \| `failed` \| `cancelled` \| `expired` \| `needs_review` \| `refunded` |
 | status_reason | text NULL | |
@@ -234,6 +302,7 @@ Contraintes :
 |---|---|---|
 | id | bigint PK | |
 | provider | text | |
+| payment_account_id | uuid NULL FK | compte déduit de l'URL du webhook |
 | event_key | text | identifiant de l'événement ou hachage du corps (indexé, **non unique** : une notification répétée est journalisée et retraitée sans effet de bord) |
 | order_id | uuid NULL FK | |
 | signature_valid | boolean | |
@@ -263,7 +332,7 @@ Contraintes :
 - Index uniques partiels : `(user_id, episode_id) WHERE revoked_at IS NULL` et `(user_id, season_id) WHERE revoked_at IS NULL`. **Ce sont eux qui empêchent un double droit**, même si deux notifications arrivent en même temps.
 - Remboursement d'une commande : seul le droit dont `order_id` = cette commande est révoqué. Une commande en double n'a pas de droit propre : son remboursement ne retire rien.
 
-### 3.5 Journaux
+### 3.6 Journaux
 
 **`audit_logs`** — actions administrateur et événements de sécurité.
 
@@ -284,9 +353,10 @@ Contraintes :
 | Fonction | Rôle | Appelée par |
 |---|---|---|
 | `has_episode_access(user_id, episode_id) → boolean` | Voir définition ci-dessous | `/api/playback`, bibliothèque, listes |
-| `episode_price(episode_id, currency) → int` | override sinon prix saison | checkout |
-| `create_order(user_id, product_type, product_id, currency)` | vérifie FR-21, fige le prix, réutilise une commande `pending` récente identique | `/api/checkout` |
-| `confirm_order_payment(order_id, provider_tx_id, amount, currency)` | **transaction atomique** avec verrou sur la commande : vérifie montant/devise (sinon `needs_review`), transition vers `paid` depuis un état autorisé (déjà `paid` → aucun effet), insère le droit `ON CONFLICT DO NOTHING`, marque `is_duplicate_payment` si le contenu était **déjà couvert** (même logique que `has_episode_access`, pas seulement une ligne identique) | webhook + réconciliation |
+| `episode_price(episode_id, price_list_id) → int` | exception sinon prix saison | checkout |
+| `resolve_payment_route(country_code, method) → payment_account_id` | route active de plus haute priorité (compte et prestataire actifs) | checkout |
+| `create_order(user_id, product_type, product_id, country_code, method)` | vérifie FR-21, marché `open`, route active ; fige grille, prix, devise, compte ; réutilise une commande `pending` récente identique | `/api/checkout` |
+| `confirm_order_payment(order_id, payment_account_id, provider_tx_id, amount, currency)` | **transaction atomique** avec verrou sur la commande : vérifie compte/montant/devise (sinon `needs_review`), transition vers `paid` depuis un état autorisé (déjà `paid` → aucun effet), insère le droit `ON CONFLICT DO NOTHING`, marque `is_duplicate_payment` si le contenu était **déjà couvert** (même logique que `has_episode_access`, pas seulement une ligne identique) | webhook + réconciliation |
 | `user_library(user_id)` | passes + épisodes possédés + épisodes accessibles des saisons possédées | page bibliothèque |
 
 **Définition de `has_episode_access`** (un client peut lire un épisode si) :
@@ -311,6 +381,7 @@ Sécurité des fonctions : droit d'exécution **retiré** à `PUBLIC`, `anon` et
 ## 6. Statistiques (vues SQL)
 
 - `v_sales_daily` : CA et nombre de commandes `paid` par jour et par devise.
+- `v_sales_by_market` : ventes par pays, moyen de paiement et prestataire/compte ; taux d'échec par route.
 - `v_sales_by_product` : ventes par série / saison / épisode, épisodes vs passes.
 - `v_user_stats` : inscrits, nouveaux inscrits, acheteurs, conversion.
 - `v_top_episodes` : lectures (playback_sessions) et ventes.

@@ -13,12 +13,12 @@
 | 1 | Fondations du projet | 0 | Compte Vercel |
 | 2 | Catalogue public + épisodes gratuits | 1 | Contenus (affiches, vidéos de test) |
 | 3 | Comptes : inscription / connexion | 1 | Prestataire SMS **[D-16]** |
-| 4 | Achat et paiement | 2, 3 | Compte marchand sandbox **[D-01]** |
+| 4 | Achat et paiement (CinetPay + FedaPay, routage par pays) | 2, 3 | Accès sandbox **CinetPay et FedaPay** |
 | 5 | Lecture protégée + bibliothèque | 4 | — |
 | 6 | Administration | 2, 4 | — |
 | 7 | Statistiques | 6 | — |
 | 8 | Durcissement, sécurité, recette | 1–7 | — |
-| 9 | Bêta fermée | 8 | Compte marchand **live**, domaine |
+| 9 | Bêta fermée | 8 | Au moins un compte marchand **live** validé, domaine |
 | 10 | Lancement | 9 | LAUNCH_CHECKLIST complète |
 
 ## Étape 0 — Prototypes techniques
@@ -29,7 +29,7 @@ Objectif : **lever les trois incertitudes majeures avant de construire**. Code j
 |---|---|---|
 | S1 — Auth client maison | Inscription OTP, connexion PIN, sessions en base, verrouillages, réinitialisation, déconnexion globale : le module est-il simple, robuste et entièrement testable ? Choix et paramétrage d'Argon2id sur Vercel. | Parcours complet en local + tests automatisés des verrouillages et limites |
 | S2 — Jetons Bunny | Un lien de lecture copié est-il refusé après expiration et depuis un autre domaine ? Un épisode entier se lit-il jusqu'au bout avec un jeton court ? Le lecteur intégré fonctionne-t-il sur Android/iOS ? Webhook d'encodage Bunny : format et authentification. | Démonstration enregistrée + résultat documenté |
-| S3 — Paiement sandbox | Création de paiement, notification, vérification par API, notifications répétées, échec puis nouvel essai réussi sur la même commande, annulation | Journal des appels sandbox + doc des formats réels (HMAC, statuts) |
+| S3 — Paiement sandbox (les deux prestataires) | Pour **CinetPay et FedaPay** : création de paiement, présélection du moyen (Mobile Money / carte), notification, vérification par API, notifications répétées, échec puis nouvel essai réussi sur la même commande, annulation, contraintes de montant. L'interface `PaymentProvider` couvre-t-elle bien les deux sans cas particulier ? | Journal des appels sandbox + doc des formats réels (HMAC, signatures, statuts) + interface `PaymentProvider` figée |
 
 Sortie : note de décision dans `docs/decisions/` pour chaque prototype.
 
@@ -62,7 +62,9 @@ Sortie : note de décision dans `docs/decisions/` pour chaque prototype.
 
 ## Étape 4 — Achat et paiement
 
-- Écran d'achat, `create_order`, intégration du prestataire choisi derrière l'interface `PaymentProvider`.
+- Configuration en base : pays, grilles tarifaires, prestataires, comptes, routes (DATABASE_SCHEMA §3.3–3.4).
+- Écran d'achat avec choix du pays de paiement et des moyens disponibles (FR-27 à FR-29), `create_order`, routage.
+- **Deux adaptateurs** (CinetPay, FedaPay) derrière l'interface `PaymentProvider`, avec une **suite de tests commune** que chaque adaptateur doit passer (ajouter un prestataire = passer la même suite).
 - Webhook authentifié + vérification API + `confirm_order_payment` atomique.
 - Page de retour avec interrogation du statut, réconciliation planifiée.
 
@@ -77,7 +79,12 @@ Sortie : note de décision dans `docs/decisions/` pour chaque prototype.
 - commande `failed`/`expired` finalement payée → créditée ;
 - épisode et pass de la même saison payés en même temps → doublon signalé ;
 - remboursement d'un doublon → le droit d'origine est conservé ;
-- achat d'un contenu déjà possédé → refusé.
+- achat d'un contenu déjà possédé → refusé ;
+- notification authentifiée avec le secret d'un **autre** compte → rejetée ;
+- route principale désactivée → bascule sur le secours ; aucune route → moyen masqué ;
+- compte désactivé avec commandes en cours → celles-ci sont quand même vérifiées et créditées ;
+- pays non ouvert ou moyen sans route → commande refusée par le serveur ;
+- prix non conforme aux contraintes d'un compte (ex. pas multiple de 5) → refusé à la saisie.
 
 ## Étape 5 — Lecture protégée et bibliothèque
 
@@ -122,8 +129,8 @@ Sortie : note de décision dans `docs/decisions/` pour chaque prototype.
 
 ## Après la V1 (ordre indicatif)
 
-1. Ouverture Cameroun puis RDC (si non incluses au lancement) **[D-02]**.
-2. Second prestataire de paiement **[D-01]**.
+1. Ouverture à l'achat de chaque pays restant dès que son contrat de paiement est validé **[D-09]** (processus LAUNCH_CHECKLIST §9, sans développement).
+2. Prestataire supplémentaire pour les pays CEMAC non couverts **[D-19]** (nouvel adaptateur).
 3. Reprise de lecture, mode économie de données, PWA installable.
 4. Notifications « nouvel épisode » (SMS/WhatsApp/push) selon coûts.
 5. Codes promo / offres de lancement.

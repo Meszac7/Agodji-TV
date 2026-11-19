@@ -7,9 +7,9 @@
 
 ## 1. Décisions à prendre (voir PROJECT_BRIEF §8)
 
-- [ ] **F** D-01 Prestataire de paiement au lancement
-- [ ] **F** D-02 Pays ouverts au lancement
-- [ ] **F** D-03 Prix par devise (XOF, XAF, RDC)
+- [x] **F** D-01 Prestataires : CinetPay + FedaPay (orientation validée le 2026-11-19)
+- [x] **F** D-02 Orientation panafricaine (validée le 2026-11-19)
+- [ ] **F** D-03 Grilles tarifaires (XOF, XAF, RDC, GNF)
 - [ ] **F** D-04 Longueur du PIN (4 ou 6 chiffres)
 - [ ] **F** D-05 OTP SMS obligatoire (inscription, réinitialisation)
 - [ ] **F** D-06 Authentification administrateur (e-mail + TOTP)
@@ -23,6 +23,9 @@
 - [ ] **F** D-14 Logo et identité de marque
 - [ ] **F** D-15 Langue(s)
 - [ ] **F/T** D-16 Prestataire SMS
+- [ ] **F** D-17 Pays de paiement différent du pays du numéro
+- [ ] **F** D-18 Prestataire principal par pays en zone UEMOA
+- [ ] **F** D-19 Pays CEMAC non couverts
 
 ## 2. Comptes et accès externes à créer
 
@@ -34,7 +37,8 @@ Le fondateur crée les comptes à son nom (ou celui de la société) et active l
 | 2 | **Supabase** (2 projets : préproduction, production) | Base de données, Auth, stockage d'images | Accès au projet ; plan Pro pour la production | [ ] |
 | 3 | **Vercel** | Hébergement | Projet relié au dépôt ; plan Pro (usage commercial) | [ ] |
 | 4 | **Bunny.net** | Vidéo | Bibliothèque Stream préproduction + production ; clé API, clé de jeton | [ ] |
-| 5 | **CinetPay** (et/ou FedaPay) | Paiements | Compte marchand, KYC validé, accès sandbox puis live, clés API, secret de notification | [ ] |
+| 5a | **CinetPay** — un compte **par zone monétaire** (XOF, XAF, RDC, GNF) selon ce que CinetPay exige | Paiements | Compte(s) marchand(s), KYC validé, sandbox puis live, clés API, site ID, clé secrète HMAC | [ ] |
+| 5b | **FedaPay** — compte XOF | Paiements UEMOA | Compte marchand, KYC validé, sandbox puis live, clé secrète, secret de webhook | [ ] |
 | 6 | **Prestataire SMS** | OTP | Compte, numéro/nom d'expéditeur autorisé dans chaque pays, crédit | [ ] |
 | 7 | **Cloudflare Turnstile** | Anti-robot | Clé de site + clé secrète (gratuit) | [ ] |
 | 8 | **Sentry** | Suivi des erreurs | Projet + DSN | [ ] |
@@ -43,8 +47,11 @@ Le fondateur crée les comptes à son nom (ou celui de la société) et active l
 
 ## 3. À vérifier auprès des prestataires (questions écrites)
 
-### Paiement (CinetPay / FedaPay)
-- [ ] Pays et opérateurs Mobile Money **actuellement** actifs pour notre compte (Bénin, Côte d'Ivoire, Cameroun, RDC).
+### Paiement (CinetPay / FedaPay) — à poser à **chacun** des deux
+- [ ] Pays et opérateurs Mobile Money **actuellement** actifs pour notre compte, pays par pays (Bénin, Côte d'Ivoire, Sénégal, Togo, Burkina Faso, Mali, Niger, Guinée, Cameroun, RDC).
+- [ ] **Un compte ouvert par une société enregistrée dans le pays X permet-il d'encaisser dans quels autres pays ?** Faut-il un compte (et une entité) par pays ou par zone monétaire ?
+- [ ] Est-il possible de présélectionner le moyen de paiement ou l'opérateur, et de limiter les pays proposés sur la page de paiement ?
+- [ ] Frais d'ouverture, d'abonnement ou minimum mensuel par compte marchand.
 - [ ] Cartes bancaires : disponibles dans quels pays ?
 - [ ] Grille de frais **actuelle** par pays/opérateur ; existence de **frais fixes** par transaction ; montant minimum.
 - [ ] Délais et frais de reversement vers notre compte.
@@ -52,7 +59,8 @@ Le fondateur crée les comptes à son nom (ou celui de la société) et active l
 - [ ] Format exact et sécurité des notifications (HMAC/signature), statuts possibles, notifications multiples.
 - [ ] API de vérification de transaction : statuts, champs montant/devise.
 - [ ] Remboursements : possibles par API pour le Mobile Money ? délais ?
-- [ ] Contraintes de montant (ex. multiple de 5 en XOF/XAF) et devises acceptées pour la RDC.
+- [ ] Contraintes de montant (ex. multiple de 5 en XOF/XAF chez CinetPay) et devises acceptées pour la RDC (USD, CDF) et la Guinée (GNF).
+- [ ] Statut de disponibilité / page d'incidents (pour la bascule vers le prestataire de secours).
 - [ ] Environnement sandbox et numéros de test.
 
 ### Bunny Stream
@@ -62,7 +70,7 @@ Le fondateur crée les comptes à son nom (ou celui de la société) et active l
 - [ ] Offre DRM (MediaCage) : prix, compatibilité — pour plus tard.
 
 ### SMS
-- [ ] Prix par SMS et taux de délivrabilité par pays et opérateur.
+- [ ] Prix par SMS et taux de délivrabilité **pour chaque pays visé** et chaque opérateur.
 - [ ] Enregistrement de l'identifiant d'expéditeur (obligatoire dans certains pays).
 - [ ] API d'envoi utilisable depuis notre serveur (HTTP), accusés de réception de livraison.
 
@@ -72,6 +80,9 @@ Le fondateur crée les comptes à son nom (ou celui de la société) et active l
 
 ## 4. Juridique et administratif (**J**)
 
+- [ ] **Stratégie d'encaissement par zone monétaire** (D-09) : quelle entité encaisse en UEMOA, en CEMAC, en RDC, en Guinée ; comptes bancaires de reversement correspondants.
+- [ ] Réglementation des changes (BCEAO, BEAC, Banque centrale du Congo) : rapatriement des fonds vers la société.
+- [ ] TVA / taxes sur les services numériques **dans chaque pays ouvert à l'achat**.
 - [ ] Entité juridique et compte bancaire de reversement.
 - [ ] **Conditions générales d'utilisation et de vente** (achat définitif, absence d'expiration, politique de remboursement, retrait de contenu).
 - [ ] **Politique de confidentialité** (données collectées, durée de conservation, droits des utilisateurs).
@@ -122,3 +133,15 @@ Le fondateur crée les comptes à son nom (ou celui de la société) et active l
 - [ ] Toutes les sections ci-dessus complètes.
 - [ ] Bêta fermée sans incident bloquant.
 - [ ] **Décision de lancement du fondateur.**
+
+## 9. Ouverture d'un pays à l'achat (à répéter pour chaque pays)
+
+Un pays passe de « navigation seule » à « ouvert à l'achat » uniquement quand :
+- [ ] le contrat avec au moins un prestataire couvrant ce pays est actif (KYC validé, compte live) ;
+- [ ] les identifiants live du compte sont configurés dans l'hébergeur (jamais par chat) ;
+- [ ] la route de paiement est configurée dans l'admin (moyens, opérateurs, secours éventuel) ;
+- [ ] la grille tarifaire du pays existe et tous les contenus payants publiés y ont un prix ;
+- [ ] un **paiement réel de contrôle** a réussi pour chaque moyen proposé, et un remboursement a été testé ;
+- [ ] les SMS OTP arrivent sur les principaux opérateurs du pays ;
+- [ ] les obligations juridiques et fiscales du pays sont traitées (§4) ;
+- [ ] décision d'ouverture du fondateur, journalisée.
