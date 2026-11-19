@@ -11,8 +11,9 @@ export const dynamic = "force-dynamic";
 const params = z.object({ episodeId: z.string().uuid() });
 const body = z.object({ purpose: z.enum(["start", "renew", "preload"]).default("start") });
 
-// SEC-54 : nouvelles lectures et renouvellements/préchargements limités séparément.
-const limiters = { start: new SlidingWindowLimiter(60), refresh: new SlidingWindowLimiter(400) };
+// SEC-54 : nouvelles lectures et renouvellements/préchargements limités séparément
+// (valeurs lues dans le réglage `playback_token` ; celles-ci ne servent que si le réglage manque).
+const limiters = { start: new SlidingWindowLimiter(600), refresh: new SlidingWindowLimiter(3000) };
 
 const MESSAGES = {
   not_found: "Épisode introuvable.",

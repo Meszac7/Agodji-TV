@@ -14,4 +14,11 @@ LANGUAGE sql STABLE SET search_path = pg_catalog, app AS $$
   );
 $$;
 
+-- Limites d'émission de liens (SEC-54) pour les visiteurs sans compte, PAR ADRESSE IP.
+-- Beaucoup d'abonnés mobiles partagent la même adresse publique chez leur opérateur : la limite par IP
+-- doit rester large ; la limite par client (per_user_hour) s'appliquera aux comptes (étape L4).
+UPDATE app.app_settings
+   SET value = value || '{"per_ip_hour": 600, "refresh_per_ip_hour": 3000}'::jsonb
+ WHERE key = 'playback_token';
+
 SELECT app.lock_down();

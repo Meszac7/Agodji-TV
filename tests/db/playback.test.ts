@@ -116,14 +116,22 @@ describe("droit de lecture (has_episode_access) et lien signé", () => {
     });
   });
 
+  it("limites par IP lues en base, larges (adresses partagées des opérateurs mobiles)", async () => {
+    const { rows } = await db.query(`SELECT value FROM app.app_settings WHERE key = 'playback_token'`);
+    expect(rows[0].value).toMatchObject({ validity_seconds: 300, per_user_hour: 60, per_ip_hour: 600, refresh_per_ip_hour: 3000 });
+  });
+
   it("limites séparées : nouvelles lectures vs renouvellements (SEC-54)", async () => {
     const l = { start: new SlidingWindowLimiter(2), refresh: new SlidingWindowLimiter(3) };
     const id = await episodeId(1);
+    await db.query("BEGIN");
+    await db.query(`UPDATE app.app_settings SET value = value || '{"per_ip_hour": 2}'::jsonb WHERE key = 'playback_token'`);
     const call = (purpose: "start" | "renew") => authorizePlayback(db, video, l, { episodeId: id, purpose, clientKey: "ip-1", customerId: null });
     expect((await call("start")).ok).toBe(true);
     expect((await call("start")).ok).toBe(true);
     expect(await call("start")).toEqual({ ok: false, reason: "rate_limited" });
     expect((await call("renew")).ok).toBe(true);
+    await db.query("ROLLBACK");
   });
 
   it("has_episode_access : gratuit public seulement (comptes et achats à l'étape L4)", async () => {

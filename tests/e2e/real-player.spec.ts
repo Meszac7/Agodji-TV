@@ -115,6 +115,19 @@ test.describe("lecteur réel — flux HLS signé", () => {
     expect(new Set(playbackCalls).size).toBe(2);
   });
 
+  test("revenir à un épisode déjà quitté relance sa lecture (aller-retour dans le défilement)", async ({ page }) => {
+    await enterPlayer(page);
+    await waitPlaying(page);
+    await goToSlide(page, 2); // épisode 3, payant
+    await expect(page.getByTestId("feed-title")).toContainText("Épisode 3");
+    await goToSlide(page, 1); // retour à l'épisode 2
+    await expect(page.getByTestId("feed-title")).toContainText("Épisode 2");
+    await waitPlaying(page);
+    await goToSlide(page, 0); // retour à l'épisode 1
+    await expect(page.getByTestId("feed-title")).toContainText("Épisode 1");
+    await waitPlaying(page);
+  });
+
   test("lien expiré pendant la lecture : nouveau lien demandé, la lecture continue sans interruption", async ({ page }) => {
     let firstDir: string | null = null;
     let refused = 0;

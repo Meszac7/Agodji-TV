@@ -191,6 +191,8 @@ export function useEpisodeStream({
 
     return () => {
       cancelled = true;
+      // Le flux est détaché : la lecture ne doit pas être relancée avant le prochain attachement.
+      setAttachedAt(0);
       window.clearTimeout(retryTimer);
       video.removeEventListener("error", onNativeError);
       hls.current?.destroy();

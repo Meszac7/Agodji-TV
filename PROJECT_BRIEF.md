@@ -130,6 +130,7 @@ Colonne « Nécessaire avant » : moment où la décision devient réellement n�
 | D-27 | Visionnage en défilement continu | Défilement vertical entre épisodes, enchaînement automatique (jamais vers un contenu payant), reprise exacte (y compris après paiement), déblocage dans le lecteur, fin de série avec autres séries et retour au catalogue | **Principe validé** ; maquette `/maquettes/lecteur` à valider | Étape 2 |
 | D-28 | Dépassement des limites de format (10 épisodes, 1 min 50, 15 min, calculé sur tous les épisodes) | **Publication bloquée, sans contournement**, garantie par la base de données | **Validé** (2026-11-22) | — |
 | D-29 | Structure du contenu et modèle commercial | **Pas de saisons** : série = histoire complète ; **Pass série** (épisodes présents et futurs, sans expiration) + épisode à l'unité ; fin de série = autres séries + retour au catalogue | **Validé** (2026-11-21) ; nouvelle maquette à valider | Étape 2 |
+| D-30 | Diffusion vidéo | Qualités **360p / 480p / 720p** (pas de 1080p) ; **DRM reporté** ; liens de lecture de **5 min** (à confirmer par tests réels) ; réseau Bunny **Standard** au départ | **Validé** (2026-11-23) | — |
 
 ## 9. Index des documents
 
