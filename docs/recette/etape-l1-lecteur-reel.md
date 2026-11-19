@@ -1,6 +1,6 @@
 # Fiche de recette — Étape L1 : écrans V2 branchés sur la base, lecture des épisodes gratuits
 
-Statut : **livrée, en attente de validation du fondateur**.
+Statut : **validée et clôturée par le fondateur** (y compris le choix de qualité, option A). Reste à faire : test réel sur iPhone (lecture native Safari) dès la préproduction en ligne.
 Démonstration : vidéo `lecteur-reel-l1/parcours-lecteur-reel.mp4` (40 s) et captures `lecteur-reel-l1/`.
 Le site de préproduction en ligne (pour tester sur votre téléphone) nécessite les comptes Vercel et Supabase prévus à l'étape L2 : voir le rapport d'étape.
 
