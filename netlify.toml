@@ -1,0 +1,19 @@
+# Agodjié TV — PRÉPRODUCTION sur Netlify (offre gratuite). Aucune clé ni valeur secrète ici :
+# APP_ENV=preview, PREVIEW_ACCESS_CODE, DATABASE_URL… se saisissent dans Netlify
+# (Project configuration → Environment variables), jamais dans le dépôt.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+  # Mises en ligne UNIQUEMENT sur demande (voir le script) : pas de déploiement à chaque modification.
+  ignore = "bash scripts/netlify-ignore.sh"
+
+[build.environment]
+  NODE_VERSION = "22"
+  # npm 10 (fourni avec Node 22) échoue sur notre fichier de verrouillage : même version que la CI.
+  NPM_VERSION = "11.6.2"
+  NEXT_TELEMETRY_DISABLED = "1"
+
+[functions]
+  # Flux HLS de démonstration du simulateur vidéo (préproduction uniquement ; refusé en production).
+  included_files = ["demo-media/**"]

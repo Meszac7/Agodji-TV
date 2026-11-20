@@ -413,6 +413,7 @@ Variables d'environnement (noms indicatifs, aucune valeur dans le dépôt) :
 | `NEXT_PUBLIC_SENTRY_DSN` | public | Remontée d'erreurs (identifiant non secret) |
 | `CRON_SECRET` | **serveur** | Protection des routes cron |
 | `APP_BASE_URL` | serveur | URL de retour paiement |
+| `PREVIEW_ACCESS_CODE` | **serveur** | Code d'accès de la préproduction (≥ 16 caractères) ; sans lui, la préproduction reste fermée. Saisi dans Netlify |
 
 Un fichier `.env.example` (sans valeurs) sera créé au début du développement.
 
