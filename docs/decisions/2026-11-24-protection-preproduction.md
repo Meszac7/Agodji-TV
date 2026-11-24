@@ -1,6 +1,6 @@
 # Décision — Hébergement et protection de la préproduction
 
-Statut : choix d'hébergement **validé par le fondateur** (Netlify Free, Supabase Free, essai Bunny Stream, GitHub) ; protection **préparée dans le dépôt, en attente de validation**. Aucun compte connecté, aucun déploiement, aucune dépense.
+Statut : choix d'hébergement **validé par le fondateur** (Netlify Free, Supabase Free, essai Bunny Stream, GitHub) ; protection **validée par le fondateur** (préparation clôturée). Vérification sur Netlify lui-même prévue après la première mise en ligne : pages, API, médias, fichiers techniques, code incorrect, déconnexion, absence de code. Aucun compte connecté, aucun déploiement, aucune dépense.
 Comparaison et budget : `docs/plans/hebergement-preproduction.md`.
 
 ## Protection (côté serveur, toutes les adresses)
